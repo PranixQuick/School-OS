@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
 
 const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 interface EvalResult {
   score: number;
@@ -12,7 +12,11 @@ interface EvalResult {
   feedback: string;
 }
 
-async function transcribeAudio(audioBuffer: ArrayBuffer, mimeType: string, fileName: string): Promise<string> {
+async function transcribeAudio(
+  audioBuffer: ArrayBuffer,
+  mimeType: string,
+  fileName: string
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
 
@@ -34,60 +38,87 @@ async function transcribeAudio(audioBuffer: ArrayBuffer, mimeType: string, fileN
     throw new Error(`Whisper API error: ${response.status} - ${err}`);
   }
 
-  const text = await response.text();
-  return text.trim();
+  return (await response.text()).trim();
 }
 
-async function evaluateTeaching(transcript: string, teacherName: string): Promise<EvalResult> {
+async function evaluateTeaching(
+  transcript: string,
+  teacherName: string
+): Promise<EvalResult> {
   const system = `You are an expert teaching coach evaluating classroom recordings.
-Analyze the teaching quality and return ONLY a valid JSON object with exactly these keys:
+Analyze the transcript and return ONLY a valid JSON object with exactly these four keys:
 {
-  "score": <number 1-10>,
-  "strengths": "<2-3 specific strengths observed, 50-80 words>",
-  "improvements": "<2-3 specific areas to improve, 50-80 words>",
+  "score": <integer 1-10>,
+  "strengths": "<2-3 specific strengths observed, 60-90 words>",
+  "improvements": "<2-3 specific areas to improve, 60-90 words>",
   "feedback": "<overall coaching feedback with actionable next steps, 80-120 words>"
 }
-No markdown, no explanation, no extra text. Only the JSON object.`;
+No markdown. No explanation. No text before or after. Only the JSON object.`;
 
   const userMsg = `Teacher: ${teacherName}
 
 Classroom transcript:
 ${transcript.slice(0, 6000)}
 
-Evaluate the teaching quality and return the JSON evaluation.`;
+Evaluate this teaching session and return the JSON.`;
 
-  const raw = await callClaude(system, userMsg, 600);
+  const raw = await callClaude(system, userMsg, 700);
 
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Claude did not return valid JSON');
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude returned invalid JSON');
 
-  const parsed = JSON.parse(jsonMatch[0]) as EvalResult;
-  if (typeof parsed.score !== 'number') throw new Error('Invalid evaluation format');
+  const parsed = JSON.parse(match[0]) as EvalResult;
+  if (typeof parsed.score !== 'number') throw new Error('Invalid evaluation schema');
 
   return parsed;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('audio') as File | null;
-    const staffId = formData.get('staffId') as string | null;
+    // Handle both FormData (file upload) and JSON (pre-uploaded from generate-audio)
+    const contentType = req.headers.get('content-type') ?? '';
+    let audioBuffer: ArrayBuffer;
+    let fileName: string;
+    let mimeType: string;
+    let staffId: string;
+    let preUploadedUrl: string | null = null;
+    let preUploadedPath: string | null = null;
 
-    if (!file || !staffId) {
-      return NextResponse.json({ error: 'audio file and staffId required' }, { status: 400 });
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const file = formData.get('audio') as File | null;
+      staffId = (formData.get('staffId') as string) ?? '';
+
+      if (!file || !staffId) {
+        return NextResponse.json({ error: 'audio file and staffId required' }, { status: 400 });
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ error: 'File too large. Max 50MB.' }, { status: 400 });
+      }
+      audioBuffer = await file.arrayBuffer();
+      fileName = file.name;
+      mimeType = file.type || 'audio/mpeg';
+    } else {
+      // JSON body — audio already uploaded via generate-audio route
+      const body = await req.json() as {
+        staffId: string;
+        storagePath: string;
+        fileUrl: string;
+        fileName: string;
+      };
+      staffId = body.staffId;
+      preUploadedUrl = body.fileUrl;
+      preUploadedPath = body.storagePath;
+      fileName = body.fileName;
+      mimeType = 'audio/mpeg';
+
+      // Download the audio back to transcribe
+      const dlRes = await fetch(preUploadedUrl);
+      if (!dlRes.ok) throw new Error('Failed to fetch generated audio for transcription');
+      audioBuffer = await dlRes.arrayBuffer();
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large. Max 50MB.' }, { status: 400 });
-    }
-
-    const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/m4a', 'audio/mp4', 'audio/webm'];
-    const fileType = file.type || 'audio/mpeg';
-    if (!allowedTypes.some(t => fileType.includes(t.split('/')[1]))) {
-      return NextResponse.json({ error: 'Unsupported audio format. Use mp3, wav, or m4a.' }, { status: 400 });
-    }
-
-    // Fetch teacher name
+    // Fetch teacher info
     const { data: staffData } = await supabaseAdmin
       .from('staff')
       .select('name, subject')
@@ -97,35 +128,33 @@ export async function POST(req: NextRequest) {
 
     const teacherName = staffData?.name ?? 'Teacher';
 
-    // Upload to Supabase Storage
-    const timestamp = Date.now();
-    const ext = file.name.split('.').pop() ?? 'mp3';
-    const storagePath = `${SCHOOL_ID}/${staffId}/${timestamp}.${ext}`;
-    const audioBuffer = await file.arrayBuffer();
+    // Upload to storage if not already uploaded
+    let fileUrl = preUploadedUrl ?? '';
+    if (!preUploadedPath) {
+      const timestamp = Date.now();
+      const ext = fileName.split('.').pop() ?? 'mp3';
+      const storagePath = `${SCHOOL_ID}/${staffId}/${timestamp}.${ext}`;
 
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from('recordings')
-      .upload(storagePath, audioBuffer, {
-        contentType: fileType,
-        upsert: false,
-      });
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('recordings')
+        .upload(storagePath, audioBuffer, { contentType: mimeType, upsert: false });
 
-    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
 
-    const { data: urlData } = supabaseAdmin.storage
-      .from('recordings')
-      .getPublicUrl(storagePath);
+      const { data: urlData } = supabaseAdmin.storage
+        .from('recordings')
+        .getPublicUrl(storagePath);
+      fileUrl = urlData?.publicUrl ?? storagePath;
+    }
 
-    const fileUrl = urlData?.publicUrl ?? storagePath;
-
-    // Insert recording row with 'transcribing' status
+    // Insert recording row
     const { data: recording, error: insertError } = await supabaseAdmin
       .from('recordings')
       .insert({
         school_id: SCHOOL_ID,
         staff_id: staffId,
         file_url: fileUrl,
-        file_name: file.name,
+        file_name: fileName,
         status: 'transcribing',
         uploaded_at: new Date().toISOString(),
       })
@@ -136,22 +165,20 @@ export async function POST(req: NextRequest) {
 
     const recordingId = recording.id as string;
 
-    // Transcribe with Whisper
+    // Transcribe
     let transcript = '';
     try {
-      transcript = await transcribeAudio(audioBuffer, fileType, file.name);
+      transcript = await transcribeAudio(audioBuffer, mimeType, fileName);
     } catch (e) {
       await supabaseAdmin.from('recordings').update({ status: 'failed' }).eq('id', recordingId);
       throw new Error(`Transcription failed: ${String(e)}`);
     }
 
-    // Update status to analysing
-    await supabaseAdmin.from('recordings').update({
-      transcript,
-      status: 'analysing',
-    }).eq('id', recordingId);
+    await supabaseAdmin.from('recordings')
+      .update({ transcript, status: 'analysing' })
+      .eq('id', recordingId);
 
-    // Evaluate with Claude
+    // Evaluate
     let evalResult: EvalResult;
     try {
       evalResult = await evaluateTeaching(transcript, teacherName);
@@ -160,7 +187,7 @@ export async function POST(req: NextRequest) {
       throw new Error(`Evaluation failed: ${String(e)}`);
     }
 
-    // Save final result
+    // Save final
     await supabaseAdmin.from('recordings').update({
       eval_report: JSON.stringify(evalResult),
       coaching_score: evalResult.score,
@@ -172,7 +199,7 @@ export async function POST(req: NextRequest) {
       success: true,
       recordingId,
       teacherName,
-      transcript: transcript.slice(0, 500) + (transcript.length > 500 ? '...' : ''),
+      transcript: transcript.slice(0, 400) + (transcript.length > 400 ? '...' : ''),
       evaluation: evalResult,
     });
 
