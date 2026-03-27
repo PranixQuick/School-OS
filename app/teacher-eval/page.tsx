@@ -1,21 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { CSSProperties } from 'react';
+import Layout from '@/components/Layout';
+import Link from 'next/link';
 
 interface StaffMember { id: string; name: string; role: string; subject: string | null; }
 interface EvalResult { score: number; strengths: string; improvements: string; feedback: string; }
-interface Recording {
-  id: string; file_name: string; coaching_score: number | null;
-  eval_report: string | null; status: string; uploaded_at: string; staff_id: string;
-}
+interface Recording { id: string; file_name: string; coaching_score: number | null; eval_report: string | null; status: string; uploaded_at: string; }
 
 type PageStatus = 'idle' | 'generating' | 'uploading' | 'processing' | 'done' | 'error';
 
-const BTN: CSSProperties = { border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 };
-
-function scoreColor(s: number) { return s >= 8 ? '#0F6E56' : s >= 6 ? '#854F0B' : '#993C1D'; }
-function scoreBg(s: number) { return s >= 8 ? '#E1F5EE' : s >= 6 ? '#FAEEDA' : '#FAECE7'; }
+function scoreColor(s: number) { return s >= 8 ? '#15803D' : s >= 6 ? '#A16207' : '#B91C1C'; }
+function scoreBg(s: number) { return s >= 8 ? '#DCFCE7' : s >= 6 ? '#FEF9C3' : '#FEE2E2'; }
 
 export default function TeacherEvalPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -46,117 +42,47 @@ export default function TeacherEvalPage() {
 
   async function handleUpload() {
     if (!file || !selectedStaff) return;
-    setStatus('uploading');
-    setStatusMsg('Uploading audio...');
-    setResult(null); setErrorMsg('');
-
+    setStatus('uploading'); setStatusMsg('Uploading audio...'); setResult(null); setErrorMsg('');
     const fd = new FormData();
-    fd.append('audio', file);
-    fd.append('staffId', selectedStaff);
-
+    fd.append('audio', file); fd.append('staffId', selectedStaff);
     try {
       setStatusMsg('Transcribing with Whisper...');
       const res = await fetch('/api/teacher-eval/process', { method: 'POST', body: fd });
       const data = await res.json() as { error?: string; evaluation?: EvalResult; teacherName?: string };
       if (!res.ok) throw new Error(data.error ?? 'Processing failed');
-      setResult(data.evaluation ?? null);
-      setTeacherName(data.teacherName ?? '');
-      setStatus('done');
-      setFile(null);
+      setResult(data.evaluation ?? null); setTeacherName(data.teacherName ?? '');
+      setStatus('done'); setFile(null);
       if (fileRef.current) fileRef.current.value = '';
       refreshHistory();
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
-      setStatus('error');
-    }
+    } catch (err: unknown) { setErrorMsg(err instanceof Error ? err.message : 'Unknown error'); setStatus('error'); }
   }
 
   async function handleGenerateSample() {
     if (!selectedStaff) return;
-    setStatus('generating');
-    setStatusMsg('Generating classroom audio with OpenAI TTS...');
-    setResult(null); setErrorMsg('');
-
+    setStatus('generating'); setStatusMsg('Generating classroom audio with OpenAI TTS...'); setResult(null); setErrorMsg('');
     try {
-      // Step 1: Generate TTS audio
-      const genRes = await fetch('/api/teacher-eval/generate-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staffId: selectedStaff, scriptIndex }),
-      });
+      const genRes = await fetch('/api/teacher-eval/generate-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: selectedStaff, scriptIndex }) });
       const genData = await genRes.json() as { error?: string; fileUrl?: string; storagePath?: string; fileName?: string };
       if (!genRes.ok) throw new Error(genData.error ?? 'Audio generation failed');
-
-      setStatus('processing');
-      setStatusMsg('Transcribing and evaluating...');
-      setScriptIndex(i => (i + 1) % 2);
-
-      // Step 2: Process the generated audio
-      const procRes = await fetch('/api/teacher-eval/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          staffId: selectedStaff,
-          storagePath: genData.storagePath,
-          fileUrl: genData.fileUrl,
-          fileName: genData.fileName ?? 'sample.mp3',
-        }),
-      });
+      setStatus('processing'); setStatusMsg('Transcribing and evaluating...'); setScriptIndex(i => (i + 1) % 2);
+      const procRes = await fetch('/api/teacher-eval/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: selectedStaff, storagePath: genData.storagePath, fileUrl: genData.fileUrl, fileName: genData.fileName ?? 'sample.mp3' }) });
       const procData = await procRes.json() as { error?: string; evaluation?: EvalResult; teacherName?: string };
       if (!procRes.ok) throw new Error(procData.error ?? 'Evaluation failed');
-
-      setResult(procData.evaluation ?? null);
-      setTeacherName(procData.teacherName ?? '');
-      setStatus('done');
-      refreshHistory();
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
-      setStatus('error');
-    }
+      setResult(procData.evaluation ?? null); setTeacherName(procData.teacherName ?? '');
+      setStatus('done'); refreshHistory();
+    } catch (err: unknown) { setErrorMsg(err instanceof Error ? err.message : 'Unknown error'); setStatus('error'); }
   }
 
   const isProcessing = ['generating', 'uploading', 'processing'].includes(status);
   const selectedStaffName = staff.find(s => s.id === selectedStaff)?.name ?? '';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <Layout title="Teacher Evaluation" subtitle="Classroom recording analysis and coaching feedback">
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
 
-      {/* Nav */}
-      <nav style={{ background: '#fff', borderBottom: '1px solid #E8E6DF', height: 56, display: 'flex', alignItems: 'center', padding: '0 32px', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>S</span>
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: '#1A1A18' }}>School OS</span>
-          </a>
-          <span style={{ color: '#D3D1C7', margin: '0 6px' }}>/</span>
-          <span style={{ fontSize: 14, color: '#5F5E5A' }}>Teacher Evaluation</span>
-        </div>
-        <span style={{ fontSize: 12, color: '#888780' }}>Suchitra Academy</span>
-      </nav>
-
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAEEDA', borderRadius: 20, padding: '4px 12px', marginBottom: 14 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#854F0B' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#854F0B', letterSpacing: '0.05em' }}>AI TEACHER EVALUATION</span>
-          </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1A1A18', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-            Classroom Recording Analyser
-          </h1>
-          <p style={{ fontSize: 15, color: '#5F5E5A', margin: 0, lineHeight: 1.6 }}>
-            Upload a real classroom recording or generate a sample to test. Whisper transcribes, Claude evaluates and generates coaching feedback.
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #E8E6DF', marginBottom: 24 }}>
+        <div className="tabs">
           {(['upload', 'history'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              style={{ ...BTN, padding: '10px 20px', background: 'none', fontSize: 14, color: activeTab === tab ? '#854F0B' : '#888780', borderBottom: activeTab === tab ? '2px solid #854F0B' : '2px solid transparent', marginBottom: -1, borderRadius: 0 }}>
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-btn${activeTab === tab ? ' active' : ''}`}>
               {tab === 'upload' ? 'Upload & Analyse' : `History (${history.length})`}
             </button>
           ))}
@@ -164,123 +90,90 @@ export default function TeacherEvalPage() {
 
         {activeTab === 'upload' && (
           <>
-            <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 16, padding: 28, marginBottom: 20 }}>
-
-              {/* Teacher selector */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5F5E5A', letterSpacing: '0.05em', marginBottom: 7 }}>SELECT TEACHER</label>
-                <select value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}
-                  style={{ width: '100%', height: 42, borderRadius: 8, border: '1px solid #D3D1C7', background: '#FAFAF8', fontSize: 14, padding: '0 12px', outline: 'none' }}>
-                  {staff.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}{s.subject ? ` — ${s.subject}` : ''}</option>
-                  ))}
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 18 }}>
+                <label className="label">SELECT TEACHER</label>
+                <select className="input" style={{ height: 42 } as React.CSSProperties} value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.name}{s.subject ? ` — ${s.subject}` : ''}</option>)}
                   {staff.length === 0 && <option value="">Loading...</option>}
                 </select>
               </div>
 
-              {/* Two-path: Upload or Generate */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-
-                {/* Upload path */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5F5E5A', letterSpacing: '0.05em', marginBottom: 7 }}>UPLOAD RECORDING</label>
-                  <div onClick={() => fileRef.current?.click()}
-                    style={{ border: `2px dashed ${file ? '#854F0B' : '#D3D1C7'}`, borderRadius: 10, padding: '20px 14px', textAlign: 'center', cursor: 'pointer', background: file ? '#FAEEDA' : '#FAFAF8' }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>🎙</div>
+                  <label className="label">UPLOAD RECORDING</label>
+                  <div onClick={() => fileRef.current?.click()} className={`upload-zone${file ? ' active' : ''}`}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>🎙</div>
                     {file ? (
                       <>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#854F0B' }}>{file.name.slice(0, 22)}{file.name.length > 22 ? '...' : ''}</div>
-                        <div style={{ fontSize: 11, color: '#888780', marginTop: 2 }}>{(file.size / 1024 / 1024).toFixed(1)} MB</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#4F46E5' }}>{file.name.slice(0, 24)}{file.name.length > 24 ? '...' : ''}</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{(file.size / 1024 / 1024).toFixed(1)} MB · Click to change</div>
                       </>
                     ) : (
                       <>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: '#2C2C2A' }}>Click to upload</div>
-                        <div style={{ fontSize: 11, color: '#888780', marginTop: 2 }}>MP3, WAV, M4A · 50MB</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Click to upload audio</div>
+                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>MP3, WAV, M4A · Max 50MB</div>
                       </>
                     )}
                   </div>
                   <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] ?? null)} />
-                  <button onClick={handleUpload} disabled={!file || !selectedStaff || isProcessing}
-                    style={{ ...BTN, width: '100%', height: 40, borderRadius: 8, marginTop: 8, background: (!file || !selectedStaff || isProcessing) ? '#D3D1C7' : '#854F0B', color: '#fff', fontSize: 13 }}>
-                    Analyse Upload
-                  </button>
+                  <button onClick={handleUpload} disabled={!file || !selectedStaff || isProcessing} className="btn btn-primary" style={{ width: '100%', marginTop: 8 }}>Analyse Upload</button>
                 </div>
 
-                {/* Generate path */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5F5E5A', letterSpacing: '0.05em', marginBottom: 7 }}>AUTO-GENERATE SAMPLE</label>
-                  <div style={{ border: '2px dashed #D3D1C7', borderRadius: 10, padding: '20px 14px', textAlign: 'center', background: '#F1EFE8' }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>🤖</div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#2C2C2A' }}>No audio? No problem.</div>
-                    <div style={{ fontSize: 11, color: '#888780', marginTop: 2 }}>Generates a classroom script via OpenAI TTS then runs the full pipeline automatically.</div>
+                  <label className="label">AUTO-GENERATE SAMPLE</label>
+                  <div className="upload-zone" style={{ cursor: 'default', borderStyle: 'solid', borderColor: '#E5E7EB', background: '#F9FAFB' }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>🤖</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>No audio? No problem.</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>OpenAI TTS generates a classroom script, then runs the full pipeline automatically.</div>
                   </div>
-                  <button onClick={handleGenerateSample} disabled={!selectedStaff || isProcessing}
-                    style={{ ...BTN, width: '100%', height: 40, borderRadius: 8, marginTop: 8, background: (!selectedStaff || isProcessing) ? '#D3D1C7' : '#0F6E56', color: '#fff', fontSize: 13 }}>
-                    Generate Sample Audio
-                  </button>
+                  <button onClick={handleGenerateSample} disabled={!selectedStaff || isProcessing} className="btn btn-ghost" style={{ width: '100%', marginTop: 8, background: '#F0FDF4', borderColor: '#BBF7D0', color: '#15803D' }}>Generate Sample Audio</button>
                 </div>
               </div>
 
-              {/* Status indicator */}
-              {isProcessing && (
-                <div style={{ background: '#FAEEDA', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Spinner color="#854F0B" />
+              {isProcessing ? (
+                <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span className="spinner" style={{ width: 16, height: 16, border: '2px solid #C7D2FE', borderTop: '2px solid #4F46E5', flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#854F0B' }}>Processing</div>
-                    <div style={{ fontSize: 12, color: '#5F5E5A' }}>{statusMsg}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>Processing</div>
+                    <div style={{ fontSize: 12, marginTop: 1 }}>{statusMsg}</div>
                   </div>
                 </div>
-              )}
-
-              {/* Info strip (idle) */}
-              {!isProcessing && (
-                <div style={{ background: '#F1EFE8', borderRadius: 8, padding: '12px 16px', display: 'flex', gap: 32 }}>
-                  {[
-                    { label: 'Teacher', value: selectedStaffName || '—' },
-                    { label: 'Pipeline', value: 'Whisper → Claude Sonnet' },
-                    { label: 'Est. time', value: '30–90 seconds' },
-                  ].map(item => (
-                    <div key={item.label}>
-                      <div style={{ fontSize: 10, color: '#888780', marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2C2C2A' }}>{item.value}</div>
+              ) : (
+                <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 28, border: '1px solid #F3F4F6' }}>
+                  {[{ l: 'Teacher', v: selectedStaffName || '—' }, { l: 'Pipeline', v: 'Whisper → Claude' }, { l: 'Est. time', v: '30–90 sec' }].map(x => (
+                    <div key={x.l}>
+                      <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2, fontWeight: 600, letterSpacing: '0.04em' }}>{x.l.toUpperCase()}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{x.v}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Error */}
-            {status === 'error' && (
-              <div style={{ background: '#FAECE7', border: '1px solid #F0997B', borderRadius: 10, padding: '14px 18px', color: '#712B13', fontSize: 14, marginBottom: 20 }}>
-                <strong>Error:</strong> {errorMsg}
-              </div>
-            )}
+            {status === 'error' && <div className="alert alert-error" style={{ marginBottom: 16 }}><strong>Error:</strong> {errorMsg}</div>}
 
-            {/* Result */}
             {status === 'done' && result && (
-              <div style={{ background: '#fff', border: '1.5px solid #854F0B', borderRadius: 16, overflow: 'hidden' }}>
-                <div style={{ background: '#FAEEDA', padding: '20px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="card" style={{ border: '1.5px solid #F59E0B', padding: 0, overflow: 'hidden' }}>
+                <div style={{ background: '#FFFBEB', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#854F0B', letterSpacing: '0.05em', marginBottom: 4 }}>EVALUATION COMPLETE</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#1A1A18' }}>{teacherName}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#A16207', letterSpacing: '0.05em', marginBottom: 4 }}>EVALUATION COMPLETE</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#111827' }}>{teacherName}</div>
                   </div>
-                  <div style={{ width: 72, height: 72, borderRadius: '50%', background: scoreBg(result.score), border: `3px solid ${scoreColor(result.score)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="score-circle" style={{ width: 72, height: 72, background: scoreBg(result.score), border: `3px solid ${scoreColor(result.score)}` }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: scoreColor(result.score), lineHeight: 1 }}>{result.score}</div>
                     <div style={{ fontSize: 10, color: scoreColor(result.score), fontWeight: 600 }}>/ 10</div>
                   </div>
                 </div>
-                <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    { label: 'STRENGTHS', text: result.strengths, color: '#0F6E56', bg: '#E1F5EE', icon: '✓' },
-                    { label: 'AREAS FOR IMPROVEMENT', text: result.improvements, color: '#854F0B', bg: '#FAEEDA', icon: '↑' },
-                    { label: 'COACHING FEEDBACK', text: result.feedback, color: '#3C3489', bg: '#EEEDFE', icon: '→' },
+                    { label: 'STRENGTHS', text: result.strengths, color: '#15803D', bg: '#DCFCE7', icon: '✓' },
+                    { label: 'AREAS FOR IMPROVEMENT', text: result.improvements, color: '#A16207', bg: '#FEF9C3', icon: '↑' },
+                    { label: 'COACHING FEEDBACK', text: result.feedback, color: '#4338CA', bg: '#EEF2FF', icon: '→' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: s.bg, borderRadius: 10, padding: '14px 18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.icon}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: s.color, letterSpacing: '0.05em' }}>{s.label}</span>
-                      </div>
-                      <p style={{ fontSize: 14, color: '#2C2C2A', lineHeight: 1.7, margin: 0 }}>{s.text}</p>
+                    <div key={s.label} className="feedback-block" style={{ background: s.bg }}>
+                      <div className="feedback-label" style={{ color: s.color }}><span>{s.icon}</span>{s.label}</div>
+                      <div className="feedback-text">{s.text}</div>
                     </div>
                   ))}
                 </div>
@@ -289,45 +182,26 @@ export default function TeacherEvalPage() {
           </>
         )}
 
-        {/* History tab */}
         {activeTab === 'history' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {history.length === 0 && (
-              <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 12, padding: 40, textAlign: 'center', color: '#888780', fontSize: 14 }}>
-                No evaluations yet. Upload a recording or generate a sample to get started.
-              </div>
-            )}
-            {history.map(rec => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {history.length === 0 ? (
+              <div className="card"><div className="empty-state"><div className="empty-state-icon">🎙</div><div className="empty-state-title">No evaluations yet</div><div className="empty-state-sub">Upload a recording or generate a sample.</div></div></div>
+            ) : history.map(rec => {
               const evalData = rec.eval_report ? JSON.parse(rec.eval_report) as EvalResult : null;
-              const date = new Date(rec.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+              const score = rec.coaching_score ?? 0;
               return (
-                <div key={rec.id} style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 12, padding: 20 }}>
+                <div key={rec.id} className="card">
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: evalData ? 14 : 0 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: '#1A1A18', marginBottom: 3 }}>{rec.file_name}</div>
-                      <div style={{ fontSize: 12, color: '#888780' }}>{date}</div>
-                    </div>
+                    <div><div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 3 }}>{rec.file_name.replace(/sample_classroom_\d+/, 'Sample Recording')}</div><div style={{ fontSize: 12, color: '#9CA3AF' }}>{new Date(rec.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {rec.coaching_score && (
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: scoreBg(rec.coaching_score), border: `2px solid ${scoreColor(rec.coaching_score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: scoreColor(rec.coaching_score) }}>
-                          {rec.coaching_score}
-                        </div>
-                      )}
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: rec.status === 'done' ? '#E1F5EE' : rec.status === 'failed' ? '#FAECE7' : '#FAEEDA', color: rec.status === 'done' ? '#0F6E56' : rec.status === 'failed' ? '#993C1D' : '#854F0B' }}>
-                        {rec.status.toUpperCase()}
-                      </span>
+                      {score > 0 && <div className="score-circle" style={{ width: 40, height: 40, background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, fontWeight: 800, fontSize: 14, color: scoreColor(score) }}>{score}</div>}
+                      <span className={`badge badge-${rec.status === 'done' ? 'done' : rec.status === 'failed' ? 'failed' : 'pending'}`}>{rec.status.toUpperCase()}</span>
                     </div>
                   </div>
                   {evalData && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div style={{ background: '#E1F5EE', borderRadius: 8, padding: '10px 14px' }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#0F6E56', marginBottom: 4 }}>STRENGTHS</div>
-                        <p style={{ fontSize: 12, color: '#2C2C2A', lineHeight: 1.5, margin: 0 }}>{evalData.strengths.slice(0, 140)}{evalData.strengths.length > 140 ? '...' : ''}</p>
-                      </div>
-                      <div style={{ background: '#EEEDFE', borderRadius: 8, padding: '10px 14px' }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#3C3489', marginBottom: 4 }}>COACHING</div>
-                        <p style={{ fontSize: 12, color: '#2C2C2A', lineHeight: 1.5, margin: 0 }}>{evalData.feedback.slice(0, 140)}{evalData.feedback.length > 140 ? '...' : ''}</p>
-                      </div>
+                      <div style={{ background: '#DCFCE7', borderRadius: 8, padding: '10px 14px' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#15803D', marginBottom: 4 }}>STRENGTHS</div><p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.strengths.slice(0, 140)}...</p></div>
+                      <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#4338CA', marginBottom: 4 }}>COACHING</div><p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.feedback.slice(0, 140)}...</p></div>
                     </div>
                   )}
                 </div>
@@ -336,15 +210,6 @@ export default function TeacherEvalPage() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function Spinner({ color = '#854F0B' }: { color?: string }) {
-  return (
-    <>
-      <style>{`@keyframes te_spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ width: 16, height: 16, border: `2px solid ${color}40`, borderTop: `2px solid ${color}`, borderRadius: '50%', animation: 'te_spin 0.7s linear infinite', flexShrink: 0 }} />
-    </>
+    </Layout>
   );
 }
