@@ -75,13 +75,11 @@ Evaluate this teaching session and return the JSON.`;
 
 export async function POST(req: NextRequest) {
   try {
-    // Handle both FormData (file upload) and JSON (pre-uploaded from generate-audio)
     const contentType = req.headers.get('content-type') ?? '';
     let audioBuffer: ArrayBuffer;
     let fileName: string;
     let mimeType: string;
     let staffId: string;
-    let preUploadedUrl: string | null = null;
     let preUploadedPath: string | null = null;
 
     if (contentType.includes('multipart/form-data')) {
@@ -107,14 +105,21 @@ export async function POST(req: NextRequest) {
         fileName: string;
       };
       staffId = body.staffId;
-      preUploadedUrl = body.fileUrl;
       preUploadedPath = body.storagePath;
       fileName = body.fileName;
       mimeType = 'audio/mpeg';
 
-      // Download the audio back to transcribe
-      const dlRes = await fetch(preUploadedUrl);
-      if (!dlRes.ok) throw new Error('Failed to fetch generated audio for transcription');
+      // FIX 4: Use signed URL instead of public URL (bucket is private)
+      const { data: signedData, error: signErr } = await supabaseAdmin.storage
+        .from('recordings')
+        .createSignedUrl(preUploadedPath, 300);
+
+      if (signErr || !signedData?.signedUrl) {
+        throw new Error(`Failed to create signed URL: ${signErr?.message ?? 'unknown'}`);
+      }
+
+      const dlRes = await fetch(signedData.signedUrl);
+      if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
       audioBuffer = await dlRes.arrayBuffer();
     }
 
@@ -129,7 +134,7 @@ export async function POST(req: NextRequest) {
     const teacherName = staffData?.name ?? 'Teacher';
 
     // Upload to storage if not already uploaded
-    let fileUrl = preUploadedUrl ?? '';
+    let fileUrl = '';
     if (!preUploadedPath) {
       const timestamp = Date.now();
       const ext = fileName.split('.').pop() ?? 'mp3';
@@ -145,6 +150,8 @@ export async function POST(req: NextRequest) {
         .from('recordings')
         .getPublicUrl(storagePath);
       fileUrl = urlData?.publicUrl ?? storagePath;
+    } else {
+      fileUrl = preUploadedPath; // store the storage path as reference
     }
 
     // Insert recording row
@@ -207,4 +214,4 @@ export async function POST(req: NextRequest) {
     console.error('Teacher eval error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-}
+      }
