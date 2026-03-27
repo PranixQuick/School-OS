@@ -4,45 +4,51 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function GET(req: NextRequest) {
-  const date = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
+  try {
+    const date = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
 
-  const [attRes, staffRes] = await Promise.all([
-    supabaseAdmin
-      .from('teacher_attendance')
-      .select('id, staff_id, date, status, check_in_time, marked_via, notes')
-      .eq('school_id', SCHOOL_ID)
-      .eq('date', date),
-    supabaseAdmin
-      .from('staff')
-      .select('id, name, role, subject')
-      .eq('school_id', SCHOOL_ID)
-      .eq('is_active', true)
-      .order('name'),
-  ]);
+    const [attRes, staffRes] = await Promise.all([
+      supabaseAdmin
+        .from('teacher_attendance')
+        .select('id, staff_id, date, status, check_in_time, marked_via, notes')
+        .eq('school_id', SCHOOL_ID)
+        .eq('date', date),
+      supabaseAdmin
+        .from('staff')
+        .select('id, name, role, subject')
+        .eq('school_id', SCHOOL_ID)
+        .eq('is_active', true)
+        .order('name'),
+    ]);
 
-  const attendance = attRes.data ?? [];
-  const staff = staffRes.data ?? [];
+    if (staffRes.error) throw new Error(staffRes.error.message);
 
-  // Merge: add attendance status to each staff member
-  const merged = staff.map(s => {
-    const att = attendance.find(a => a.staff_id === s.id);
-    return {
-      ...s,
-      attendance_id: att?.id ?? null,
-      status: att?.status ?? 'not_marked',
-      check_in_time: att?.check_in_time ?? null,
-      marked_via: att?.marked_via ?? null,
+    const attendance = attRes.data ?? [];
+    const staff = staffRes.data ?? [];
+
+    const merged = staff.map(s => {
+      const att = attendance.find(a => a.staff_id === s.id);
+      return {
+        ...s,
+        attendance_id: att?.id ?? null,
+        status: att?.status ?? 'not_marked',
+        check_in_time: att?.check_in_time ?? null,
+        marked_via: att?.marked_via ?? null,
+      };
+    });
+
+    const summary = {
+      present: attendance.filter(a => a.status === 'present').length,
+      absent: attendance.filter(a => a.status === 'absent').length,
+      late: attendance.filter(a => a.status === 'late').length,
+      not_marked: staff.length - attendance.length,
     };
-  });
 
-  const summary = {
-    present: attendance.filter(a => a.status === 'present').length,
-    absent: attendance.filter(a => a.status === 'absent').length,
-    late: attendance.filter(a => a.status === 'late').length,
-    not_marked: staff.length - attendance.length,
-  };
-
-  return NextResponse.json({ date, staff: merged, summary });
+    return NextResponse.json({ date, staff: merged, summary });
+  } catch (err) {
+    console.error('Teacher attendance GET error:', err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -55,6 +61,10 @@ export async function POST(req: NextRequest) {
       notes?: string;
       marked_via?: string;
     };
+
+    if (!body.staff_id || !body.date || !body.status) {
+      return NextResponse.json({ error: 'staff_id, date, status required' }, { status: 400 });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('teacher_attendance')
@@ -73,6 +83,7 @@ export async function POST(req: NextRequest) {
     if (error) throw new Error(error.message);
     return NextResponse.json({ success: true, record: data });
   } catch (err) {
+    console.error('Teacher attendance POST error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
