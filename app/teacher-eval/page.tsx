@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 
@@ -93,7 +94,7 @@ export default function TeacherEvalPage() {
             <div className="card" style={{ marginBottom: 16 }}>
               <div style={{ marginBottom: 18 }}>
                 <label className="label">SELECT TEACHER</label>
-                <select className="input" style={{ height: 42 } as React.CSSProperties} value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
+                <select className="input" style={{ height: 42 } as CSSProperties} value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
                   {staff.map(s => <option key={s.id} value={s.id}>{s.name}{s.subject ? ` — ${s.subject}` : ''}</option>)}
                   {staff.length === 0 && <option value="">Loading...</option>}
                 </select>
