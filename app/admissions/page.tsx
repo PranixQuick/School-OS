@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 
@@ -23,7 +24,7 @@ export default function AdmissionsPage() {
 
   function set(key: keyof FormData, val: string | boolean) { setForm(prev => ({ ...prev, [key]: val })); }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.parent_name || !form.phone || !form.child_age) return;
     setStatus('submitting'); setResult(null); setErrorMsg('');
