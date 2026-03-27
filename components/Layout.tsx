@@ -12,11 +12,13 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈', exact: true },
   { href: '/admissions', label: 'New Inquiry', icon: '✦' },
   { href: '/admissions/crm', label: 'Leads CRM', icon: '◎' },
   { href: '/report-cards', label: 'Report Cards', icon: '◷' },
   { href: '/teacher-eval', label: 'Teacher Eval', icon: '⊕' },
+  { href: '/automation', label: 'Automation', icon: '⚡' },
 ];
 
 interface LayoutProps {
