@@ -1,17 +1,15 @@
 // PATH: app/api/connectors/sheets/route.ts
 //
-// Google Sheets connector — fetches a public/shared sheet via Sheets API v4,
-// normalises the rows, and inserts them directly using runImport().
+// Google Sheets connector.
+// Fetches a public/shared Google Sheet via Sheets API v4,
+// then calls runImport() from lib/connectorEngine directly.
 //
-// CRITICAL FIX: Previous version used a self-HTTP-fetch to /api/connectors/import
-// which was blocked by middleware (no session cookie on internal fetch).
-// Now calls runImport() directly as an imported function — no HTTP round-trip.
-//
+// No internal HTTP fetch — avoids middleware auth blocking.
 // Requires: GOOGLE_SHEETS_API_KEY in Vercel environment variables.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSchoolId } from '@/lib/getSchoolId';
-import { runImport, type Entity } from '@/app/api/connectors/import/route';
+import { runImport, type Entity } from '@/lib/connectorEngine';
 
 function extractSheetId(urlOrId: string): string | null {
   const match = urlOrId.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
@@ -55,10 +53,10 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
     if (!apiKey) {
       return NextResponse.json({
-        error: 'GOOGLE_SHEETS_API_KEY is not configured in environment variables.',
+        error: 'GOOGLE_SHEETS_API_KEY not configured.',
         setup: [
           '1. Go to https://console.cloud.google.com',
-          '2. Enable the Google Sheets API',
+          '2. Enable Google Sheets API',
           '3. Create an API key under Credentials',
           '4. Add GOOGLE_SHEETS_API_KEY to Vercel → Settings → Environment Variables',
           '5. Redeploy',
@@ -66,67 +64,54 @@ export async function POST(req: NextRequest) {
       }, { status: 503 });
     }
 
-    // Step 1: Get tab name if not specified
+    // Step 1: Resolve tab name
     let tabName = sheet_name;
     if (!tabName) {
       const metaRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}&fields=sheets.properties.title`,
-        { signal: AbortSignal.timeout(10000) }
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}&fields=sheets.properties.title`
       );
       if (!metaRes.ok) {
-        const errText = await metaRes.text();
-        if (metaRes.status === 403) {
-          return NextResponse.json({
-            error: 'Access denied. Share the sheet as "Anyone with the link can view" and try again.',
-          }, { status: 403 });
-        }
-        if (metaRes.status === 404) {
-          return NextResponse.json({ error: 'Sheet not found. Check the URL.' }, { status: 404 });
-        }
-        return NextResponse.json({ error: `Sheets API error ${metaRes.status}: ${errText.slice(0, 200)}` }, { status: 502 });
+        const err = await metaRes.text();
+        if (metaRes.status === 403) return NextResponse.json({ error: 'Access denied. Share the sheet as "Anyone with the link can view".' }, { status: 403 });
+        if (metaRes.status === 404) return NextResponse.json({ error: 'Sheet not found. Check the URL.' }, { status: 404 });
+        return NextResponse.json({ error: `Sheets API error ${metaRes.status}: ${err.slice(0, 200)}` }, { status: 502 });
       }
       const meta = await metaRes.json() as { sheets?: { properties: { title: string } }[] };
       tabName = meta.sheets?.[0]?.properties?.title ?? 'Sheet1';
     }
 
-    // Step 2: Fetch all values
+    // Step 2: Fetch cell values
     const range = encodeURIComponent(tabName);
     const valuesRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`,
-      { signal: AbortSignal.timeout(15000) }
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`
     );
     if (!valuesRes.ok) {
-      const errText = await valuesRes.text();
-      return NextResponse.json({ error: `Failed to read sheet data: ${valuesRes.status} - ${errText.slice(0, 200)}` }, { status: 502 });
+      const err = await valuesRes.text();
+      return NextResponse.json({ error: `Failed to read sheet: ${valuesRes.status} - ${err.slice(0, 200)}` }, { status: 502 });
     }
 
     const values = await valuesRes.json() as { values?: string[][] };
     const allRows: string[][] = values.values ?? [];
 
     if (allRows.length < header_row) {
-      return NextResponse.json({
-        error: `Sheet only has ${allRows.length} row(s). Header row ${header_row} not found.`,
-      }, { status: 400 });
+      return NextResponse.json({ error: `Sheet only has ${allRows.length} row(s). Header row ${header_row} not found.` }, { status: 400 });
     }
 
-    // Step 3: Parse headers from header_row (1-indexed)
+    // Step 3: Parse headers
     const rawHeaders = allRows[header_row - 1] ?? [];
     const headers = rawHeaders.map((h: string) =>
       h.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
     );
-
     if (headers.every((h: string) => h === '')) {
-      return NextResponse.json({ error: 'Header row appears to be empty.' }, { status: 400 });
+      return NextResponse.json({ error: 'Header row is empty.' }, { status: 400 });
     }
 
-    // Step 4: Convert rows to objects, skip blank rows
+    // Step 4: Build data rows — skip blank rows
     const dataRows: Record<string, string>[] = allRows
       .slice(header_row)
       .map((row: string[]) => {
         const obj: Record<string, string> = {};
-        headers.forEach((header: string, idx: number) => {
-          if (header) obj[header] = (row[idx] ?? '').trim();
-        });
+        headers.forEach((h: string, i: number) => { if (h) obj[h] = (row[i] ?? '').trim(); });
         return obj;
       })
       .filter((row: Record<string, string>) => Object.values(row).some(v => v !== ''));
@@ -138,7 +123,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Step 5: Run import directly — no HTTP self-fetch, no middleware issue
+    // Step 5: Run import directly from lib — no HTTP round-trip
     const result = await runImport({
       schoolId,
       source: 'google_sheets',
@@ -151,19 +136,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ...result,
-      sheet_meta: {
-        spreadsheet_id: spreadsheetId,
-        tab: tabName,
-        headers,
-        total_rows: dataRows.length,
-      },
+      sheet_meta: { spreadsheet_id: spreadsheetId, tab: tabName, headers, total_rows: dataRows.length },
     });
 
   } catch (err) {
-    if (err instanceof Error && err.name === 'TimeoutError') {
-      return NextResponse.json({ error: 'Google Sheets API timed out. The sheet may be too large.' }, { status: 504 });
-    }
     console.error('Sheets connector error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-        }
+}
