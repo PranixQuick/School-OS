@@ -39,6 +39,13 @@ Due: ${params.dueDate}, Teacher: ${params.teacherName}`,
   );
 }
 
+interface FeeRow {
+  amount: number;
+  due_date: string;
+  fee_type: string;
+  students: { name: string; parent_name: string }[] | null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
@@ -46,9 +53,7 @@ export async function POST(req: NextRequest) {
       title: string;
       target_classes: string[];
       custom_message?: string;
-      // Fee reminder specific
       fee_type?: string;
-      // Homework specific
       subject?: string;
       homework?: string;
       due_date?: string;
@@ -57,10 +62,8 @@ export async function POST(req: NextRequest) {
 
     let finalMessage = body.custom_message ?? '';
 
-    // AI-generate message if not provided
     if (!finalMessage) {
       if (body.type === 'fee_reminder') {
-        // Get pending fees for target classes
         const { data: feeData } = await supabaseAdmin
           .from('fees')
           .select('amount, due_date, fee_type, students(name, parent_name)')
@@ -68,8 +71,10 @@ export async function POST(req: NextRequest) {
           .in('status', ['pending', 'overdue'])
           .limit(1);
 
-        const sample = feeData?.[0];
-        const student = sample?.students as { name: string; parent_name: string } | null;
+        const sample = (feeData as unknown as FeeRow[] | null)?.[0];
+        const studentArr = sample?.students;
+        const student = Array.isArray(studentArr) ? studentArr[0] : null;
+
         finalMessage = await generateFeeReminderMessage({
           studentName: student?.name ?? 'Student',
           parentName: student?.parent_name ?? 'Parent',
@@ -90,7 +95,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Count targets
     let targetCount = 0;
     if (body.target_classes.length > 0) {
       const { count } = await supabaseAdmin
@@ -111,7 +115,7 @@ export async function POST(req: NextRequest) {
         message: finalMessage,
         target_classes: body.target_classes,
         target_count: targetCount,
-        sent_count: targetCount, // Simulate sent (no actual WhatsApp in Phase 2)
+        sent_count: targetCount,
         status: 'sent',
         sent_at: new Date().toISOString(),
       })
