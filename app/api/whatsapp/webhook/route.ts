@@ -76,7 +76,7 @@ async function bookPTMSlot(slotIndex: number, studentId: string, schoolId: strin
   if (!slot) return `Slot ${slotIndex} is not valid. Please choose a number from the available list.`;
   const { error } = await supabaseAdmin.from('ptm_slots').update({ status: 'booked', student_id: studentId, parent_confirmed: true }).eq('id', slot.id).eq('school_id', schoolId);
   if (error) return 'Unable to book slot. Please call the school office.';
-  const slotTime = new Date(slot.slot_time as string).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const slotTime = (slot.slot_time as string).substring(0, 5);
   const teacher = (slot.staff as { name?: string }|null)?.name ?? 'your child\'s teacher';
   return `✅ PTM Confirmed!\n\n${parentName}, your meeting with ${teacher} is booked:\n📅 ${slotTime}\n\nPlease arrive 5 minutes early.`;
 }
@@ -96,7 +96,7 @@ async function buildParentResponse(params: { intent: Intent; studentId: string|n
     const ptm = await getAvailablePTMSlots(schoolId);
     if (!ptm) return `Hi ${parentName}! No PTM sessions scheduled currently. Contact ${schoolName} for more info.`;
     const dateStr = new Date(ptm.session.date as string).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-    const slotList = ptm.slots.map((s, i) => `${i+1}. ${new Date(s.slot_time as string).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })} — ${(s.staff as {name?:string}|null)?.name ?? 'Teacher'}`).join('\n');
+    const slotList = ptm.slots.map((s, i) => `${i+1}. ${(s.slot_time as string).substring(0, 5)} — ${(s.staff as {name?:string}|null)?.name ?? 'Teacher'}`).join('\n');
     return `Hi ${parentName}! PTM is on ${dateStr}.\n\nAvailable slots:\n${slotList}\n\nReply with slot number to book (e.g., "1").`;
   }
 
@@ -121,7 +121,7 @@ async function buildParentResponse(params: { intent: Intent; studentId: string|n
         data = `Student: ${s?.name}\nPending: ₹${total.toLocaleString('en-IN')} (${fees.length} item(s))\n${fees.filter(f=>f.status==='overdue').length > 0 ? `⚠️ ${fees.filter(f=>f.status==='overdue').length} overdue` : ''}\nNext: ${fees[0].fee_type} ₹${Number(fees[0].amount).toLocaleString('en-IN')} by ${fees[0].due_date}`;
       } else data = `Student: ${s?.name}. No pending fees!`;
     } else if (intent === 'report') {
-      const { data: n } = await supabaseAdmin.from('report_narratives').select('term, narrative_text').eq('student_id', studentId).eq('school_id', schoolId).eq('status','final').order('generated_at', { ascending: false }).limit(1).maybeSingle();
+      const { data: n } = await supabaseAdmin.from('report_narratives').select('term, narrative_text').eq('student_id', studentId).eq('school_id', schoolId).in('status', ['draft','approved']).order('generated_at', { ascending: false }).limit(1).maybeSingle();
       data = n ? `Student: ${s?.name}\nReport (${n.term}): ${n.narrative_text.slice(0, 200)}` : `Student: ${s?.name}. Report not yet generated.`;
     }
   }
@@ -190,4 +190,4 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ status: 'active', features: ['parent-bot', 'ptm-booking', 'teacher-attendance', 'multilingual-en-hi-te'] });
-                                             }
+}
