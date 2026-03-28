@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         to: normPhone,
         body: `Dear ${parent_name}, thank you for your enquiry at ${schoolName}. Your application for Class ${target_class} has been received and scored. Our admissions team will contact you shortly. Reference: ${data.id.slice(0, 8).toUpperCase()}`,
         schoolName,
-      }).catch(() => {}); // non-blocking
+      }).then(null, () => {}); // non-blocking
     }
 
     return NextResponse.json({ success: true, id: data.id, score: data.score, priority: data.priority, ruleScore, aiNote: note });
