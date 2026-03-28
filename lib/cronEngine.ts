@@ -125,12 +125,12 @@ School: ${school.name}. Include a friendly payment request and contact number 04
           attempts: 0,
         }).select('id').single();
 
-        await supabaseAdmin.from('fee_reminder_log').insert({
+        await supabaseAdmin.from('fee_reminder_log').upsert({
           school_id: school.id,
           fee_id: fee.id,
           sent_date: today,
           notification_id: notif?.id ?? null,
-        });
+        }, { onConflict: 'school_id,fee_id,sent_date', ignoreDuplicates: true });
 
         remindersSent++;
       } catch (e) {
