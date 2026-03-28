@@ -12,6 +12,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [schoolName, setSchoolName] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   function set(k: keyof typeof form, v: string) { setForm(p => ({ ...p, [k]: v })); }
 
@@ -26,7 +27,7 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const createData = await createRes.json() as { error?: string; school?: { name: string } };
+      const createData = await createRes.json() as { error?: string; school?: { id: string; name: string }; login?: { email: string; password: string } };
 
       if (!createRes.ok) {
         setError(createData.error ?? 'Registration failed');
@@ -35,12 +36,13 @@ export default function RegisterPage() {
       }
 
       setSchoolName(createData.school?.name ?? form.school_name);
+      setLoginPassword(createData.login?.password ?? '');
 
       // Step 2: Auto-login
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.admin_email, password: 'admin@123' }),
+        body: JSON.stringify({ email: form.admin_email, password: createData.login?.password ?? '' }),
       });
 
       if (loginRes.ok) {
@@ -97,7 +99,7 @@ export default function RegisterPage() {
               <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#374151', textAlign: 'left', marginBottom: 20 }}>
                 <strong>Your login:</strong><br />
                 Email: {form.admin_email}<br />
-                Password: admin@123
+                Password: {loginPassword}
               </div>
               <div style={{ fontSize: 12, color: '#9CA3AF' }}>Redirecting to dashboard...</div>
             </div>
