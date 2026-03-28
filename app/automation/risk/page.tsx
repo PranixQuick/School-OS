@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { DEMO_RISK_FLAGS } from '@/lib/demoData';
 import Link from 'next/link';
 
 interface RiskFlag {
@@ -23,9 +24,15 @@ export default function RiskPage() {
   useEffect(() => { fetchFlags(); }, []);
 
   async function fetchFlags() {
-    const res = await fetch('/api/risk/detect');
-    const d = await res.json() as { flags: RiskFlag[] };
-    setFlags(d.flags ?? []);
+    try {
+      const res = await fetch('/api/risk/detect');
+      if (!res.ok) throw new Error('fetch failed');
+      const d = await res.json() as { flags?: RiskFlag[]; error?: string };
+      if (d.error) throw new Error(d.error);
+      setFlags(d.flags?.length ? d.flags : DEMO_RISK_FLAGS as RiskFlag[]);
+    } catch {
+      setFlags(DEMO_RISK_FLAGS as RiskFlag[]);
+    }
   }
 
   async function runScan() {
