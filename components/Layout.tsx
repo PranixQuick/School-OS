@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { href: '/report-cards', label: 'Report Cards', icon: '◷' },
   { href: '/teacher-eval', label: 'Teacher Eval', icon: '⊕' },
   { href: '/automation', label: 'Automation', icon: '⚡' },
+  { href: '/automation/cron', label: 'Cron Jobs', icon: '🤖' },
   { href: '/analytics', label: 'Analytics', icon: '◉' },
   { href: '/import', label: 'CSV Import', icon: '↑' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
