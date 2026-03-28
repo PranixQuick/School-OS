@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
   { href: '/automation/cron', label: 'Cron Jobs', icon: '🤖' },
   { href: '/analytics', label: 'Analytics', icon: '◉' },
   { href: '/import', label: 'CSV Import', icon: '↑' },
+  { href: '/billing', label: 'Billing', icon: '💳' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -40,9 +41,9 @@ interface SessionData {
 }
 
 const PLAN_COLOR: Record<string, string> = {
-  starter: '#6B7280',
-  growth: '#4F46E5',
-  campus: '#065F46',
+  starter: '#6B7280', free: '#6B7280',
+  growth: '#4F46E5',  pro: '#4F46E5',
+  campus: '#065F46',  enterprise: '#065F46',
 };
 
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
@@ -67,6 +68,9 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
     return pathname.startsWith(item.href);
   }
 
+  const plan = session?.plan ?? 'free';
+  const planColor = PLAN_COLOR[plan] ?? '#6B7280';
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -79,10 +83,12 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         </div>
 
         {session?.plan && (
-          <div style={{ margin: '0 12px 8px', padding: '4px 10px', background: '#F3F4F6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Plan</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: PLAN_COLOR[session.plan] ?? '#6B7280', textTransform: 'capitalize' }}>{session.plan}</span>
-          </div>
+          <Link href="/billing" style={{ textDecoration: 'none' }}>
+            <div style={{ margin: '0 12px 8px', padding: '5px 10px', background: '#F3F4F6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Plan</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: planColor, textTransform: 'capitalize' }}>{plan} ↗</span>
+            </div>
+          </Link>
         )}
 
         <div style={{ padding: '4px 0', flex: 1, overflowY: 'auto' }}>
