@@ -1,15 +1,29 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Public routes that don't need auth
-const PUBLIC_PATHS = ['/login', '/register', '/api/auth/login', '/api/auth/logout', '/api/schools/create'];
+// Fully public — no auth required
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/register',
+  '/pricing',
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/schools/create',
+  '/parent',
+  '/api/parent',
+];
+
+// Super admin only paths
+const SUPER_ADMIN_PATHS = ['/admin'];
+const SUPER_ADMIN_EMAIL = 'pranixailabs@gmail.com';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow public paths and static files
   if (
-    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
+    PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/')) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
@@ -25,12 +39,21 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Inject school_id header for API routes to use
   try {
     const sessionData = JSON.parse(Buffer.from(session.value, 'base64').toString('utf-8'));
+
+    // Super admin path protection
+    if (SUPER_ADMIN_PATHS.some(p => pathname.startsWith(p))) {
+      if (sessionData.userEmail !== SUPER_ADMIN_EMAIL) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+    }
+
+    // Inject headers for API routes
     const res = NextResponse.next();
     res.headers.set('x-school-id', sessionData.schoolId ?? '');
     res.headers.set('x-user-role', sessionData.userRole ?? '');
+    res.headers.set('x-user-email', sessionData.userEmail ?? '');
     return res;
   } catch {
     const loginUrl = new URL('/login', req.url);
