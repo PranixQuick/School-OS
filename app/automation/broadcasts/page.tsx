@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import Layout from '@/components/Layout';
+import { DEMO_BROADCASTS } from '@/lib/demoData';
 import Link from 'next/link';
 
 interface Broadcast {
@@ -40,9 +41,15 @@ export default function BroadcastsPage() {
   useEffect(() => { fetchBroadcasts(); }, []);
 
   async function fetchBroadcasts() {
-    const res = await fetch('/api/broadcasts/list');
-    const d = await res.json() as { broadcasts: Broadcast[] };
-    setBroadcasts(d.broadcasts ?? []);
+    try {
+      const res = await fetch('/api/broadcasts/list');
+      if (!res.ok) throw new Error('fetch failed');
+      const d = await res.json() as { broadcasts?: Broadcast[]; error?: string };
+      if (d.error) throw new Error(d.error);
+      setBroadcasts(d.broadcasts?.length ? d.broadcasts : DEMO_BROADCASTS);
+    } catch {
+      setBroadcasts(DEMO_BROADCASTS);
+    }
   }
 
   function toggleClass(cls: string) {
