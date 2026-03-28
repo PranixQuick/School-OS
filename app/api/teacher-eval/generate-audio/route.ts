@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getSchoolId } from '@/lib/getSchoolId';
 
-const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 
 const SAMPLE_SCRIPTS = [
   `Good morning everyone. Please settle down and open your notebooks to page 42. 
@@ -63,6 +63,7 @@ async function generateTTSAudio(text: string): Promise<ArrayBuffer> {
 }
 
 export async function POST(req: NextRequest) {
+  const schoolId = getSchoolId(req);
   try {
     const body = await req.json() as { staffId?: string; scriptIndex?: number };
     const { staffId, scriptIndex = 0 } = body;
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     // Upload to Supabase Storage
     const timestamp = Date.now();
-    const storagePath = `${SCHOOL_ID}/${staffId}/sample_${timestamp}.mp3`;
+    const storagePath = `${schoolId}/${staffId}/sample_${timestamp}.mp3`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from('recordings')
