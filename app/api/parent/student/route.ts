@@ -1,0 +1,97 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabaseClient';
+
+// Parent portal: verify by phone + PIN, return child's data
+export async function POST(req: NextRequest) {
+  try {
+    const { phone, pin, school_id } = await req.json() as {
+      phone: string;
+      pin: string;
+      school_id?: string;
+    };
+
+    if (!phone || !pin) {
+      return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
+    }
+
+    // Find parent
+    const query = supabaseAdmin
+      .from('parents')
+      .select('id, school_id, student_id, name, phone, access_pin, last_access')
+      .eq('phone', phone)
+      .eq('access_pin', pin);
+
+    if (school_id) query.eq('school_id', school_id);
+
+    const { data: parent, error: pErr } = await query.single();
+
+    if (pErr || !parent) {
+      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+    }
+
+    // Update last access
+    await supabaseAdmin.from('parents').update({ last_access: new Date().toISOString() }).eq('id', parent.id);
+
+    const schoolId = parent.school_id;
+    const studentId = parent.student_id;
+
+    // Fetch student details + attendance + fees + report narrative in parallel
+    const [studentRes, attendanceRes, feesRes, narrativeRes] = await Promise.all([
+      supabaseAdmin
+        .from('students')
+        .select('id, name, class, section, roll_number, admission_number')
+        .eq('id', studentId)
+        .eq('school_id', schoolId)
+        .single(),
+
+      supabaseAdmin
+        .from('attendance')
+        .select('date, status')
+        .eq('student_id', studentId)
+        .eq('school_id', schoolId)
+        .order('date', { ascending: false })
+        .limit(30),
+
+      supabaseAdmin
+        .from('fees')
+        .select('fee_type, amount, due_date, status, paid_date')
+        .eq('student_id', studentId)
+        .eq('school_id', schoolId)
+        .order('due_date', { ascending: false }),
+
+      supabaseAdmin
+        .from('report_narratives')
+        .select('term, narrative_text, status, generated_at')
+        .eq('student_id', studentId)
+        .eq('school_id', schoolId)
+        .order('generated_at', { ascending: false })
+        .limit(3),
+    ]);
+
+    const attendance = attendanceRes.data ?? [];
+    const presentDays = attendance.filter(a => a.status === 'present').length;
+    const attendancePct = attendance.length > 0
+      ? Math.round((presentDays / attendance.length) * 100)
+      : 100;
+
+    return NextResponse.json({
+      success: true,
+      parent: { name: parent.name },
+      student: studentRes.data,
+      attendance: {
+        records: attendance.slice(0, 10),
+        summary: {
+          present: presentDays,
+          total: attendance.length,
+          percentage: attendancePct,
+        },
+      },
+      fees: feesRes.data ?? [],
+      narratives: narrativeRes.data ?? [],
+    });
+
+  } catch (err) {
+    console.error('Parent portal error:', err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
