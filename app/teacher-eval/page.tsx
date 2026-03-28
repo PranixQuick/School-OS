@@ -197,6 +197,26 @@ export default function TeacherEvalPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {score > 0 && <div className="score-circle" style={{ width: 40, height: 40, background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, fontWeight: 800, fontSize: 14, color: scoreColor(score) }}>{score}</div>}
                       <span className={`badge badge-${rec.status === 'done' ? 'done' : rec.status === 'failed' ? 'failed' : 'pending'}`}>{rec.status.toUpperCase()}</span>
+                      <button
+                        onClick={async () => {
+                          await fetch('/api/teacher-eval/history', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: rec.id }) });
+                          fetch('/api/teacher-eval/history').then(r => r.json()).then(d => setHistory(d.recordings ?? []));
+                        }}
+                        style={{ height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid #C7D2FE', background: '#EEF2FF', color: '#4338CA', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                        title="Re-run AI evaluation"
+                      >
+                        ↺ Re-run
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete this evaluation?`)) return;
+                          await fetch('/api/teacher-eval/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: rec.id }) });
+                          setHistory(prev => prev.filter(r => r.id !== rec.id));
+                        }}
+                        style={{ height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', color: '#B91C1C', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                   {evalData && (
@@ -210,7 +230,3 @@ export default function TeacherEvalPage() {
             })}
           </div>
         )}
-      </div>
-    </Layout>
-  );
-}
