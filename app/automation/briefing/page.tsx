@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { DEMO_BRIEFING } from '@/lib/demoData';
 import Link from 'next/link';
 
 interface Briefing {
@@ -17,11 +18,23 @@ export default function BriefingPage() {
   useEffect(() => { fetchBriefings(); }, []);
 
   async function fetchBriefings() {
-    const res = await fetch('/api/briefing/generate');
-    const d = await res.json() as { briefings: Briefing[] };
-    const list = d.briefings ?? [];
-    setBriefings(list);
-    if (list.length > 0) setSelected(list[0]);
+    try {
+      const res = await fetch('/api/briefing/generate');
+      if (!res.ok) throw new Error('fetch failed');
+      const d = await res.json() as { briefings?: Briefing[]; error?: string };
+      if (d.error) throw new Error(d.error);
+      const list = d.briefings ?? [];
+      if (list.length > 0) {
+        setBriefings(list);
+        setSelected(list[0]);
+      } else {
+        setBriefings([DEMO_BRIEFING as Briefing]);
+        setSelected(DEMO_BRIEFING as Briefing);
+      }
+    } catch {
+      setBriefings([DEMO_BRIEFING as Briefing]);
+      setSelected(DEMO_BRIEFING as Briefing);
+    }
   }
 
   async function generateBriefing() {
