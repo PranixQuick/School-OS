@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('call_logs').update({
         ai_feedback: JSON.stringify({ error: String(err) }),
         processed_at: new Date().toISOString(),
-      }).eq('id', callLogId).catch(() => {});
+      }).eq('id', callLogId).then(null, () => {});
     }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
