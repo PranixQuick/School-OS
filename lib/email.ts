@@ -1,11 +1,10 @@
-// Email integration abstraction layer
-// STUB mode: logs to console. To go live, set EMAIL_PROVIDER=resend|smtp and add credentials.
+// lib/email.ts — Resend live, stub fallback
 
 export interface EmailMessage {
   to: string;
   subject: string;
-  body: string;       // plain text
-  htmlBody?: string;  // optional HTML version
+  body: string;
+  htmlBody?: string;
   from?: string;
 }
 
@@ -16,58 +15,55 @@ export interface EmailResult {
   error?: string;
 }
 
-// ─── Provider: Stub ───────────────────────────────────────────────────────────
+// ─── Resend ───────────────────────────────────────────────────────────────────
+
+async function sendViaResend(msg: EmailMessage): Promise<EmailResult> {
+  const apiKey = process.env.RESEND_API_KEY!;
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: msg.from ?? 'School OS <noreply@schoolos.app>',
+      to: [msg.to],
+      subject: msg.subject,
+      text: msg.body,
+      html: msg.htmlBody ?? `<p>${msg.body.replace(/\n/g, '<br>')}</p>`,
+    }),
+  });
+
+  const data = await res.json() as { id?: string; message?: string; error?: { message: string } };
+  if (!res.ok) {
+    const errMsg = data.error?.message ?? data.message ?? `HTTP ${res.status}`;
+    return { success: false, provider: 'resend', error: errMsg };
+  }
+  return { success: true, messageId: data.id, provider: 'resend' };
+}
+
+// ─── Stub ─────────────────────────────────────────────────────────────────────
 
 async function sendViaStub(msg: EmailMessage): Promise<EmailResult> {
   await new Promise(r => setTimeout(r, 30));
-
-  console.log(`[Email STUB] TO: ${msg.to}`);
-  console.log(`[Email STUB] SUBJECT: ${msg.subject}`);
-  console.log(`[Email STUB] BODY: ${msg.body.slice(0, 120)}...`);
-
-  return {
-    success: true,
-    messageId: `stub_email_${Date.now()}`,
-    provider: 'stub',
-  };
+  console.log(`[Email STUB] TO: ${msg.to} | SUBJECT: ${msg.subject}`);
+  return { success: true, messageId: `stub_email_${Date.now()}`, provider: 'stub' };
 }
-
-// ─── Provider: Resend (uncomment when API key available) ──────────────────────
-
-// async function sendViaResend(msg: EmailMessage): Promise<EmailResult> {
-//   const apiKey = process.env.RESEND_API_KEY!;
-//   const res = await fetch('https://api.resend.com/emails', {
-//     method: 'POST',
-//     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-//     body: JSON.stringify({
-//       from: msg.from ?? 'noreply@schoolos.app',
-//       to: [msg.to],
-//       subject: msg.subject,
-//       text: msg.body,
-//       html: msg.htmlBody ?? `<p>${msg.body.replace(/\n/g, '<br>')}</p>`,
-//     }),
-//   });
-//   const data = await res.json() as { id?: string; message?: string };
-//   if (!res.ok) return { success: false, provider: 'resend', error: data.message };
-//   return { success: true, messageId: data.id, provider: 'resend' };
-// }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
   const provider = process.env.EMAIL_PROVIDER ?? 'stub';
-
   try {
     switch (provider) {
-      // case 'resend': return await sendViaResend(msg);
-      default:        return await sendViaStub(msg);
+      case 'resend': return await sendViaResend(msg);
+      default:       return await sendViaStub(msg);
     }
   } catch (err) {
     return { success: false, provider, error: String(err) };
   }
 }
 
-// Build a clean HTML email from plain text
 export function buildEmailHtml(params: {
   schoolName: string;
   title: string;
