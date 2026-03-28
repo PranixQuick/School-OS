@@ -19,6 +19,8 @@ const NAV: NavItem[] = [
   { href: '/report-cards', label: 'Report Cards', icon: '◷' },
   { href: '/teacher-eval', label: 'Teacher Eval', icon: '⊕' },
   { href: '/automation', label: 'Automation', icon: '⚡' },
+  { href: '/analytics', label: 'Analytics', icon: '◉' },
+  { href: '/import', label: 'CSV Import', icon: '↑' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -82,7 +84,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </div>
         )}
 
-        <div style={{ padding: '4px 0' }}>
+        <div style={{ padding: '4px 0', flex: 1, overflowY: 'auto' }}>
           <div className="sidebar-section-label">Platform</div>
           <nav className="sidebar-nav">
             {NAV.map(item => (
@@ -114,7 +116,9 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             <div className="sidebar-avatar">{session?.userName?.charAt(0) ?? 'A'}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sidebar-user-name">{session?.userName ?? 'Admin'}</div>
-              <div className="sidebar-user-role" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session?.userEmail ?? ''}</div>
+              <div className="sidebar-user-role" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>
+                {session?.userEmail ?? ''}
+              </div>
             </div>
           </div>
           <button
