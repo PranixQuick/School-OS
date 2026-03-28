@@ -32,10 +32,19 @@ export default function TeacherAttendancePage() {
   useEffect(() => { fetchAttendance(); }, [date]);
 
   async function fetchAttendance() {
-    const res = await fetch(`/api/teacher-attendance?date=${date}`);
-    const d = await res.json() as { staff: StaffRecord[]; summary: AttSummary };
-    setStaff(d.staff ?? []);
-    setSummary(d.summary ?? { present: 0, absent: 0, late: 0, not_marked: 0 });
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/teacher-attendance?date=${date}`);
+      if (!res.ok) throw new Error('fetch failed');
+      const d = await res.json() as { staff?: StaffRecord[]; summary?: AttSummary; error?: string };
+      if (d.error) throw new Error(d.error);
+      setStaff(d.staff ?? []);
+      setSummary(d.summary ?? { present: 0, absent: 0, late: 0, not_marked: 0 });
+    } catch (err) {
+      console.error('Teacher attendance fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function markAttendance(staffId: string, status: string) {
