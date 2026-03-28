@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 
-const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+    const schoolId = getSchoolId(req);
     const priority = req.nextUrl.searchParams.get('priority');
     const status = req.nextUrl.searchParams.get('status');
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+    const schoolId = getSchoolId(req);
     const body = await req.json() as {
       id: string; status?: string; notes?: string;
       parent_name?: string; phone?: string; email?: string; priority?: string;
@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+    const schoolId = getSchoolId(req);
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
