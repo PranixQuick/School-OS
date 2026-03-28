@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
     }
 
-    // Find parent
-    const query = supabaseAdmin
+    // Build query — MUST reassign each .eq() call (Supabase builder is immutable)
+    let query = supabaseAdmin
       .from('parents')
       .select('id, school_id, student_id, name, phone, access_pin, last_access')
       .eq('phone', phone)
       .eq('access_pin', pin);
 
-    if (school_id) query.eq('school_id', school_id);
+    if (school_id) query = query.eq('school_id', school_id);
 
     const { data: parent, error: pErr } = await query.single();
 
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
     }
 
-    // Update last access
-    await supabaseAdmin.from('parents').update({ last_access: new Date().toISOString() }).eq('id', parent.id);
+    // Throttled last_access update via DB function — prevents write storms on rapid reloads
+    await supabaseAdmin.rpc('update_parent_access', { p_parent_id: parent.id });
 
     const schoolId = parent.school_id;
     const studentId = parent.student_id;
