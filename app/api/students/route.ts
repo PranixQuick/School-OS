@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 import { logActivity } from '@/lib/logger';
+import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
+
+function generatePin(): string {
+  // 6-digit numeric PIN
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'name and class are required' }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data: student, error } = await supabaseAdmin
       .from('students')
       .insert({
         school_id: schoolId,
@@ -64,14 +70,42 @@ export async function POST(req: NextRequest) {
 
     if (error) throw new Error(error.message);
 
+    // Auto-generate parent PIN and create parent record
+    let pin: string | null = null;
+    if (body.phone_parent) {
+      pin = generatePin();
+      await supabaseAdmin.from('parents').upsert({
+        school_id: schoolId,
+        student_id: student.id,
+        name: body.parent_name ?? 'Parent',
+        phone: normalisePhone(body.phone_parent) ?? body.phone_parent,
+        access_pin: pin,
+        whatsapp_opted_out: false,
+      }, { onConflict: 'school_id,student_id' }).catch((e: unknown) => {
+        console.error('Parent record error:', e);
+      });
+
+      // Send PIN via WhatsApp (non-blocking)
+      const normPhone = normalisePhone(body.phone_parent);
+      if (normPhone) {
+        const { data: school } = await supabaseAdmin.from('schools').select('name').eq('id', schoolId).single();
+        const schoolName = school?.name ?? 'School';
+        sendWhatsApp({
+          to: normPhone,
+          body: `Welcome to ${schoolName}!\n\nDear ${body.parent_name ?? 'Parent'},\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nUse your phone number + this PIN to access the parent portal.\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://school-os-rh47.vercel.app'}/parent\n\nReply STOP to unsubscribe.`,
+          schoolName,
+        }).catch(() => {}); // fire and forget
+      }
+    }
+
     await logActivity({
       schoolId,
       action: `Added student: ${body.name} (Class ${body.class})`,
       module: 'import',
-      details: { name: body.name, class: body.class },
+      details: { name: body.name, class: body.class, pin_generated: !!pin },
     });
 
-    return NextResponse.json({ success: true, student: data });
+    return NextResponse.json({ success: true, student, pin_generated: !!pin });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -108,6 +142,19 @@ export async function PATCH(req: NextRequest) {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // If phone was updated, update parent record too
+    if (body.phone_parent !== undefined) {
+      const normPhone = normalisePhone(body.phone_parent);
+      if (normPhone) {
+        await supabaseAdmin.from('parents')
+          .update({ phone: normPhone, ...(body.parent_name && { name: body.parent_name }) })
+          .eq('student_id', body.id)
+          .eq('school_id', schoolId)
+          .catch(() => {});
+      }
+    }
+
     return NextResponse.json({ success: true, student: data });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
@@ -120,7 +167,6 @@ export async function DELETE(req: NextRequest) {
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-    // Soft delete via is_active
     const { error } = await supabaseAdmin
       .from('students')
       .update({ is_active: false })
@@ -129,13 +175,7 @@ export async function DELETE(req: NextRequest) {
 
     if (error) throw new Error(error.message);
 
-    await logActivity({
-      schoolId,
-      action: `Deactivated student (soft delete)`,
-      module: 'import',
-      details: { student_id: id },
-    });
-
+    await logActivity({ schoolId, action: 'Deactivated student (soft delete)', module: 'import', details: { student_id: id } });
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
