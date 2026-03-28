@@ -10,20 +10,22 @@ interface NavItem {
   label: string;
   icon: string;
   exact?: boolean;
+  roles?: string[]; // undefined = all roles can see
 }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: '◈', exact: true },
-  { href: '/admissions', label: 'New Inquiry', icon: '✦' },
-  { href: '/admissions/crm', label: 'Leads CRM', icon: '◎' },
-  { href: '/report-cards', label: 'Report Cards', icon: '◷' },
-  { href: '/teacher-eval', label: 'Teacher Eval', icon: '⊕' },
-  { href: '/automation', label: 'Automation', icon: '⚡' },
-  { href: '/automation/cron', label: 'Cron Jobs', icon: '🤖' },
-  { href: '/analytics', label: 'Analytics', icon: '◉' },
-  { href: '/import', label: 'CSV Import', icon: '↑' },
-  { href: '/billing', label: 'Billing', icon: '💳' },
-  { href: '/settings', label: 'Settings', icon: '⚙' },
+  { href: '/dashboard',           label: 'Dashboard',       icon: '◈', exact: true },
+  { href: '/students',            label: 'Students',         icon: '👨‍🎓' },
+  { href: '/admissions',          label: 'New Inquiry',      icon: '✦',  roles: ['owner','admin'] },
+  { href: '/admissions/crm',      label: 'Leads CRM',        icon: '◎',  roles: ['owner','admin'] },
+  { href: '/report-cards',        label: 'Report Cards',     icon: '◷' },
+  { href: '/teacher-eval',        label: 'Teacher Eval',     icon: '⊕' },
+  { href: '/automation',          label: 'Automation',       icon: '⚡', roles: ['owner','admin'] },
+  { href: '/automation/cron',     label: 'Cron Jobs',        icon: '🤖', roles: ['owner','admin'] },
+  { href: '/analytics',           label: 'Analytics',        icon: '◉' },
+  { href: '/import',              label: 'CSV Import',       icon: '↑',  roles: ['owner','admin'] },
+  { href: '/billing',             label: 'Billing',          icon: '💳', roles: ['owner'] },
+  { href: '/settings',            label: 'Settings',         icon: '⚙',  roles: ['owner','admin'] },
 ];
 
 interface LayoutProps {
@@ -38,6 +40,7 @@ interface SessionData {
   userEmail: string;
   userName: string;
   plan: string;
+  userRole: string;
 }
 
 const PLAN_COLOR: Record<string, string> = {
@@ -68,8 +71,15 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
     return pathname.startsWith(item.href);
   }
 
+  function canSeeItem(item: NavItem): boolean {
+    if (!item.roles) return true;
+    const role = session?.userRole ?? 'viewer';
+    return item.roles.includes(role);
+  }
+
   const plan = session?.plan ?? 'free';
   const planColor = PLAN_COLOR[plan] ?? '#6B7280';
+  const visibleNav = NAV.filter(canSeeItem);
 
   return (
     <div className="shell">
@@ -94,12 +104,8 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         <div style={{ padding: '4px 0', flex: 1, overflowY: 'auto' }}>
           <div className="sidebar-section-label">Platform</div>
           <nav className="sidebar-nav">
-            {NAV.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`sidebar-link${isActive(item) ? ' active' : ''}`}
-              >
+            {visibleNav.map(item => (
+              <Link key={item.href} href={item.href} className={`sidebar-link${isActive(item) ? ' active' : ''}`}>
                 <span className="sidebar-link-icon">{item.icon}</span>
                 {item.label}
               </Link>
@@ -124,14 +130,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sidebar-user-name">{session?.userName ?? 'Admin'}</div>
               <div className="sidebar-user-role" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>
-                {session?.userEmail ?? ''}
+                {session?.userRole ? `${session.userRole} · ` : ''}{session?.userEmail ?? ''}
               </div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
-          >
+          <button onClick={handleLogout} style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
             Sign out
           </button>
         </div>
@@ -144,17 +147,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             {subtitle && <div className="topbar-sub">{subtitle}</div>}
           </div>
           <div className="topbar-right">
-            <div className="topbar-badge">
-              <div className="topbar-badge-dot" />
-              All systems live
-            </div>
+            <div className="topbar-badge"><div className="topbar-badge-dot" />All systems live</div>
             {actions}
           </div>
         </header>
-
-        <main className="page-content">
-          {children}
-        </main>
+        <main className="page-content">{children}</main>
       </div>
     </div>
   );
