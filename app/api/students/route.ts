@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         phone: normalisePhone(body.phone_parent) ?? body.phone_parent,
         access_pin: pin,
         whatsapp_opted_out: false,
-      }, { onConflict: 'school_id,student_id' }).catch((e: unknown) => {
+      }, { onConflict: 'school_id,student_id' }).then(null, (e: unknown) => {
         console.error('Parent record error:', e);
       });
 
@@ -90,11 +90,11 @@ export async function POST(req: NextRequest) {
       if (normPhone) {
         const { data: school } = await supabaseAdmin.from('schools').select('name').eq('id', schoolId).single();
         const schoolName = school?.name ?? 'School';
-        sendWhatsApp({
+        void sendWhatsApp({
           to: normPhone,
           body: `Welcome to ${schoolName}!\n\nDear ${body.parent_name ?? 'Parent'},\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nUse your phone number + this PIN to access the parent portal.\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://school-os-rh47.vercel.app'}/parent\n\nReply STOP to unsubscribe.`,
           schoolName,
-        }).catch(() => {}); // fire and forget
+        }).catch(() => {}); // fire and forget — Promise<WhatsAppResult>.catch() is valid
       }
     }
 
@@ -151,7 +151,7 @@ export async function PATCH(req: NextRequest) {
           .update({ phone: normPhone, ...(body.parent_name && { name: body.parent_name }) })
           .eq('student_id', body.id)
           .eq('school_id', schoolId)
-          .catch(() => {});
+          .then(null, () => {});
       }
     }
 
