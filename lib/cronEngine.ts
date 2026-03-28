@@ -1,6 +1,7 @@
 import { supabaseAdmin } from './supabaseClient';
 import { callClaude } from './claudeClient';
 import { logActivity, logNotification, logError } from './logger';
+import { processPendingNotifications } from './dispatcher';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,32 +70,41 @@ export async function runFeeReminders(
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // Find overdue/pending fees NOT already reminded today
     const { data: fees } = await supabaseAdmin
       .from('fees')
       .select('id, student_id, fee_type, amount, due_date, status, students(name, parent_name, phone_parent)')
       .eq('school_id', school.id)
       .in('status', ['overdue', 'pending'])
-      .lte('due_date', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]) // due within 7 days
-      .not('id', 'in',
-        // Exclude already reminded today
-        `(SELECT fee_id FROM fee_reminder_log WHERE school_id = '${school.id}' AND sent_date = '${today}')`
-      );
+      .lte('due_date', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
 
     if (!fees || fees.length === 0) {
-      await completeRun(runId, { status: 'skipped', result: { reason: 'No pending reminders' }, startedAt });
+      await completeRun(runId, { status: 'skipped', result: { reason: 'No pending fees within 7 days' }, startedAt });
+      return { job: 'fee_reminders', schoolId: school.id, success: true, data: { reminders_sent: 0 }, durationMs: Date.now() - startedAt };
+    }
+
+    // Filter: exclude fees already reminded today
+    const { data: alreadyReminded } = await supabaseAdmin
+      .from('fee_reminder_log')
+      .select('fee_id')
+      .eq('school_id', school.id)
+      .eq('sent_date', today);
+
+    const remindedIds = new Set((alreadyReminded ?? []).map(r => r.fee_id));
+    const feesToRemind = fees.filter(f => !remindedIds.has(f.id));
+
+    if (feesToRemind.length === 0) {
+      await completeRun(runId, { status: 'skipped', result: { reason: 'All fees already reminded today' }, startedAt });
       return { job: 'fee_reminders', schoolId: school.id, success: true, data: { reminders_sent: 0 }, durationMs: Date.now() - startedAt };
     }
 
     let remindersSent = 0;
 
-    for (const fee of fees) {
+    for (const fee of feesToRemind) {
       try {
         const studentArr = fee.students as { name: string; parent_name: string; phone_parent: string }[] | null;
         const student = Array.isArray(studentArr) ? studentArr[0] : null;
         if (!student) continue;
 
-        // Generate AI message
         const message = await callClaude(
           `You are a school admin. Write a brief, polite WhatsApp fee reminder. Under 80 words. No markdown.`,
           `Student: ${student.name}, Parent: ${student.parent_name ?? 'Parent'}
@@ -103,7 +113,6 @@ School: ${school.name}. Include a friendly payment request and contact number 04
           160
         );
 
-        // Log notification
         const { data: notif } = await supabaseAdmin.from('notifications').insert({
           school_id: school.id,
           type: 'fee_reminder',
@@ -111,15 +120,17 @@ School: ${school.name}. Include a friendly payment request and contact number 04
           message,
           target_count: 1,
           module: 'cron',
+          status: 'pending',
+          channel: 'whatsapp',
+          attempts: 0,
         }).select('id').single();
 
-        // Mark as reminded today (idempotency guard)
         await supabaseAdmin.from('fee_reminder_log').insert({
           school_id: school.id,
           fee_id: fee.id,
           sent_date: today,
           notification_id: notif?.id ?? null,
-        }).onConflict('school_id,fee_id,sent_date');
+        });
 
         remindersSent++;
       } catch (e) {
@@ -127,17 +138,31 @@ School: ${school.name}. Include a friendly payment request and contact number 04
       }
     }
 
-    const result = { reminders_sent: remindersSent, total_eligible: fees.length };
+    const result = { reminders_sent: remindersSent, total_eligible: feesToRemind.length };
 
     await logActivity({
       schoolId: school.id,
-      action: `Cron: Sent ${remindersSent} fee reminders automatically`,
+      action: `Cron: Generated ${remindersSent} fee reminders — dispatching now`,
       module: 'broadcasts',
       details: result,
     });
 
-    await completeRun(runId, { status: 'success', result, startedAt });
-    return { job: 'fee_reminders', schoolId: school.id, success: true, data: result, durationMs: Date.now() - startedAt };
+    // Dispatch the new notifications immediately
+    const dispatchResult = await processPendingNotifications(school.id, { limit: remindersSent + 5 });
+
+    await completeRun(runId, {
+      status: 'success',
+      result: { ...result, dispatch: dispatchResult },
+      startedAt,
+    });
+
+    return {
+      job: 'fee_reminders',
+      schoolId: school.id,
+      success: true,
+      data: { ...result, dispatch: dispatchResult },
+      durationMs: Date.now() - startedAt,
+    };
 
   } catch (err) {
     const error = String(err);
@@ -207,7 +232,7 @@ export async function runRiskDetection(
               `Student: ${student.name}, Class ${student.class}. Issues: ${riskFactors.join(', ')}. Attendance: ${attendancePct}%, Score: ${avgScore}%.`,
               100
             );
-          } catch { /* use default */ }
+          } catch { /* keep default */ }
         }
 
         flagsToUpsert.push({
@@ -230,27 +255,30 @@ export async function runRiskDetection(
         .upsert(flagsToUpsert, { onConflict: 'school_id,student_id' });
     }
 
-    // Alert if critical students found
+    let dispatchResult = null;
     if (criticalCount > 0) {
       await logNotification({
         schoolId: school.id,
         type: 'risk',
         title: `⚠️ ${criticalCount} Critical Risk Student${criticalCount > 1 ? 's' : ''} Detected`,
-        message: `Automated scan found ${criticalCount} critical and ${highCount} high-risk students. Immediate attention required.`,
+        message: `Automated scan found ${criticalCount} critical and ${highCount} high-risk students requiring immediate attention.`,
         targetCount: criticalCount + highCount,
         module: 'cron',
       });
+      // Dispatch the alert to admins
+      dispatchResult = await processPendingNotifications(school.id, { limit: 5 });
     }
 
-    const result = {
+    const result: Record<string, unknown> = {
       scanned: students.length,
       flagged: flagsToUpsert.length,
       breakdown: { critical: criticalCount, high: highCount, medium: mediumCount },
     };
+    if (dispatchResult) result.dispatch = dispatchResult;
 
     await logActivity({
       schoolId: school.id,
-      action: `Cron: Risk scan complete — ${flagsToUpsert.length} students flagged`,
+      action: `Cron: Risk scan — ${flagsToUpsert.length} students flagged (${criticalCount} critical)`,
       module: 'risk',
       details: result,
     });
@@ -277,7 +305,7 @@ export async function runPrincipalBriefing(
   const runId = await trackRun({ schoolId: school.id, jobName: 'principal_briefing', triggeredBy });
 
   try {
-    // Check if briefing already generated today (idempotency)
+    // Idempotency: skip if generated within 4 hours
     const { data: existing } = await supabaseAdmin
       .from('principal_briefings')
       .select('id, generated_at')
@@ -285,16 +313,14 @@ export async function runPrincipalBriefing(
       .eq('date', today)
       .single();
 
-    // If generated within the last 4 hours, skip
     if (existing?.generated_at) {
       const generatedAt = new Date(existing.generated_at).getTime();
       if (Date.now() - generatedAt < 4 * 3600 * 1000) {
-        await completeRun(runId, { status: 'skipped', result: { reason: 'Already generated within 4 hours' }, startedAt });
+        await completeRun(runId, { status: 'skipped', result: { reason: 'Already generated within 4h' }, startedAt });
         return { job: 'principal_briefing', schoolId: school.id, success: true, data: { skipped: true }, durationMs: Date.now() - startedAt };
       }
     }
 
-    // Gather data
     const [studentsRes, attendanceRes, feesRes, leadsRes, evalsRes, teacherAttRes, riskRes, eventsRes] = await Promise.all([
       supabaseAdmin.from('students').select('id', { count: 'exact', head: true }).eq('school_id', school.id).eq('is_active', true),
       supabaseAdmin.from('attendance').select('status').eq('school_id', school.id).eq('date', today),
@@ -353,7 +379,6 @@ Generate the principal daily briefing now.`,
       550
     );
 
-    // Upsert (idempotent — same day = overwrite)
     const { data, error } = await supabaseAdmin
       .from('principal_briefings')
       .upsert({
@@ -368,25 +393,32 @@ Generate the principal daily briefing now.`,
 
     if (error) throw new Error(error.message);
 
-    await logNotification({
-      schoolId: school.id,
+    // Create notification for briefing and dispatch to admins via email
+    await supabaseAdmin.from('notifications').insert({
+      school_id: school.id,
       type: 'system',
       title: `Daily Briefing — ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
-      message: briefingText.slice(0, 200) + '...',
+      message: briefingText.slice(0, 500) + (briefingText.length > 500 ? '...' : ''),
       module: 'cron',
-      referenceId: data?.id,
+      reference_id: data?.id ?? null,
+      status: 'pending',
+      channel: 'email',
+      attempts: 0,
     });
+
+    // Dispatch email to admins
+    const dispatchResult = await processPendingNotifications(school.id, { limit: 5 });
 
     await logActivity({
       schoolId: school.id,
-      action: 'Cron: Daily principal briefing generated automatically',
+      action: 'Cron: Daily principal briefing generated and dispatched',
       module: 'settings',
-      details: kpiSnapshot as Record<string, unknown>,
+      details: { ...kpiSnapshot as Record<string, unknown>, dispatch: dispatchResult },
     });
 
-    const result = { briefing_id: data?.id, kpis: kpiSnapshot };
-    await completeRun(runId, { status: 'success', result, startedAt });
-    return { job: 'principal_briefing', schoolId: school.id, success: true, data: result, durationMs: Date.now() - startedAt };
+    const result = { briefing_id: data?.id, kpis: kpiSnapshot, dispatch: dispatchResult };
+    await completeRun(runId, { status: 'success', result: result as Record<string, unknown>, startedAt });
+    return { job: 'principal_briefing', schoolId: school.id, success: true, data: result as Record<string, unknown>, durationMs: Date.now() - startedAt };
 
   } catch (err) {
     const error = String(err);
@@ -396,24 +428,44 @@ Generate the principal daily briefing now.`,
   }
 }
 
+// ─── Job 4: Dispatch pending notifications ────────────────────────────────────
+
+export async function runDispatch(
+  school: SchoolRecord,
+  triggeredBy: 'auto' | 'manual' | 'api' = 'auto'
+): Promise<CronJobResult> {
+  const startedAt = Date.now();
+  const runId = await trackRun({ schoolId: school.id, jobName: 'dispatch', triggeredBy });
+
+  try {
+    const result = await processPendingNotifications(school.id, { limit: 50 });
+
+    await completeRun(runId, { status: result.processed === 0 ? 'skipped' : 'success', result: result as unknown as Record<string, unknown>, startedAt });
+    return { job: 'dispatch', schoolId: school.id, success: true, data: result as unknown as Record<string, unknown>, durationMs: Date.now() - startedAt };
+  } catch (err) {
+    const error = String(err);
+    await logError({ route: '/api/cron/daily:dispatch', error, schoolId: school.id });
+    await completeRun(runId, { status: 'failed', error, startedAt });
+    return { job: 'dispatch', schoolId: school.id, success: false, error, durationMs: Date.now() - startedAt };
+  }
+}
+
 // ─── Master: Run all jobs for one school ──────────────────────────────────────
 
 export async function runAllJobsForSchool(
   school: SchoolRecord,
   triggeredBy: 'auto' | 'manual' | 'api' = 'auto'
 ): Promise<CronJobResult[]> {
-  console.log(`[Cron] Running all jobs for school: ${school.name} (${school.id})`);
+  console.log(`[Cron] Running all jobs for: ${school.name} (${school.id})`);
 
-  // Run sequentially to avoid overwhelming the DB / AI APIs
   const results: CronJobResult[] = [];
-
   results.push(await runFeeReminders(school, triggeredBy));
   results.push(await runRiskDetection(school, triggeredBy));
   results.push(await runPrincipalBriefing(school, triggeredBy));
+  // Final sweep: dispatch any remaining pending notifications
+  results.push(await runDispatch(school, triggeredBy));
 
   const succeeded = results.filter(r => r.success).length;
-  const failed = results.filter(r => !r.success).length;
-  console.log(`[Cron] ${school.name}: ${succeeded} succeeded, ${failed} failed`);
-
+  console.log(`[Cron] ${school.name}: ${succeeded}/${results.length} jobs succeeded`);
   return results;
 }
