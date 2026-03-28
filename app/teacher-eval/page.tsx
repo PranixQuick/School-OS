@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import Layout from '@/components/Layout';
-import Link from 'next/link';
 
 interface StaffMember { id: string; name: string; role: string; subject: string | null; }
 interface EvalResult { score: number; strengths: string; improvements: string; feedback: string; }
@@ -193,7 +192,10 @@ export default function TeacherEvalPage() {
               return (
                 <div key={rec.id} className="card">
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: evalData ? 14 : 0 }}>
-                    <div><div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 3 }}>{rec.file_name.replace(/sample_classroom_\d+/, 'Sample Recording')}</div><div style={{ fontSize: 12, color: '#9CA3AF' }}>{new Date(rec.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 3 }}>{rec.file_name.replace(/sample_classroom_\d+/, 'Sample Recording')}</div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF' }}>{new Date(rec.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {score > 0 && <div className="score-circle" style={{ width: 40, height: 40, background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, fontWeight: 800, fontSize: 14, color: scoreColor(score) }}>{score}</div>}
                       <span className={`badge badge-${rec.status === 'done' ? 'done' : rec.status === 'failed' ? 'failed' : 'pending'}`}>{rec.status.toUpperCase()}</span>
@@ -209,7 +211,7 @@ export default function TeacherEvalPage() {
                       </button>
                       <button
                         onClick={async () => {
-                          if (!confirm(`Delete this evaluation?`)) return;
+                          if (!confirm('Delete this evaluation?')) return;
                           await fetch('/api/teacher-eval/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: rec.id }) });
                           setHistory(prev => prev.filter(r => r.id !== rec.id));
                         }}
@@ -221,8 +223,14 @@ export default function TeacherEvalPage() {
                   </div>
                   {evalData && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div style={{ background: '#DCFCE7', borderRadius: 8, padding: '10px 14px' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#15803D', marginBottom: 4 }}>STRENGTHS</div><p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.strengths.slice(0, 140)}...</p></div>
-                      <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#4338CA', marginBottom: 4 }}>COACHING</div><p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.feedback.slice(0, 140)}...</p></div>
+                      <div style={{ background: '#DCFCE7', borderRadius: 8, padding: '10px 14px' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#15803D', marginBottom: 4 }}>STRENGTHS</div>
+                        <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.strengths.slice(0, 140)}...</p>
+                      </div>
+                      <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#4338CA', marginBottom: 4 }}>COACHING</div>
+                        <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>{evalData.feedback.slice(0, 140)}...</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -230,3 +238,8 @@ export default function TeacherEvalPage() {
             })}
           </div>
         )}
+
+      </div>
+    </Layout>
+  );
+      }
