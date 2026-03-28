@@ -4,7 +4,7 @@ import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 import { logActivity, logNotification } from '@/lib/logger';
 
-const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+
 
 async function generateFeeReminderMessage(params: {
   studentName: string;
@@ -49,7 +49,7 @@ interface FeeRow {
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+  const schoolId = getSchoolId(req);
 
   try {
     const body = await req.json() as {
@@ -152,4 +152,4 @@ export async function POST(req: NextRequest) {
     console.error('Broadcast create error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-      }
+}
