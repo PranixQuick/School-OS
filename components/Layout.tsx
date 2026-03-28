@@ -10,22 +10,25 @@ interface NavItem {
   label: string;
   icon: string;
   exact?: boolean;
-  roles?: string[]; // undefined = all roles can see
+  roles?: string[];
 }
 
 const NAV: NavItem[] = [
   { href: '/dashboard',           label: 'Dashboard',       icon: '◈', exact: true },
-  { href: '/students',            label: 'Students',         icon: '👨‍🎓' },
-  { href: '/admissions',          label: 'New Inquiry',      icon: '✦',  roles: ['owner','admin'] },
-  { href: '/admissions/crm',      label: 'Leads CRM',        icon: '◎',  roles: ['owner','admin'] },
-  { href: '/report-cards',        label: 'Report Cards',     icon: '◷' },
-  { href: '/teacher-eval',        label: 'Teacher Eval',     icon: '⊕' },
-  { href: '/automation',          label: 'Automation',       icon: '⚡', roles: ['owner','admin'] },
-  { href: '/automation/cron',     label: 'Cron Jobs',        icon: '🤖', roles: ['owner','admin'] },
-  { href: '/analytics',           label: 'Analytics',        icon: '◉' },
-  { href: '/import',              label: 'CSV Import',       icon: '↑',  roles: ['owner','admin'] },
-  { href: '/billing',             label: 'Billing',          icon: '💳', roles: ['owner'] },
-  { href: '/settings',            label: 'Settings',         icon: '⚙',  roles: ['owner','admin'] },
+  { href: '/principal',           label: 'Principal View',  icon: '📊', roles: ['owner','admin'] },
+  { href: '/students',            label: 'Students',        icon: '👨‍🎓' },
+  { href: '/admissions',          label: 'New Inquiry',     icon: '✦',  roles: ['owner','admin'] },
+  { href: '/admissions/crm',      label: 'Leads CRM',       icon: '◎',  roles: ['owner','admin'] },
+  { href: '/report-cards',        label: 'Report Cards',    icon: '◷' },
+  { href: '/teacher-eval',        label: 'Teacher Eval',    icon: '⊕' },
+  { href: '/automation',          label: 'Automation',      icon: '⚡', roles: ['owner','admin'] },
+  { href: '/automation/cron',     label: 'Cron Jobs',       icon: '🤖', roles: ['owner','admin'] },
+  { href: '/analytics',           label: 'Analytics',       icon: '◉' },
+  { href: '/connectors',          label: 'Data Connectors', icon: '🔗', roles: ['owner','admin'] },
+  { href: '/whatsapp',            label: 'WhatsApp Bot',    icon: '💬', roles: ['owner','admin'] },
+  { href: '/import',              label: 'CSV Import',      icon: '↑',  roles: ['owner','admin'] },
+  { href: '/billing',             label: 'Billing',         icon: '💳', roles: ['owner'] },
+  { href: '/settings',            label: 'Settings',        icon: '⚙',  roles: ['owner','admin'] },
 ];
 
 interface LayoutProps {
@@ -105,7 +108,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           <div className="sidebar-section-label">Platform</div>
           <nav className="sidebar-nav">
             {visibleNav.map(item => (
-              <Link key={item.href} href={item.href} className={`sidebar-link${isActive(item) ? ' active' : ''}`}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`sidebar-link${isActive(item) ? ' active' : ''}`}
+              >
                 <span className="sidebar-link-icon">{item.icon}</span>
                 {item.label}
               </Link>
@@ -116,11 +123,13 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         <div style={{ padding: '0 12px 8px' }}>
           <div className="sidebar-section-label">System</div>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 14, color: '#9CA3AF' }}>
-              <span className="sidebar-link-icon">◉</span>
-              WhatsApp Bot
-              <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: 10 }}>ON</span>
-            </div>
+            <Link href="/whatsapp" style={{ textDecoration: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 14, color: '#9CA3AF', cursor: 'pointer' }}>
+                <span className="sidebar-link-icon">◉</span>
+                WhatsApp Bot
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: 10 }}>ON</span>
+              </div>
+            </Link>
           </nav>
         </div>
 
@@ -134,7 +143,10 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               </div>
             </div>
           </div>
-          <button onClick={handleLogout} style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+          <button
+            onClick={handleLogout}
+            style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+          >
             Sign out
           </button>
         </div>
@@ -147,7 +159,10 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             {subtitle && <div className="topbar-sub">{subtitle}</div>}
           </div>
           <div className="topbar-right">
-            <div className="topbar-badge"><div className="topbar-badge-dot" />All systems live</div>
+            <div className="topbar-badge">
+              <div className="topbar-badge-dot" />
+              All systems live
+            </div>
             {actions}
           </div>
         </header>
