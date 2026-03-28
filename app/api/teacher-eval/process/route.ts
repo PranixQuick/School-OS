@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
+import { getSchoolId } from '@/lib/getSchoolId';
 
-const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 interface EvalResult {
@@ -74,6 +74,7 @@ Evaluate this teaching session and return the JSON.`;
 }
 
 export async function POST(req: NextRequest) {
+  const schoolId = getSchoolId(req);
   let recordingId: string | null = null;
 
   try {
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
       .from('staff')
       .select('name, subject')
       .eq('id', staffId)
-      .eq('school_id', SCHOOL_ID)
+      .eq('school_id', schoolId)
       .single();
 
     const teacherName = staffData?.name ?? 'Teacher';
@@ -146,7 +147,7 @@ export async function POST(req: NextRequest) {
     if (!preUploadedPath) {
       const timestamp = Date.now();
       const ext = fileName.split('.').pop() ?? 'mp3';
-      const storagePath = `${SCHOOL_ID}/${staffId}/${timestamp}.${ext}`;
+      const storagePath = `${schoolId}/${staffId}/${timestamp}.${ext}`;
 
       const { error: uploadError } = await supabaseAdmin.storage
         .from('recordings')
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
       const { data: recording, error: insertError } = await supabaseAdmin
         .from('recordings')
         .insert({
-          school_id: SCHOOL_ID,
+          school_id: schoolId,
           staff_id: staffId,
           file_url: fileUrl,
           file_name: fileName,
@@ -249,4 +250,4 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  }
+}
