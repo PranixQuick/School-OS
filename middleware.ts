@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/api/schools/create',
   '/parent',
   '/api/parent',
+  '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
 ];
 
 // Super admin only paths
