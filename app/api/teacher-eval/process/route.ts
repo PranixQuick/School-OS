@@ -74,6 +74,8 @@ Evaluate this teaching session and return the JSON.`;
 }
 
 export async function POST(req: NextRequest) {
+  let recordingId: string | null = null;
+
   try {
     const contentType = req.headers.get('content-type') ?? '';
     let audioBuffer: ArrayBuffer;
@@ -103,13 +105,19 @@ export async function POST(req: NextRequest) {
         storagePath: string;
         fileUrl: string;
         fileName: string;
+        recording_id?: string; // provided when re-running an existing evaluation
       };
       staffId = body.staffId;
       preUploadedPath = body.storagePath;
       fileName = body.fileName;
       mimeType = 'audio/mpeg';
 
-      // FIX 4: Use signed URL instead of public URL (bucket is private)
+      // If re-running an existing recording, track its ID immediately
+      if (body.recording_id) {
+        recordingId = body.recording_id;
+      }
+
+      // Use signed URL (bucket is private)
       const { data: signedData, error: signErr } = await supabaseAdmin.storage
         .from('recordings')
         .createSignedUrl(preUploadedPath, 300);
@@ -151,33 +159,46 @@ export async function POST(req: NextRequest) {
         .getPublicUrl(storagePath);
       fileUrl = urlData?.publicUrl ?? storagePath;
     } else {
-      fileUrl = preUploadedPath; // store the storage path as reference
+      fileUrl = preUploadedPath;
     }
 
-    // Insert recording row
-    const { data: recording, error: insertError } = await supabaseAdmin
-      .from('recordings')
-      .insert({
-        school_id: SCHOOL_ID,
-        staff_id: staffId,
-        file_url: fileUrl,
-        file_name: fileName,
-        status: 'transcribing',
-        uploaded_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
+    // Insert recording row (only if not a re-run)
+    if (!recordingId) {
+      const { data: recording, error: insertError } = await supabaseAdmin
+        .from('recordings')
+        .insert({
+          school_id: SCHOOL_ID,
+          staff_id: staffId,
+          file_url: fileUrl,
+          file_name: fileName,
+          status: 'transcribing',
+          uploaded_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
 
-    if (insertError || !recording) throw new Error('Failed to create recording record');
+      if (insertError || !recording) throw new Error('Failed to create recording record');
+      recordingId = recording.id as string;
+    } else {
+      // Re-run: reset status
+      await supabaseAdmin.from('recordings')
+        .update({ status: 'transcribing', eval_report: null, coaching_score: null, processed_at: null })
+        .eq('id', recordingId);
+    }
 
-    const recordingId = recording.id as string;
-
-    // Transcribe
+    // Transcribe — mark failed immediately if Whisper throws
     let transcript = '';
     try {
       transcript = await transcribeAudio(audioBuffer, mimeType, fileName);
     } catch (e) {
-      await supabaseAdmin.from('recordings').update({ status: 'failed' }).eq('id', recordingId);
+      await supabaseAdmin.from('recordings').update({
+        status: 'failed',
+        eval_report: JSON.stringify({
+          score: 0, error: String(e),
+          strengths: 'Transcription failed — please re-upload the audio file.',
+          improvements: '', feedback: 'Processing failed. Try re-running the evaluation.',
+        }),
+      }).eq('id', recordingId);
       throw new Error(`Transcription failed: ${String(e)}`);
     }
 
@@ -185,16 +206,23 @@ export async function POST(req: NextRequest) {
       .update({ transcript, status: 'analysing' })
       .eq('id', recordingId);
 
-    // Evaluate
+    // Evaluate — mark failed immediately if Claude throws
     let evalResult: EvalResult;
     try {
       evalResult = await evaluateTeaching(transcript, teacherName);
     } catch (e) {
-      await supabaseAdmin.from('recordings').update({ status: 'failed' }).eq('id', recordingId);
+      await supabaseAdmin.from('recordings').update({
+        status: 'failed',
+        eval_report: JSON.stringify({
+          score: 0, error: String(e),
+          strengths: 'AI evaluation failed — transcript was captured successfully.',
+          improvements: '', feedback: 'Click Re-run to try the evaluation again.',
+        }),
+      }).eq('id', recordingId);
       throw new Error(`Evaluation failed: ${String(e)}`);
     }
 
-    // Save final
+    // Save final result
     await supabaseAdmin.from('recordings').update({
       eval_report: JSON.stringify(evalResult),
       coaching_score: evalResult.score,
@@ -212,6 +240,13 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Teacher eval error:', err);
+    // Final safety net: if recordingId is known but not yet marked failed, mark it now
+    if (recordingId) {
+      await supabaseAdmin.from('recordings')
+        .update({ status: 'failed' })
+        .eq('id', recordingId)
+        .eq('status', 'transcribing'); // only if still stuck in transcribing
+    }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-      }
+  }
