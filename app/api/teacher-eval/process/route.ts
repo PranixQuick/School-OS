@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 
+// Allow up to 60 seconds for Whisper transcription + Claude evaluation
+export const maxDuration = 60;
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 interface EvalResult {
