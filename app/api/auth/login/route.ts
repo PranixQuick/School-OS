@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Simple password check: password must be "schoolos" + first 4 chars of school_id
-    // This is demo auth — in production replace with Supabase Auth
+    // Password: "schoolos" + first 4 chars of school_id (e.g. schoolos0000)
+    // Replace with Supabase Auth for production use
     const expectedPassword = `schoolos${schoolUser.school_id.slice(0, 4)}`;
-    const isDemoPassword = password === expectedPassword || password === 'admin@123';
+    const isDemoPassword = password === expectedPassword;
 
     if (!isDemoPassword) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
