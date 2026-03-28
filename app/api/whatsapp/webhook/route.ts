@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log to conversations
-    await supabaseAdmin.from('conversations').insert({ school_id: schoolId, student_id: studentId, phone_number: normPhone, direction: 'inbound', message: body, response: replyText, intent: intent as string, language, session_id: messageSid, metadata: { from_raw: rawFrom, message_sid: messageSid } 
+    await supabaseAdmin.from('conversations').insert({ school_id: schoolId, student_id: studentId, phone_number: normPhone, direction: 'inbound', message: body, response: replyText, intent: intent as string, language, session_id: messageSid, metadata: { from_raw: rawFrom, message_sid: messageSid } }).then(null, () => {});
 
     await sendWhatsApp({ to: normPhone, body: replyText, schoolName });
 
@@ -190,4 +190,4 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ status: 'active', features: ['parent-bot', 'ptm-booking', 'teacher-attendance', 'multilingual-en-hi-te'] });
-}
+                                             }
