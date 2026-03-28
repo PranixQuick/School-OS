@@ -19,8 +19,15 @@ export default function CRMPage() {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Lead | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { fetchLeads(); }, []);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   async function fetchLeads() {
     setLoading(true);
@@ -37,6 +44,17 @@ export default function CRMPage() {
     setUpdatingId(null);
   }
 
+  async function handleDelete(lead: Lead) {
+    const res = await fetch('/api/admissions/list', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: lead.id }) });
+    if (res.ok) {
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      showToast('Lead removed', true);
+    } else {
+      showToast('Delete failed', false);
+    }
+    setDeleteConfirm(null);
+  }
+
   const filtered = leads.filter(l => (filter === 'all' || l.priority === filter) && (statusFilter === 'all' || l.status === statusFilter));
   const counts = { high: leads.filter(l => l.priority === 'high').length, medium: leads.filter(l => l.priority === 'medium').length, low: leads.filter(l => l.priority === 'low').length };
 
@@ -46,6 +64,13 @@ export default function CRMPage() {
       subtitle={`${leads.length} total leads · AI-scored and categorised`}
       actions={<Link href="/admissions" className="btn btn-primary btn-sm">+ New Inquiry</Link>}
     >
+      {/* Toast */}
+      {toast && (
+        <div className={`toast ${toast.ok ? 'toast-success' : 'toast-error'}`}>
+          {toast.ok ? '✓' : '✗'} {toast.msg}
+        </div>
+      )}
+
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
         {([['high', '🟢 High Priority', '#DCFCE7', '#15803D'], ['medium', '🟡 Medium Priority', '#FEF9C3', '#A16207'], ['low', '🔴 Low Priority', '#FEE2E2', '#B91C1C']] as const).map(([p, label, bg, color]) => (
@@ -77,7 +102,7 @@ export default function CRMPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Score</th><th>Parent / Child</th><th>Phone</th><th>Class</th><th>Source</th><th>Priority</th><th>Status</th>
+                <th>Score</th><th>Parent / Child</th><th>Phone</th><th>Class</th><th>Source</th><th>Priority</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -103,6 +128,14 @@ export default function CRMPage() {
                       {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ')}</option>)}
                     </select>
                   </td>
+                  <td>
+                    <button
+                      onClick={() => setDeleteConfirm(lead)}
+                      style={{ height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', color: '#B91C1C', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      Remove
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -123,6 +156,23 @@ export default function CRMPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-box-sm">
+            <div className="confirm-icon">⚠️</div>
+            <div className="confirm-title">Remove {deleteConfirm.parent_name}?</div>
+            <div className="confirm-body">
+              This lead will be removed from the CRM. This action cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="btn btn-danger" style={{ flex: 1 }}>Remove Lead</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
-}
+              }
