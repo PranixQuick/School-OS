@@ -12,7 +12,6 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈', exact: true },
   { href: '/admissions', label: 'New Inquiry', icon: '✦' },
   { href: '/admissions/crm', label: 'Leads CRM', icon: '◎' },
