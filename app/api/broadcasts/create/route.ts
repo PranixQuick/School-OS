@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
+import { getSchoolId } from '@/lib/getSchoolId';
+import { logActivity, logNotification } from '@/lib/logger';
 
-const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 
 async function generateFeeReminderMessage(params: {
   studentName: string;
@@ -47,6 +49,8 @@ interface FeeRow {
 }
 
 export async function POST(req: NextRequest) {
+  const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+
   try {
     const body = await req.json() as {
       type: string;
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
         const { data: feeData } = await supabaseAdmin
           .from('fees')
           .select('amount, due_date, fee_type, students(name, parent_name)')
-          .eq('school_id', SCHOOL_ID)
+          .eq('school_id', schoolId)
           .in('status', ['pending', 'overdue'])
           .limit(1);
 
@@ -100,7 +104,7 @@ export async function POST(req: NextRequest) {
       const { count } = await supabaseAdmin
         .from('students')
         .select('id', { count: 'exact', head: true })
-        .eq('school_id', SCHOOL_ID)
+        .eq('school_id', schoolId)
         .eq('is_active', true)
         .in('class', body.target_classes);
       targetCount = count ?? 0;
@@ -109,7 +113,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('broadcasts')
       .insert({
-        school_id: SCHOOL_ID,
+        school_id: schoolId,
         type: body.type,
         title: body.title,
         message: finalMessage,
@@ -124,9 +128,28 @@ export async function POST(req: NextRequest) {
 
     if (error) throw new Error(error.message);
 
+    // Log notification and activity (non-blocking)
+    void logNotification({
+      schoolId,
+      type: body.type === 'fee_reminder' ? 'fee_reminder' : 'broadcast',
+      title: body.title,
+      message: finalMessage,
+      targetCount,
+      module: 'broadcasts',
+      referenceId: data.id,
+    });
+
+    void logActivity({
+      schoolId,
+      action: `Sent ${body.type.replace('_', ' ')} broadcast "${body.title}" to ${targetCount} parents`,
+      module: 'broadcasts',
+      details: { type: body.type, classes: body.target_classes, count: targetCount },
+    });
+
     return NextResponse.json({ success: true, broadcast: data });
+
   } catch (err) {
     console.error('Broadcast create error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-}
+      }
