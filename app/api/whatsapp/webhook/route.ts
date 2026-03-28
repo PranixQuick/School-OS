@@ -56,7 +56,7 @@ async function handleTeacherAttendance(text: string, staffId: string|null, schoo
     students.map(s => ({ school_id: schoolId, student_id: s.id, date: today, status: 'present', marked_by: staffId ?? 'whatsapp', marked_via: 'whatsapp', data_source: 'manual' })),
     { onConflict: 'school_id,student_id,date', ignoreDuplicates: false }
   );
-  if (staffId) await supabaseAdmin.from('teacher_attendance').upsert({ school_id: schoolId, staff_id: staffId, date: today, status: 'present', marked_via: 'whatsapp' }, { onConflict: 'school_id,staff_id,date', ignoreDuplicates: true }).catch(() => {});
+  if (staffId) await supabaseAdmin.from('teacher_attendance').upsert({ school_id: schoolId, staff_id: staffId, date: today, status: 'present', marked_via: 'whatsapp' }, { onConflict: 'school_id,staff_id,date', ignoreDuplicates: true }).then(null, () => {});
   return `✅ Done! Class ${classNum}${section}: ${students.length} students marked Present for ${today}. Thank you, ${staffName}!`;
 }
 
@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log to conversations
-    await supabaseAdmin.from('conversations').insert({ school_id: schoolId, student_id: studentId, phone_number: normPhone, direction: 'inbound', message: body, response: replyText, intent: intent as string, language, session_id: messageSid, metadata: { from_raw: rawFrom, message_sid: messageSid } }).catch(() => {});
+    await supabaseAdmin.from('conversations').insert({ school_id: schoolId, student_id: studentId, phone_number: normPhone, direction: 'inbound', message: body, response: replyText, intent: intent as string, language, session_id: messageSid, metadata: { from_raw: rawFrom, message_sid: messageSid } 
 
     await sendWhatsApp({ to: normPhone, body: replyText, schoolName });
 
@@ -190,4 +190,4 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ status: 'active', features: ['parent-bot', 'ptm-booking', 'teacher-attendance', 'multilingual-en-hi-te'] });
-                                                      }
+}
