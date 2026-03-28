@@ -67,13 +67,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Store pending upgrade request
-    await supabaseAdmin.from('upgrade_requests').insert({
+    // Store pending upgrade request (non-blocking)
+    supabaseAdmin.from('upgrade_requests').insert({
       school_id: schoolId,
       current_plan: school?.plan ?? 'free',
       requested_plan: plan,
       razorpay_order_id: order.id,
       status: 'pending',
-    }).catch(() => {}); // non-blocking
+    }).then(null, () => {}); // fire-and-forget
 
     return NextResponse.json({
       success: true,
