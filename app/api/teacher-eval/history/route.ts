@@ -1,21 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getSchoolId } from '@/lib/getSchoolId';
 
-const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function GET(req: NextRequest) {
-  const staffId = req.nextUrl.searchParams.get('staffId');
+  try {
+    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
 
-  let query = supabaseAdmin
-    .from('recordings')
-    .select('id, file_name, coaching_score, eval_report, status, uploaded_at, staff_id')
-    .eq('school_id', SCHOOL_ID)
-    .order('uploaded_at', { ascending: false })
-    .limit(20);
+    const { data, error } = await supabaseAdmin
+      .from('recordings')
+      .select('id, staff_id, file_name, transcript, eval_report, coaching_score, status, uploaded_at, processed_at, staff(name, role, subject)')
+      .eq('school_id', schoolId)
+      .is('deleted_at', null)
+      .order('uploaded_at', { ascending: false });
 
-  if (staffId) query = query.eq('staff_id', staffId);
+    if (error) throw new Error(error.message);
+    return NextResponse.json({ recordings: data ?? [] });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ recordings: data ?? [] });
+export async function DELETE(req: NextRequest) {
+  try {
+    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+    const { id } = await req.json() as { id: string };
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+    const { error } = await supabaseAdmin
+      .from('recordings')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('school_id', schoolId);
+
+    if (error) throw new Error(error.message);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+// PATCH: re-run AI evaluation on an existing recording
+export async function PATCH(req: NextRequest) {
+  try {
+    const schoolId = getSchoolId(req) || DEMO_SCHOOL_ID;
+    const { id } = await req.json() as { id: string };
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+    // Mark as pending — the process route will pick it up
+    const { data, error } = await supabaseAdmin
+      .from('recordings')
+      .update({ status: 'pending', eval_report: null, coaching_score: null, processed_at: null })
+      .eq('id', id)
+      .eq('school_id', schoolId)
+      .select('id, file_url, file_name, transcript, staff_id')
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // If transcript exists, re-run eval immediately
+    if (data?.transcript) {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/teacher-eval/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recording_id: id, transcript: data.transcript }),
+      });
+      const result = await response.json() as Record<string, unknown>;
+      return NextResponse.json({ success: true, rerun: true, result });
+    }
+
+    return NextResponse.json({ success: true, rerun: false, message: 'Marked for re-processing. Re-upload to regenerate transcript.' });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
