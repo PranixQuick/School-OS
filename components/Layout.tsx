@@ -1,8 +1,9 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   href: string;
@@ -18,6 +19,7 @@ const NAV: NavItem[] = [
   { href: '/report-cards', label: 'Report Cards', icon: '◷' },
   { href: '/teacher-eval', label: 'Teacher Eval', icon: '⊕' },
   { href: '/automation', label: 'Automation', icon: '⚡' },
+  { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 interface LayoutProps {
@@ -27,8 +29,35 @@ interface LayoutProps {
   actions?: ReactNode;
 }
 
+interface SessionData {
+  schoolName: string;
+  userEmail: string;
+  userName: string;
+  plan: string;
+}
+
+const PLAN_COLOR: Record<string, string> = {
+  starter: '#6B7280',
+  growth: '#4F46E5',
+  campus: '#065F46',
+};
+
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [session, setSession] = useState<SessionData | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(d => { if (d.session) setSession(d.session); })
+      .catch(() => {});
+  }, []);
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
 
   function isActive(item: NavItem) {
     if (item.exact) return pathname === item.href;
@@ -37,17 +66,23 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   return (
     <div className="shell">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">S</div>
           <div>
             <div className="sidebar-logo-text">School OS</div>
-            <div className="sidebar-logo-sub">Suchitra Academy</div>
+            <div className="sidebar-logo-sub">{session?.schoolName ?? 'Loading...'}</div>
           </div>
         </div>
 
-        <div style={{ padding: '8px 0' }}>
+        {session?.plan && (
+          <div style={{ margin: '0 12px 8px', padding: '4px 10px', background: '#F3F4F6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Plan</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: PLAN_COLOR[session.plan] ?? '#6B7280', textTransform: 'capitalize' }}>{session.plan}</span>
+          </div>
+        )}
+
+        <div style={{ padding: '4px 0' }}>
           <div className="sidebar-section-label">Platform</div>
           <nav className="sidebar-nav">
             {NAV.map(item => (
@@ -76,18 +111,22 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-avatar">A</div>
-            <div>
-              <div className="sidebar-user-name">Admin</div>
-              <div className="sidebar-user-role">Administrator</div>
+            <div className="sidebar-avatar">{session?.userName?.charAt(0) ?? 'A'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sidebar-user-name">{session?.userName ?? 'Admin'}</div>
+              <div className="sidebar-user-role" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session?.userEmail ?? ''}</div>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+          >
+            Sign out
+          </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className="main-content">
-        {/* Topbar */}
         <header className="topbar">
           <div>
             <div className="topbar-title">{title}</div>
@@ -102,7 +141,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </div>
         </header>
 
-        {/* Content */}
         <main className="page-content">
           {children}
         </main>
