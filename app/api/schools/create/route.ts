@@ -88,11 +88,12 @@ export async function POST(req: NextRequest) {
       is_holiday: false,
     });
 
+    const initialPassword = `schoolos${school.id.slice(0, 4)}`;
     return NextResponse.json({
       success: true,
       school: { id: school.id, name: school.name, slug: school.slug, plan: school.plan },
-      login: { email: admin_email, password: 'admin@123' },
-      message: 'School created. Use your email and password "admin@123" to login.',
+      login: { email: admin_email, password: initialPassword },
+      message: `School created successfully. Login with your email and password: ${initialPassword}`,
     });
 
   } catch (err) {
@@ -107,4 +108,4 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-        }
+}
