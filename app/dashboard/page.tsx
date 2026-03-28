@@ -24,7 +24,15 @@ const MODULES = [
   { title: 'Report Cards', desc: 'Generate AI narratives for every student. Download as HTML for printing.', href: '/report-cards', btn: 'Generate Reports', color: '#15803D', bg: '#DCFCE7', icon: '📄' },
   { title: 'Teacher Evaluation', desc: 'Upload classroom audio. Get instant quality scores and coaching feedback.', href: '/teacher-eval', btn: 'Analyse Classroom', color: '#1D4ED8', bg: '#DBEAFE', icon: '🎙' },
   { title: 'Admissions CRM', desc: 'AI-scored leads sorted by priority. Track from inquiry to admission.', href: '/admissions/crm', btn: 'View CRM', color: '#6D28D9', bg: '#EDE9FE', icon: '👥' },
-  { title: 'WhatsApp Bot', desc: 'Parent assistant deployed and answering attendance, fees, events 24/7.', href: '#', btn: 'View Config', color: '#065F46', bg: '#D1FAE5', icon: '💬' },
+  { title: 'WhatsApp Bot', desc: 'Parent assistant deployed and answering attendance, fees, events 24/7.', href: '/whatsapp', btn: 'View Config', color: '#065F46', bg: '#D1FAE5', icon: '💬' },
+];
+
+// KPI cards — each links to its corresponding module
+const KPI_CARDS = [
+  { label: 'Total Students', sub_key: 'enrolments', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
+  { label: 'Pending Fees',   sub_key: 'fees',        color: '#B91C1C', bg: '#FEF2F2', href: '/billing' },
+  { label: 'Total Leads',    sub_key: 'leads',        color: '#6D28D9', bg: '#F5F3FF', href: '/admissions/crm' },
+  { label: 'Reports Generated', sub_key: 'reports',   color: '#065F46', bg: '#ECFDF5', href: '/report-cards' },
 ];
 
 export default function DashboardPage() {
@@ -51,6 +59,20 @@ export default function DashboardPage() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
+  // Compute values from KPIs
+  const kpiValues = [
+    kpis.total_students,
+    kpis.pending_fees_count,
+    kpis.total_leads,
+    kpis.narratives_generated,
+  ];
+  const kpiSubs = [
+    'Active enrolments',
+    `₹${Math.round(kpis.pending_fees_amount / 1000)}K outstanding`,
+    `${kpis.high_priority_leads} high priority`,
+    `${kpis.evals_done} teacher evals`,
+  ];
+
   return (
     <Layout
       title="Dashboard"
@@ -61,24 +83,31 @@ export default function DashboardPage() {
         </Link>
       }
     >
-      {/* KPI grid */}
+      {/* KPI grid — each card is a clickable link */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
-        {[
-          { label: 'Total Students', value: kpis.total_students, sub: 'Active enrolments', color: '#4F46E5', bg: '#EEF2FF' },
-          { label: 'Pending Fees', value: kpis.pending_fees_count, sub: `₹${Math.round(kpis.pending_fees_amount / 1000)}K outstanding`, color: '#B91C1C', bg: '#FEF2F2' },
-          { label: 'Total Leads', value: kpis.total_leads, sub: `${kpis.high_priority_leads} high priority`, color: '#6D28D9', bg: '#F5F3FF' },
-          { label: 'Reports Generated', value: kpis.narratives_generated, sub: `${kpis.evals_done} teacher evals`, color: '#065F46', bg: '#ECFDF5' },
-        ].map(k => (
-          <div key={k.label} className="kpi-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <span className="kpi-label">{k.label}</span>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: k.color }} />
+        {KPI_CARDS.map((k, i) => (
+          <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
+            <div className="kpi-card" style={{ cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.12s' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.09)';
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '';
+                (e.currentTarget as HTMLDivElement).style.transform = '';
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <span className="kpi-label">{k.label}</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: k.color }} />
+                </div>
               </div>
+              <div className="kpi-value" style={{ color: k.color }}>{loading ? '—' : kpiValues[i]}</div>
+              <div className="kpi-sub">{kpiSubs[i]}</div>
+              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: k.color, opacity: 0.7 }}>View →</div>
             </div>
-            <div className="kpi-value" style={{ color: k.color }}>{loading ? '—' : k.value}</div>
-            <div className="kpi-sub">{k.sub}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -184,4 +213,4 @@ export default function DashboardPage() {
       </div>
     </Layout>
   );
-}
+                                                                                                                                           }
