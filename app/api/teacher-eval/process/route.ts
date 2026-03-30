@@ -28,11 +28,10 @@ async function transcribeAudio(
   formData.append('file', blob, fileName);
   formData.append('model', 'whisper-1');
   formData.append('language', 'en');
-  formData.append('response_format', 'text');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { 'Authorization': `Bearer ${apiKey}` },
     body: formData,
   });
 
@@ -41,44 +40,48 @@ async function transcribeAudio(
     throw new Error(`Whisper API error: ${response.status} - ${err}`);
   }
 
-  return (await response.text()).trim();
+  const data = await response.json() as { text: string };
+  return data.text ?? '';
 }
 
-async function evaluateTeaching(
-  transcript: string,
-  teacherName: string
-): Promise<EvalResult> {
-  const system = `You are an expert teaching coach evaluating classroom recordings.
-Analyze the transcript and return ONLY a valid JSON object with exactly these four keys:
-{
-  "score": <integer 1-10>,
-  "strengths": "<2-3 specific strengths observed, 60-90 words>",
-  "improvements": "<2-3 specific areas to improve, 60-90 words>",
-  "feedback": "<overall coaching feedback with actionable next steps, 80-120 words>"
-}
-No markdown. No explanation. No text before or after. Only the JSON object.`;
+async function evaluateTeaching(transcript: string, teacherName: string, subject: string): Promise<EvalResult> {
+  const system = `You are an expert teacher coach evaluating classroom teaching quality.
+Analyse the transcript and respond with ONLY valid JSON matching this exact schema:
+{"score": <number 1-10>, "strengths": "<string>", "improvements": "<string>", "feedback": "<string>"}
+score: overall teaching quality 1-10.
+strengths: 1-2 sentences on what was done well.
+improvements: 1-2 sentences on specific areas to improve.
+feedback: 2-3 sentences of actionable coaching advice.`;
 
-  const userMsg = `Teacher: ${teacherName}
+  const user = `Teacher: ${teacherName}${subject ? `, Subject: ${subject}` : ''}
 
-Classroom transcript:
-${transcript.slice(0, 6000)}
+Transcript:
+${transcript.slice(0, 3000)}${transcript.length > 3000 ? '\n[truncated]' : ''}`;
 
-Evaluate this teaching session and return the JSON.`;
-
-  const raw = await callClaude(system, userMsg, 700);
+  const raw = await callClaude(system, user, 300);
 
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('Claude returned invalid JSON');
-
   const parsed = JSON.parse(match[0]) as EvalResult;
   if (typeof parsed.score !== 'number') throw new Error('Invalid evaluation schema');
-
   return parsed;
 }
 
 export async function POST(req: NextRequest) {
   const schoolId = getSchoolId(req);
   let recordingId: string | null = null;
+
+  // ── Graceful 503 guard: check OPENAI_API_KEY BEFORE any DB writes ──────────
+  // This prevents orphaned 'transcribing' rows when the key is absent.
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({
+      error: 'Teacher evaluation requires OpenAI Whisper. OPENAI_API_KEY not configured.',
+      setup: [
+        'Add OPENAI_API_KEY to Vercel environment variables',
+        'Redeploy after adding the key',
+      ],
+    }, { status: 503 });
+  }
 
   try {
     const contentType = req.headers.get('content-type') ?? '';
@@ -109,19 +112,17 @@ export async function POST(req: NextRequest) {
         storagePath: string;
         fileUrl: string;
         fileName: string;
-        recording_id?: string; // provided when re-running an existing evaluation
+        recording_id?: string;
       };
       staffId = body.staffId;
       preUploadedPath = body.storagePath;
       fileName = body.fileName;
       mimeType = 'audio/mpeg';
 
-      // If re-running an existing recording, track its ID immediately
       if (body.recording_id) {
         recordingId = body.recording_id;
       }
 
-      // Use signed URL (bucket is private)
       const { data: signedData, error: signErr } = await supabaseAdmin.storage
         .from('recordings')
         .createSignedUrl(preUploadedPath, 300);
@@ -198,39 +199,38 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('recordings').update({
         status: 'failed',
         eval_report: JSON.stringify({
-          score: 0, error: String(e),
-          strengths: 'Transcription failed — please re-upload the audio file.',
-          improvements: '', feedback: 'Processing failed. Try re-running the evaluation.',
+          error: 'Transcription failed',
+          detail: String(e),
         }),
+        processed_at: new Date().toISOString(),
       }).eq('id', recordingId);
       throw new Error(`Transcription failed: ${String(e)}`);
     }
 
+    // Update status to analysing
     await supabaseAdmin.from('recordings')
-      .update({ transcript, status: 'analysing' })
+      .update({ status: 'analysing', transcript })
       .eq('id', recordingId);
 
     // Evaluate — mark failed immediately if Claude throws
     let evalResult: EvalResult;
     try {
-      evalResult = await evaluateTeaching(transcript, teacherName);
+      evalResult = await evaluateTeaching(transcript, teacherName, staffData?.subject ?? '');
     } catch (e) {
       await supabaseAdmin.from('recordings').update({
         status: 'failed',
-        eval_report: JSON.stringify({
-          score: 0, error: String(e),
-          strengths: 'AI evaluation failed — transcript was captured successfully.',
-          improvements: '', feedback: 'Click Re-run to try the evaluation again.',
-        }),
+        eval_report: JSON.stringify({ error: 'Evaluation failed', detail: String(e) }),
+        processed_at: new Date().toISOString(),
       }).eq('id', recordingId);
       throw new Error(`Evaluation failed: ${String(e)}`);
     }
 
     // Save final result
     await supabaseAdmin.from('recordings').update({
+      status: 'done',
+      transcript,
       eval_report: JSON.stringify(evalResult),
       coaching_score: evalResult.score,
-      status: 'done',
       processed_at: new Date().toISOString(),
     }).eq('id', recordingId);
 
@@ -244,12 +244,12 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Teacher eval error:', err);
-    // Final safety net: if recordingId is known but not yet marked failed, mark it now
+    // Final safety net: mark recording failed if it exists and is stuck in transcribing
     if (recordingId) {
       await supabaseAdmin.from('recordings')
         .update({ status: 'failed' })
         .eq('id', recordingId)
-        .eq('status', 'transcribing'); // only if still stuck in transcribing
+        .eq('status', 'transcribing');
     }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
