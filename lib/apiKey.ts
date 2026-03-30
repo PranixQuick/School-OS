@@ -1,7 +1,12 @@
 import { supabaseAdmin } from './supabaseClient';
 
+// Window size for rate limiting (60 seconds)
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const rateLimitCache = new Map<string, { count: number; windowStart: number }>();
+
+// In-memory Map REMOVED — Vercel cold starts reset module-level state,
+// making Map-based rate limits ineffective between function invocations.
+// Replaced with DB-backed check against api_rate_log table.
+// PREREQUISITE: api_rate_log table must exist before this code is deployed.
 
 export async function validateAndTrackApiKey(key: string): Promise<{ valid: boolean; error?: string }> {
   if (!key || !key.startsWith('sk_schoolos_')) {
@@ -17,17 +22,23 @@ export async function validateAndTrackApiKey(key: string): Promise<{ valid: bool
 
   if (error || !data) return { valid: false, error: 'API key not found' };
 
-  const now = Date.now();
-  const cached = rateLimitCache.get(key);
-  if (cached && now - cached.windowStart < RATE_LIMIT_WINDOW_MS) {
-    if (cached.count >= data.rate_limit_per_minute) {
-      return { valid: false, error: 'Rate limit exceeded' };
-    }
-    cached.count++;
-  } else {
-    rateLimitCache.set(key, { count: 1, windowStart: now });
+  // DB-backed rate limit — survives cold starts and scales across instances
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+
+  const { count } = await supabaseAdmin
+    .from('api_rate_log')
+    .select('*', { count: 'exact', head: true })
+    .eq('api_key_id', data.id)
+    .gte('created_at', windowStart);
+
+  if ((count ?? 0) >= data.rate_limit_per_minute) {
+    return { valid: false, error: 'Rate limit exceeded' };
   }
 
+  // Log this request into the rate log table
+  await supabaseAdmin.from('api_rate_log').insert({ api_key_id: data.id });
+
+  // Update aggregate counter on api_keys (non-blocking — best effort)
   void supabaseAdmin
     .from('api_keys')
     .update({
