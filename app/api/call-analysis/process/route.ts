@@ -88,6 +88,18 @@ export async function POST(req: NextRequest) {
   const schoolId = getSchoolId(req);
   let callLogId: string | null = null;
 
+  // ── Graceful 503 guard: check OPENAI_API_KEY BEFORE any DB writes ──────────
+  // This prevents call_log rows from being created with no way to complete them.
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({
+      error: 'Call analysis requires OpenAI Whisper. OPENAI_API_KEY not configured.',
+      setup: [
+        'Add OPENAI_API_KEY to Vercel environment variables',
+        'Redeploy after adding the key',
+      ],
+    }, { status: 503 });
+  }
+
   try {
     const contentType = req.headers.get('content-type') ?? '';
 
