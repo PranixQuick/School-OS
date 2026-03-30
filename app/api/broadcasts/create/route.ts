@@ -20,7 +20,8 @@ Return only the message text, no quotes.`,
     `Student: ${params.studentName}, Parent: ${params.parentName}
 Fee type: ${params.feeType}, Amount: ₹${params.amount}, Due date: ${params.dueDate}
 School: Suchitra Academy, Hyderabad. Contact: 040-12345678`,
-    200
+    200,
+    'claude-haiku-4-5-20251001'
   );
 }
 
@@ -37,7 +38,8 @@ Under 80 words. Friendly and clear. Return only the message text.`,
     `Class: ${params.className}, Subject: ${params.subject}
 Homework: ${params.homework}
 Due: ${params.dueDate}, Teacher: ${params.teacherName}`,
-    180
+    180,
+    'claude-haiku-4-5-20251001'
   );
 }
 
