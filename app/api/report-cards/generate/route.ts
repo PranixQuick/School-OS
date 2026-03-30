@@ -14,7 +14,8 @@ async function generateNarrative(name: string, cls: string, section: string, sub
   return callClaude(
     `You are a professional school teacher writing a student progress narrative for a CBSE report card.\nWrite in a warm, encouraging, professional tone.\nOutput exactly ONE paragraph between 80 and 120 words.\nNo bullet points, no headers, no symbols. Plain flowing prose only.\nDo not start with the student name directly.`,
     `Student: ${name}\nClass: ${cls}-${section}\nSchool: ${schoolName}\n\nAcademic performance this term:\n${lines}\n\nOverall average: ${avg}%\n\nWrite the teacher narrative comment now.`,
-    220
+    220,
+    'claude-haiku-4-5-20251001'
   );
 }
 
