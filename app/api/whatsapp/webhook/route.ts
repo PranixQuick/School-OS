@@ -131,7 +131,7 @@ async function buildParentResponse(params: { intent: Intent; studentId: string|n
   const sys = `You are the WhatsApp assistant for ${schoolName}. Help parents with school info. Be concise (3-5 sentences). ${langMap[language]} Address parent by name. No markdown or bullet points. End with "Reply STOP to unsubscribe."`;
   const usr = `Parent: ${parentName}\nQuestion: "${params.incomingText}"\nIntent: ${intent}\n\n${data ? `DATA:\n${data}\n\n` : ''}${ctx ? `SCHOOL INFO:\n${ctx}` : ''}`;
 
-  try { return await callClaude(sys, usr, 200); }
+  try { return await callClaude(sys, usr, 200, 'claude-haiku-4-5-20251001'); }
   catch { return `Hi ${parentName}! ${data || `Please contact ${schoolName} for assistance.`} Reply STOP to unsubscribe.`; }
 }
 
@@ -190,4 +190,4 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ status: 'active', features: ['parent-bot', 'ptm-booking', 'teacher-attendance', 'multilingual-en-hi-te'] });
-}
+                                             }
