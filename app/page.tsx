@@ -11,6 +11,9 @@ const FEATURES = [
   { icon: '📱', title: 'Parent Portal', desc: 'Mobile-first portal for parents to check attendance, fees, and report narratives anytime.' },
 ];
 
+// PLANS aligned with billing API (app/api/billing/create-order/route.ts)
+// starter=₹4,999 | growth=₹12,999 | campus=₹24,999
+// Free plan is onboarded via /register with plan:'free' (no billing)
 const PLANS = [
   {
     name: 'Free',
@@ -25,28 +28,42 @@ const PLANS = [
     note: 'No credit card required',
   },
   {
-    name: 'Pro',
-    price: '₹2,999',
+    name: 'Starter',
+    price: '₹4,999',
     period: 'per month',
     color: '#4F46E5',
     bg: '#EEF2FF',
     border: '#818CF8',
-    cta: 'Start 14-day Trial',
+    cta: 'Get Started',
     ctaStyle: { background: '#4F46E5', color: '#fff' },
-    badge: 'Most Popular',
-    features: ['Up to 500 students', '200 AI reports/month', '50 teacher evaluations', '100 broadcasts', 'WhatsApp integration', 'Risk detection', 'PTM scheduler', 'Full analytics'],
+    badge: null as string | null,
+    features: ['Up to 500 students', 'WhatsApp bot — 3 intents', 'AI report cards', 'Basic dashboard', 'CSV import', 'Email support'],
     note: 'Cancel anytime',
   },
   {
-    name: 'Enterprise',
-    price: '₹7,999',
+    name: 'Growth',
+    price: '₹12,999',
+    period: 'per month',
+    color: '#4F46E5',
+    bg: '#EEF2FF',
+    border: '#818CF8',
+    cta: 'Start Growth',
+    ctaStyle: { background: '#4F46E5', color: '#fff' },
+    badge: 'Most Popular' as string | null,
+    features: ['Up to 2,000 students', 'Full WhatsApp bot', 'Teacher eval AI', 'Lead scoring + call analysis', 'Fee reminders + broadcasts', 'Power BI dashboards'],
+    note: 'Cancel anytime',
+  },
+  {
+    name: 'Campus',
+    price: '₹24,999',
     period: 'per month',
     color: '#065F46',
     bg: '#ECFDF5',
     border: '#6EE7B7',
-    cta: 'Contact Sales',
+    cta: 'Contact Us',
     ctaStyle: { background: '#065F46', color: '#fff' },
-    features: ['Unlimited students', 'Unlimited everything', 'API access', 'Custom branding', 'Dedicated support', 'SLA guarantee', 'Multi-campus', 'White-label option'],
+    badge: null as string | null,
+    features: ['Unlimited students + campuses', 'All Growth features', 'Custom ERP integration', 'Dedicated onboarding', 'SLA guarantee', 'White-label option'],
     note: 'Custom contracts available',
   },
 ];
@@ -160,7 +177,7 @@ export default function LandingPage() {
           <h2 style={{ fontSize: 38, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.8px', marginBottom: 12 }}>Simple, transparent pricing</h2>
           <p style={{ fontSize: 16, color: '#6B7280' }}>Start free. Upgrade when you need more.</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
           {PLANS.map((plan, i) => (
             <div key={i} style={{ background: plan.bg, border: `2px solid ${plan.border}`, borderRadius: 18, padding: '28px 24px', position: 'relative' }}>
               {plan.badge && (
@@ -182,7 +199,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Link href={plan.name === 'Enterprise' ? '/register?plan=enterprise' : '/register'} style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none', ...plan.ctaStyle }}>
+              <Link href={plan.name === 'Campus' ? '/register?plan=campus' : '/register'} style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none', ...plan.ctaStyle }}>
                 {plan.cta}
               </Link>
             </div>
@@ -218,4 +235,4 @@ export default function LandingPage() {
       </footer>
     </div>
   );
-                     }
+}
