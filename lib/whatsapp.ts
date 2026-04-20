@@ -1,4 +1,22 @@
-// lib/whatsapp.ts — Twilio live, stub fallback
+// lib/whatsapp.ts — Twilio live, dev-only stub.
+// Phase 0 Task 0.3: stub-in-prod is hard-blocked at module load; silent fallback removed.
+
+// ─── Module-load guard ────────────────────────────────────────────────────────
+//
+// Production deploys MUST set WHATSAPP_PROVIDER=twilio (and the TWILIO_* vars).
+// A missing or 'stub' provider in production is a misconfiguration we refuse to
+// serve, so the error is thrown here — the route file that imports this module
+// will fail to load and the deploy will fail health checks.
+
+const __provider_raw = process.env.WHATSAPP_PROVIDER;
+const __node_env = process.env.NODE_ENV;
+
+if (__node_env === 'production' && (!__provider_raw || __provider_raw === 'stub')) {
+  throw new Error(
+    `[lib/whatsapp] WHATSAPP_PROVIDER=${__provider_raw ?? '<unset>'} is not permitted in production. ` +
+    `Set WHATSAPP_PROVIDER=twilio and configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM.`
+  );
+}
 
 export interface WhatsAppMessage {
   to: string;
@@ -43,7 +61,7 @@ async function sendViaTwilio(msg: WhatsAppMessage): Promise<WhatsAppResult> {
   return { success: true, messageId: data.sid, provider: 'twilio' };
 }
 
-// ─── Stub ─────────────────────────────────────────────────────────────────────
+// ─── Stub (non-production only) ───────────────────────────────────────────────
 
 async function sendViaStub(msg: WhatsAppMessage): Promise<WhatsAppResult> {
   await new Promise(r => setTimeout(r, 50));
@@ -56,27 +74,44 @@ async function sendViaStub(msg: WhatsAppMessage): Promise<WhatsAppResult> {
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
+//
+// sendWhatsApp no longer silently falls back to the stub when the provider is
+// unset or unknown. Misconfiguration is surfaced as an explicit failure result
+// so callers can log/alert rather than believing a message was delivered.
 
 export async function sendWhatsApp(msg: WhatsAppMessage): Promise<WhatsAppResult> {
-  const provider = process.env.WHATSAPP_PROVIDER ?? 'stub';
+  const provider = process.env.WHATSAPP_PROVIDER;
+  const isProd = process.env.NODE_ENV === 'production';
+
   try {
-    switch (provider) {
-      case 'twilio': return await sendViaTwilio(msg);
-      default:       return await sendViaStub(msg);
+    if (provider === 'twilio') return await sendViaTwilio(msg);
+
+    if (provider === 'stub' || !provider) {
+      if (isProd) {
+        return {
+          success: false,
+          provider: provider ?? 'unset',
+          error: 'WHATSAPP_PROVIDER=stub or unset is not permitted in production',
+        };
+      }
+      return await sendViaStub(msg);
     }
+
+    return {
+      success: false,
+      provider,
+      error: `Unknown WHATSAPP_PROVIDER: ${provider}`,
+    };
   } catch (err) {
-    return { success: false, provider, error: String(err) };
+    return { success: false, provider: provider ?? 'unset', error: String(err) };
   }
 }
 
 export function normalisePhone(phone: string): string | null {
   if (!phone) return null;
   const cleaned = phone.replace(/[\s\-()+]/g, '');
-  // Already has country code
   if (phone.startsWith('+')) return phone.replace(/[\s\-()]/g, '');
-  // 10-digit Indian number
   if (/^\d{10}$/.test(cleaned)) return `+91${cleaned}`;
-  // 12-digit with country code (no +)
   if (/^\d{12}$/.test(cleaned)) return `+${cleaned}`;
   return null;
 }
