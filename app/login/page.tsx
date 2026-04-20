@@ -10,8 +10,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Triggered when /api/auth/login returns code === 'USE_MAGIC_LINK'.
+  // Disables the password form and reveals the magic-link CTA for this email.
+  const [needsMagicLink, setNeedsMagicLink] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkError, setMagicLinkError] = useState('');
+
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
+    if (needsMagicLink) return;
     setLoading(true);
     setError('');
 
@@ -21,10 +29,15 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json() as { error?: string; school?: string };
+      const data = await res.json() as { error?: string; code?: string; school?: string };
 
       if (!res.ok) {
-        setError(data.error ?? 'Login failed');
+        if (data.code === 'USE_MAGIC_LINK') {
+          setNeedsMagicLink(true);
+          setError('Your account has been upgraded. Click below to receive a magic link to sign in.');
+        } else {
+          setError(data.error ?? 'Login failed');
+        }
         return;
       }
 
@@ -35,6 +48,30 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  async function handleMagicLink() {
+    setMagicLinkLoading(true);
+    setMagicLinkError('');
+    try {
+      const res = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        setMagicLinkError(data.error ?? 'Could not send link. Please try again.');
+        return;
+      }
+      setMagicLinkSent(true);
+    } catch {
+      setMagicLinkError('Network error. Please try again.');
+    } finally {
+      setMagicLinkLoading(false);
+    }
+  }
+
+  const inputsDisabled = needsMagicLink || loading;
 
   return (
     <div style={{
@@ -74,9 +111,10 @@ export default function LoginPage() {
 
           {error && (
             <div style={{
-              background: '#FEF2F2', border: '1px solid #FECACA',
+              background: needsMagicLink ? '#EFF6FF' : '#FEF2F2',
+              border: `1px solid ${needsMagicLink ? '#BFDBFE' : '#FECACA'}`,
               borderRadius: 8, padding: '10px 14px', fontSize: 13,
-              color: '#991B1B', marginBottom: 18,
+              color: needsMagicLink ? '#1E3A8A' : '#991B1B', marginBottom: 18,
             }}>
               {error}
             </div>
@@ -92,10 +130,12 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                disabled={inputsDisabled}
                 style={{
                   width: '100%', height: 42, borderRadius: 9, border: '1px solid #D1D5DB',
-                  background: '#F9FAFB', fontSize: 14, padding: '0 14px', outline: 'none',
-                  fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                  background: inputsDisabled ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 14px',
+                  outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                  cursor: inputsDisabled ? 'not-allowed' : 'text',
                 }}
                 placeholder="admin@yourschool.edu.in"
               />
@@ -110,10 +150,12 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                disabled={inputsDisabled}
                 style={{
                   width: '100%', height: 42, borderRadius: 9, border: '1px solid #D1D5DB',
-                  background: '#F9FAFB', fontSize: 14, padding: '0 14px', outline: 'none',
-                  fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                  background: inputsDisabled ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 14px',
+                  outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                  cursor: inputsDisabled ? 'not-allowed' : 'text',
                 }}
                 placeholder="Enter your password"
               />
@@ -121,11 +163,12 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={inputsDisabled}
               style={{
                 width: '100%', height: 44, borderRadius: 10, border: 'none',
-                background: loading ? '#818CF8' : '#4F46E5', color: '#fff',
-                fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+                background: inputsDisabled ? '#9CA3AF' : (loading ? '#818CF8' : '#4F46E5'),
+                color: '#fff', fontSize: 15, fontWeight: 600,
+                cursor: inputsDisabled ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: 8, boxSizing: 'border-box',
               }}
@@ -139,6 +182,54 @@ export default function LoginPage() {
               ) : 'Sign In'}
             </button>
           </form>
+
+          {needsMagicLink && (
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #E5E7EB' }}>
+              {magicLinkSent ? (
+                <div style={{
+                  background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8,
+                  padding: '12px 14px', fontSize: 13, color: '#166534',
+                }}>
+                  Check your email — we sent you a link to sign in.
+                </div>
+              ) : (
+                <>
+                  {magicLinkError && (
+                    <div style={{
+                      background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
+                      padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 12,
+                    }}>
+                      {magicLinkError}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleMagicLink}
+                    disabled={magicLinkLoading || !email}
+                    style={{
+                      width: '100%', height: 44, borderRadius: 10, border: 'none',
+                      background: magicLinkLoading ? '#818CF8' : '#4F46E5', color: '#fff',
+                      fontSize: 15, fontWeight: 600,
+                      cursor: magicLinkLoading ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: 8, boxSizing: 'border-box',
+                    }}
+                  >
+                    {magicLinkLoading ? (
+                      <>
+                        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                        <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                        Sending...
+                      </>
+                    ) : 'Send me a magic link'}
+                  </button>
+                  <div style={{ textAlign: 'center', fontSize: 12, color: '#6B7280', marginTop: 10 }}>
+                    Refresh the page to go back to password sign-in.
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div style={{ marginTop: 24, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
             <strong style={{ color: '#374151' }}>Demo credentials:</strong><br />

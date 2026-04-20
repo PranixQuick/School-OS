@@ -1,7 +1,15 @@
 // PATH: app/api/whatsapp/webhook/route.ts
 // Enhanced: PTM slot booking, teacher attendance via WhatsApp, multilingual (EN/HI/TE)
+// Phase 0 Task 0.3 hardening added as a GATE BLOCK at the top of POST:
+//   1. Twilio signature verification   → 403 on failure
+//   2. Idempotency on MessageSid        → 200 empty TwiML on duplicate
+//   3. Per-phone rate limit (10/min)    → 429 on excess
+// The gate runs BEFORE any business logic. Intent classification, PTM booking,
+// fee/attendance/report queries, Claude replies, and outbound sendWhatsApp are
+// UNCHANGED from the previous revision.
 
 import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
 import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
@@ -135,18 +143,118 @@ async function buildParentResponse(params: { intent: Intent; studentId: string|n
   catch { return `Hi ${parentName}! ${data || `Please contact ${schoolName} for assistance.`} Reply STOP to unsubscribe.`; }
 }
 
+// ─── GATE helpers (Phase 0 Task 0.3) ──────────────────────────────────────────
+
+const EMPTY_TWIML = { status: 200, headers: { 'Content-Type': 'text/xml' } } as const;
+
+function publicWebhookUrl(req: NextRequest): string {
+  const proto = req.headers.get('x-forwarded-proto') ?? 'https';
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '';
+  return `${proto}://${host}${req.nextUrl.pathname}`;
+}
+
+// Returns true iff the request carries a valid Twilio signature.
+// In non-production environments we allow missing TWILIO_AUTH_TOKEN (local dev).
+function verifyTwilioSignature(req: NextRequest, rawBody: string): boolean {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (!authToken) return !isProd;
+
+  const signature = req.headers.get('x-twilio-signature');
+  if (!signature) return false;
+
+  const url = publicWebhookUrl(req);
+  const params: Record<string, string> = {};
+  for (const [k, v] of new URLSearchParams(rawBody).entries()) params[k] = v;
+
+  try {
+    return twilio.validateRequest(authToken, signature, url, params);
+  } catch {
+    return false;
+  }
+}
+
+async function isDuplicateMessage(messageSid: string): Promise<boolean> {
+  if (!messageSid) return false;
+  const { data, error } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .eq('session_id', messageSid)
+    .eq('direction', 'inbound')
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return !!data?.id;
+}
+
+async function webhookRateHit(phone: string): Promise<{ allowed: boolean; count: number }> {
+  const { data, error } = await supabaseAdmin.rpc('webhook_rate_hit', { p_phone: phone });
+  if (error) {
+    console.error('[webhook_rate_hit] rpc error:', error.message);
+    return { allowed: true, count: 0 };
+  }
+  const count = (typeof data === 'number' ? data : 0) as number;
+  return { allowed: count <= 10, count };
+}
+
+async function logWebhookError(kind: string, meta: Record<string, unknown>): Promise<void> {
+  try {
+    await supabaseAdmin.from('error_logs').insert({
+      route: '/api/whatsapp/webhook',
+      error: kind,
+      details: meta,
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // best-effort; no school_id — request hasn't been authenticated yet and the column is nullable.
+  }
+}
+
+// ─── Request handler ──────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   try {
-    const text = await req.text();
-    const params = new URLSearchParams(text);
+    const rawBody = await req.text();
+
+    // ── GATE 1: Twilio signature ──────────────────────────────────────────────
+    if (!verifyTwilioSignature(req, rawBody)) {
+      await logWebhookError('signature_invalid', {
+        hasSignature: !!req.headers.get('x-twilio-signature'),
+        url: publicWebhookUrl(req),
+      });
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
+    // ── Parse params (once, reused by gates + business logic) ───────────────
+    const params = new URLSearchParams(rawBody);
     const rawFrom = params.get('From') ?? '';
     const body = (params.get('Body') ?? '').trim();
     const messageSid = params.get('MessageSid') ?? '';
 
-    if (!rawFrom || !body) return new NextResponse('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } });
+    if (!rawFrom) return new NextResponse('<Response></Response>', EMPTY_TWIML);
 
     const fromPhone = rawFrom.replace('whatsapp:', '');
     const normPhone = normalisePhone(fromPhone) ?? fromPhone;
+
+    // ── GATE 2: idempotency on MessageSid ───────────────────────────────────
+    if (messageSid && await isDuplicateMessage(messageSid)) {
+      return new NextResponse('<Response></Response>', EMPTY_TWIML);
+    }
+
+    // ── GATE 3: per-phone rate limit (10/min) ───────────────────────────────
+    if (normPhone) {
+      const rl = await webhookRateHit(normPhone);
+      if (!rl.allowed) {
+        await logWebhookError('rate_limited', { phone: normPhone, count: rl.count });
+        return new NextResponse('Too Many Requests', { status: 429, headers: { 'Retry-After': '60' } });
+      }
+    }
+
+    if (!body) return new NextResponse('<Response></Response>', EMPTY_TWIML);
+
+    // ── BEGIN EXISTING BUSINESS LOGIC (unchanged) ───────────────────────────
+
     const language = detectLanguage(body);
     const intent = detectIntent(body);
 
@@ -172,7 +280,7 @@ export async function POST(req: NextRequest) {
     } else {
       if (intent === 'stop' && parentRecord) await supabaseAdmin.from('parents').update({ whatsapp_opted_out: true, opted_out_at: new Date().toISOString() }).eq('school_id', schoolId).eq('phone', normPhone);
       if (intent === 'start' && parentRecord) await supabaseAdmin.from('parents').update({ whatsapp_opted_out: false, opted_out_at: null }).eq('school_id', schoolId).eq('phone', normPhone);
-      if (optedOut && intent !== 'start') return new NextResponse('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } });
+      if (optedOut && intent !== 'start') return new NextResponse('<Response></Response>', EMPTY_TWIML);
       replyText = await buildParentResponse({ intent, studentId, schoolId, schoolName, parentName, incomingText: body, language });
     }
 
@@ -181,13 +289,13 @@ export async function POST(req: NextRequest) {
 
     await sendWhatsApp({ to: normPhone, body: replyText, schoolName });
 
-    return new NextResponse('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } });
+    return new NextResponse('<Response></Response>', EMPTY_TWIML);
   } catch (err) {
     console.error('[WhatsApp webhook]', err);
-    return new NextResponse('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } });
+    return new NextResponse('<Response></Response>', EMPTY_TWIML);
   }
 }
 
 export async function GET() {
   return NextResponse.json({ status: 'active', features: ['parent-bot', 'ptm-booking', 'teacher-attendance', 'multilingual-en-hi-te'] });
-                                             }
+}

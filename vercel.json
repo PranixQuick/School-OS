@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    {
-      "path": "/api/cron/daily",
-      "schedule": "0 2 * * *"
-    }
+    { "path": "/api/cron/daily",                 "schedule": "0 2 * * *"  },
+    { "path": "/api/cron/login-anomaly-watch",   "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/webhook-spam-watch",    "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/webhook-rate-sweep",    "schedule": "0 * * * *"  },
+    { "path": "/api/cron/abuse-digest",          "schedule": "0 8 * * *"  }
   ]
 }
