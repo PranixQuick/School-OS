@@ -38,6 +38,23 @@ export async function GET(req: NextRequest) {
     await supabaseAdmin.rpc('blocked_ips_sweep');
 
   const digest = await runAbuseDigest();
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 5 — Institution consistency check (Phase 1 Task 1.6)
+// ─────────────────────────────────────────────────────────────────────────────
+  try {
+    const { data: consistencyResult, error: consistencyErr } = await supabaseAdmin
+      .rpc('check_institution_consistency');
+    if (consistencyErr) {
+      console.error('[abuse-monitor] consistency check RPC error:', consistencyErr.message);
+    } else {
+      console.log('[abuse-monitor] consistency check:', JSON.stringify(consistencyResult));
+    }
+  } catch (err) {
+    console.error('[abuse-monitor] consistency check threw:', err instanceof Error ? err.message : err);
+  }
+// ─────────────────────────────────────────────────────────────────────────────
+// END TASK 1.6 ADDITION
+// ─────────────────────────────────────────────────────────────────────────────
 
   return NextResponse.json({
     ok: true,
