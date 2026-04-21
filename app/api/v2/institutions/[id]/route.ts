@@ -14,10 +14,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const ctx = await getTenantContext(req);
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
 
   const { data: institution, error } = await supabaseAdmin
     .from('institutions')
@@ -27,7 +29,7 @@ export async function GET(
       settings, feature_flags, organisation_id,
       organisations ( id, name, slug )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .maybeSingle();
 
   if (error) {
