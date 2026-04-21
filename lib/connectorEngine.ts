@@ -9,6 +9,7 @@
 // which ban any non-HTTP-verb exports from route.ts files.
 
 import { supabaseAdmin } from './supabaseClient';
+import { getInstitutionForSchool } from './tenant-lookup';
 import { logActivity } from './logger';
 
 export type DataSource = 'csv' | 'google_sheets' | 'tally' | 'erp_json' | 'api' | 'manual';
@@ -130,6 +131,10 @@ export async function runImport(params: ImportParams): Promise<ImportResult> {
 
   studentRefCache.clear();
 
+  // Phase 1 Task 1.4 — resolve institution context once per import run; reused
+  // on every students and academic_records write below.
+  const instCtx = await getInstitutionForSchool(schoolId);
+
   const { data: runRecord } = await supabaseAdmin
     .from('connector_runs')
     .insert({
@@ -158,11 +163,21 @@ export async function runImport(params: ImportParams): Promise<ImportResult> {
             await supabaseAdmin.from('students').update({ ...n, data_source: source }).eq('id', ex.id);
             updated++;
           } else {
-            await supabaseAdmin.from('students').insert({ school_id: schoolId, ...n, data_source: source, is_active: true });
+            await supabaseAdmin.from('students').insert({
+              school_id: schoolId,
+              institution_id: instCtx.institution_id,
+              academic_year_id: instCtx.academic_year_id,
+              ...n, data_source: source, is_active: true,
+            });
             inserted++;
           }
         } else {
-          await supabaseAdmin.from('students').insert({ school_id: schoolId, ...n, data_source: source, is_active: true });
+          await supabaseAdmin.from('students').insert({
+            school_id: schoolId,
+            institution_id: instCtx.institution_id,
+            academic_year_id: instCtx.academic_year_id,
+            ...n, data_source: source, is_active: true,
+          });
           inserted++;
         }
 
@@ -201,7 +216,10 @@ export async function runImport(params: ImportParams): Promise<ImportResult> {
         if (!sid) { failed++; errors.push({ row: i + 1, ref: String(n._student_ref), error: 'Student not found' }); continue; }
         if (dry_run) { inserted++; continue; }
         const { error } = await supabaseAdmin.from('academic_records').upsert({
-          school_id: schoolId, student_id: sid,
+          school_id: schoolId,
+          institution_id: instCtx.institution_id,
+          academic_year_id: instCtx.academic_year_id,
+          student_id: sid,
           subject: n.subject, term: n.term,
           marks_obtained: n.marks_obtained, max_marks: n.max_marks,
           grade: n.grade, remarks: n.remarks, data_source: source,

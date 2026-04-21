@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
+import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity, logError } from '@/lib/logger';
 
 interface StudentCSVRow {
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest) {
 
     if (jobErr || !job) throw new Error('Failed to create import job');
 
+    // Phase 1 Task 1.4 — resolve institution context once per import; reused
+    // on every students.insert below.
+    const instCtx = await getInstitutionForSchool(schoolId);
+
     const imported: string[] = [];
     const failed: { row: number; name: string; error: string }[] = [];
 
@@ -90,6 +95,8 @@ export async function POST(req: NextRequest) {
       try {
         const { error: insertErr } = await supabaseAdmin.from('students').insert({
           school_id: schoolId,
+          institution_id: instCtx.institution_id,
+          academic_year_id: instCtx.academic_year_id,
           name: row.name,
           class: row.class,
           section: row.section ?? 'A',

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getActiveApiKey, validateAndTrackApiKey } from '@/lib/apiKey';
 import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
+import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 
 interface SubjectRecord { subject: string; marks: number; max: number; grade: string; }
 interface AcademicRow { student_id: string; subject: string; marks_obtained: number; max_marks: number; grade: string | null; }
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
     const schoolName = schoolData?.name ?? 'School';
     const schoolTagline = `${schoolData?.board ?? 'CBSE'} School`;
 
+    // Phase 1 Task 1.4 — resolve institution context once per request; reused
+    // on every report_narratives upsert below.
+    const instCtx = await getInstitutionForSchool(schoolId);
+
     const { data: students, error: sErr } = await supabaseAdmin
       .from('students').select('id, name, class, section, admission_number')
       .eq('school_id', schoolId).eq('class', classNum).eq('section', section).eq('is_active', true).order('roll_number');
@@ -74,7 +79,16 @@ export async function POST(req: NextRequest) {
       } catch (e) { console.error(`Claude error for ${student.name}:`, e); }
 
       await supabaseAdmin.from('report_narratives').upsert(
-        { school_id: schoolId, student_id: student.id, term, narrative_text: narrative, status: 'draft', generated_at: new Date().toISOString() },
+        {
+          school_id: schoolId,
+          institution_id: instCtx.institution_id,
+          academic_year_id: instCtx.academic_year_id,
+          student_id: student.id,
+          term,
+          narrative_text: narrative,
+          status: 'draft',
+          generated_at: new Date().toISOString(),
+        },
         { onConflict: 'student_id,term' }
       );
 

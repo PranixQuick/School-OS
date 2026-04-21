@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
+import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
 
 const HIGH_DEMAND_CLASSES = ['1', '2', '3', '6'];
@@ -74,9 +75,12 @@ export async function POST(req: NextRequest) {
     const { score, note } = await enhanceWithClaude(body, ruleScore);
     const priority = getPriority(score);
 
+    // Phase 1 Task 1.4 — dual-write institution_id alongside school_id.
+    const instCtx = await getInstitutionForSchool(schoolId);
+
     const { data, error } = await supabaseAdmin
       .from('inquiries')
-      .insert({ school_id: schoolId, parent_name, child_name: body.child_name ?? null, child_age, target_class, source, phone, email: body.email ?? null, has_sibling: body.has_sibling ?? false, notes: note || body.notes || null, score, priority, status: 'new' })
+      .insert({ school_id: schoolId, institution_id: instCtx.institution_id, parent_name, child_name: body.child_name ?? null, child_age, target_class, source, phone, email: body.email ?? null, has_sibling: body.has_sibling ?? false, notes: note || body.notes || null, score, priority, status: 'new' })
       .select('id, score, priority')
       .single();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
+import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity } from '@/lib/logger';
 import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
 
@@ -51,10 +52,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'name and class are required' }, { status: 400 });
     }
 
+    // Phase 1 Task 1.4 — dual-write institution_id + academic_year_id alongside school_id.
+    const instCtx = await getInstitutionForSchool(schoolId);
+
     const { data: student, error } = await supabaseAdmin
       .from('students')
       .insert({
         school_id: schoolId,
+        institution_id: instCtx.institution_id,
+        academic_year_id: instCtx.academic_year_id,
         name: body.name,
         class: body.class,
         section: body.section ?? 'A',

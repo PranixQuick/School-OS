@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
+import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 
 // Allow up to 60 seconds for Whisper transcription + Claude evaluation
 export const maxDuration = 60;
@@ -169,10 +170,14 @@ export async function POST(req: NextRequest) {
 
     // Insert recording row (only if not a re-run)
     if (!recordingId) {
+      // Phase 1 Task 1.4 — dual-write institution_id alongside school_id.
+      const instCtx = await getInstitutionForSchool(schoolId);
+
       const { data: recording, error: insertError } = await supabaseAdmin
         .from('recordings')
         .insert({
           school_id: schoolId,
+          institution_id: instCtx.institution_id,
           staff_id: staffId,
           file_url: fileUrl,
           file_name: fileName,
