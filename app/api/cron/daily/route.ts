@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { runAllJobsForSchool } from '@/lib/cronEngine';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
-// Vercel calls this daily at 2am UTC via vercel.json crons config
-// It processes ALL active schools sequentially
+// Vercel calls this daily at 2am UTC via vercel.json crons config.
+// It processes ALL active schools sequentially.
+// Auth is delegated to verifyCronAuth which accepts the Vercel cron header
+// or a Bearer CRON_SECRET. See lib/cron-auth.ts for the contract.
 
 export async function GET(req: NextRequest) {
-  // Security: Vercel cron requests include a special header
-  // For manual calls we allow a secret key
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  const isVercelCron = req.headers.get('x-vercel-cron') === '1';
-  const isAuthorized = !cronSecret || authHeader === `Bearer ${cronSecret}`;
-
-  if (!isVercelCron && !isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!verifyCronAuth(req)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   try {
