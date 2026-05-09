@@ -1,6 +1,16 @@
 // PATH: app/api/billing/webhook/route.ts
 // Razorpay webhook — called after payment capture
 // Verifies signature, updates school plan and usage_limits
+//
+// Auth model:
+//   - Production requires RAZORPAY_WEBHOOK_SECRET to be set; the route returns 503
+//     if it is missing so misconfiguration fails closed instead of silently
+//     accepting forged payloads.
+//   - Every request must carry a valid x-razorpay-signature HMAC of the raw
+//     body. Missing or invalid signatures return 401.
+//   - Local dev (NODE_ENV !== 'production') with no RAZORPAY_WEBHOOK_SECRET set
+//     allows unauthenticated POSTs so that Razorpay test-mode replay tooling
+//     works during development.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
@@ -32,13 +42,27 @@ function verifyRazorpaySignature(body: string, signature: string, secret: string
 export async function POST(req: NextRequest) {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    const signature = req.headers.get('x-razorpay-signature') ?? '';
+    const isProd = process.env.NODE_ENV === 'production';
     const rawBody = await req.text();
 
-    // Verify signature if secret is configured
-    if (webhookSecret && !verifyRazorpaySignature(rawBody, signature, webhookSecret)) {
-      console.error('[Razorpay Webhook] Invalid signature');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    // ── Auth gate ────────────────────────────────────────────────────────────
+    // Production with no secret set → fail closed. Any caller could otherwise
+    // forge a payment.captured payload and arbitrarily upgrade a school's plan.
+    if (!webhookSecret) {
+      if (isProd) {
+        console.error('[Razorpay Webhook] RAZORPAY_WEBHOOK_SECRET not configured in production');
+        return NextResponse.json({ error: 'webhook not configured' }, { status: 503 });
+      }
+      // Non-production with no secret: skip signature verification so local
+      // replay tooling continues to work. Real webhooks never hit this branch
+      // because production has the secret.
+      console.warn('[Razorpay Webhook] RAZORPAY_WEBHOOK_SECRET unset (non-production); accepting unsigned payload');
+    } else {
+      const signature = req.headers.get('x-razorpay-signature');
+      if (!signature || !verifyRazorpaySignature(rawBody, signature, webhookSecret)) {
+        console.error('[Razorpay Webhook] Invalid signature');
+        return NextResponse.json({ error: 'invalid signature' }, { status: 401 });
+      }
     }
 
     const event = JSON.parse(rawBody) as {
