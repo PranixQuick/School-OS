@@ -182,17 +182,21 @@ export async function POST(req: NextRequest) {
       }));
 
       // Use upsert with ignoreDuplicates:true to leverage UNIQUE(homework_id, student_id).
-      const { error: subErr, count } = await supabaseAdmin
+      // Note: supabase-js v2 .select() after .upsert() doesn't accept count/head options
+      // (the chain return type is RowOrNull, not a count-capable builder). We use
+      // subRows.length for the "submissions targeted" count instead. On retry with
+      // ignoreDuplicates, the actual NEW row count from the response would be lower,
+      // but that distinction isn't useful for the MVP "stubs created" indicator.
+      const { error: subErr } = await supabaseAdmin
         .from('homework_submissions')
-        .upsert(subRows, { onConflict: 'homework_id,student_id', ignoreDuplicates: true })
-        .select('id', { count: 'exact', head: true });
+        .upsert(subRows, { onConflict: 'homework_id,student_id', ignoreDuplicates: true });
 
       if (subErr) {
         console.error('Auto-create submissions error:', subErr);
         // Spawn 7 inheritance: plumb to founder_alerts via engine API.
         submissionsFailed = true;
       } else {
-        submissionsCreated = count ?? students.length;
+        submissionsCreated = subRows.length;
       }
     }
 
