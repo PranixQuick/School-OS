@@ -188,6 +188,16 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
             </Link>
+            {/* Item 12: lesson plan coverage quick link */}
+            <Link href="/automation/lesson-plans-coverage" style={{ textDecoration: 'none' }}>
+              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18 }}>📊</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Lesson Plan Coverage</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Per-class rollup of planned vs completed</div>
+                </div>
+              </div>
+            </Link>
           </div>
 
           {/* Second row */}
