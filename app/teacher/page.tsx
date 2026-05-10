@@ -29,6 +29,22 @@ interface Student {
 }
 interface ClassDetails { id: string; grade_level: string; section: string; }
 interface CheckinResult { inside: boolean; polygon_active: boolean; late_event_logged: boolean; at: number; }
+interface MyAssignment {
+  id: string;
+  status: string;
+  reason: string;
+  assigned_at: string;
+  accepted_at: string | null;
+  original_teacher: { name: string; subject: string | null } | null;
+  class: { grade_level: string; section: string } | null;
+  period: { period: number; start_time: string; end_time: string } | null;
+  subject: { name: string; code: string } | null;
+}
+interface PhotoUploadState {
+  loading: boolean;
+  successFor: string | null;
+  errorFor: string | null;
+}
 
 type Screen = 'login' | 'schedule' | 'mark_attendance';
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
@@ -75,6 +91,11 @@ export default function TeacherPortal() {
   const [checkinResult, setCheckinResult] = useState<CheckinResult | null>(null);
   const [checkinError, setCheckinError] = useState('');
 
+  // Item 11: substitute assignments + classroom proof state
+  const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [photoState, setPhotoState] = useState<PhotoUploadState>({ loading: false, successFor: null, errorFor: null });
+
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
@@ -93,6 +114,8 @@ export default function TeacherPortal() {
       setSchedule(d.schedule ?? []);
       setDayOfWeek(d.day_of_week);
       setScreen('schedule');
+      // Item 11: also load substitute assignments for this teacher.
+      void loadMyAssignments();
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -237,6 +260,101 @@ export default function TeacherPortal() {
     );
   }
 
+  // Item 11: load my substitute assignments after login.
+  async function loadMyAssignments() {
+    if (!phone || !pin) return;
+    try {
+      const res = await fetch('/api/teacher/substitute/my-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin }),
+      });
+      const d = await res.json();
+      if (res.ok) setMyAssignments(d.assignments ?? []);
+    } catch {
+      // silent — non-critical
+    }
+  }
+
+  // Item 11: respond to a substitute assignment.
+  async function respondToAssignment(assignmentId: string, action: 'accept' | 'decline') {
+    setRespondingTo(assignmentId);
+    try {
+      const res = await fetch('/api/teacher/substitute/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, assignment_id: assignmentId, action }),
+      });
+      if (res.ok) await loadMyAssignments();
+    } finally {
+      setRespondingTo(null);
+    }
+  }
+
+  // Item 11: classroom proof upload via signed URL.
+  // Flow: pick file via native input → POST upload-url → PUT to signed URL → POST confirm.
+  async function handlePhotoUpload(entry: ScheduleEntry, file: File) {
+    if (!entry.classes) return;
+    setPhotoState({ loading: true, successFor: entry.id, errorFor: null });
+    try {
+      // Step 1: get signed upload URL.
+      const urlRes = await fetch('/api/teacher/classroom-proof/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone, pin,
+          class_id: entry.classes.id,
+          period_id: entry.id,
+          content_type: file.type,
+        }),
+      });
+      const urlData = await urlRes.json();
+      if (!urlRes.ok) {
+        setPhotoState({ loading: false, successFor: null, errorFor: urlData.error ?? 'Upload setup failed' });
+        return;
+      }
+
+      // Step 2: PUT the file to the signed URL.
+      const putRes = await fetch(urlData.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!putRes.ok) {
+        setPhotoState({ loading: false, successFor: null, errorFor: 'Upload failed: '+putRes.status });
+        return;
+      }
+
+      // Step 3: confirm.
+      const confirmRes = await fetch('/api/teacher/classroom-proof/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone, pin,
+          storage_path: urlData.storage_path,
+          class_id: entry.classes.id,
+          period_id: entry.id,
+          taken_at: new Date().toISOString(),
+        }),
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok) {
+        setPhotoState({ loading: false, successFor: null, errorFor: confirmData.error ?? 'Confirm failed' });
+        return;
+      }
+
+      setPhotoState({ loading: false, successFor: entry.id, errorFor: null });
+      // Auto-clear success after 4s
+      setTimeout(() => setPhotoState(prev => prev.successFor === entry.id ? { loading: false, successFor: null, errorFor: null } : prev), 4000);
+    } catch {
+      setPhotoState({ loading: false, successFor: null, errorFor: 'Network error during upload.' });
+    }
+  }
+
+  function fmtTimeShort(iso: string): string {
+    return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+  }
+
   function handleLogout() {
     setTeacher(null); setSchedule([]); setDayOfWeek(null);
     setPhone(''); setPin(''); setError(''); setMarkedToast('');
@@ -348,6 +466,44 @@ export default function TeacherPortal() {
           )}
         </div>
 
+        {/* Item 11: My Substitute Assignments (only show if any pending) */}
+        {myAssignments.filter(a => a.status === 'pending').length > 0 && (
+          <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#854D0E', marginBottom: 8 }}>
+              ⚡ Substitute Assignments ({myAssignments.filter(a => a.status === 'pending').length})
+            </div>
+            {myAssignments.filter(a => a.status === 'pending').map(a => (
+              <div key={a.id} style={{ background: '#fff', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                  Cover for {a.original_teacher?.name ?? 'Unknown'}
+                  {a.class ? ` · Class ${a.class.grade_level}-${a.class.section}` : ''}
+                </div>
+                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                  {a.period ? `Period ${a.period.period} (${a.period.start_time?.slice(0,5)}–${a.period.end_time?.slice(0,5)})` : ''}
+                  {a.subject ? ` · ${a.subject.name}` : ''}
+                </div>
+                <div style={{ fontSize: 11, color: '#374151', marginTop: 4, fontStyle: 'italic' }}>
+                  Reason: {a.reason}
+                </div>
+                <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                  <button onClick={() => respondToAssignment(a.id, 'accept')} disabled={respondingTo === a.id}
+                    style={{ flex: 1, padding: '8px', fontSize: 12, fontWeight: 700, background: '#15803D', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                    {respondingTo === a.id ? '…' : 'Accept'}
+                  </button>
+                  <button onClick={() => respondToAssignment(a.id, 'decline')} disabled={respondingTo === a.id}
+                    style={{ flex: 1, padding: '8px', fontSize: 12, fontWeight: 700, background: '#fff', color: '#B91C1C', border: '1px solid #FCA5A5', borderRadius: 6, cursor: 'pointer' }}>
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {photoState.errorFor && (
+          <div style={{ background: '#FEE2E2', color: '#B91C1C', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{photoState.errorFor}</div>
+        )}
+
         {error && (
           <div style={{ background: '#FEE2E2', color: '#B91C1C', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>
         )}
@@ -359,23 +515,53 @@ export default function TeacherPortal() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {schedule.map(entry => (
-              <button key={entry.id} onClick={() => openClass(entry)} disabled={!entry.classes}
-                style={{ textAlign: 'left', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', cursor: entry.classes ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 2 }}>
-                    PERIOD {entry.period} · {fmtTime(entry.start_time)}–{fmtTime(entry.end_time)}
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
-                    {entry.classes ? `Class ${entry.classes.grade_level}-${entry.classes.section}` : 'Unassigned class'}
-                  </div>
-                  {entry.subjects && (
-                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-                      {entry.subjects.name} ({entry.subjects.code})
+              <div key={entry.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', gap: 8 }}>
+                <button onClick={() => openClass(entry)} disabled={!entry.classes}
+                  style={{ flex: 1, textAlign: 'left', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', cursor: entry.classes ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 2 }}>
+                      PERIOD {entry.period} · {fmtTime(entry.start_time)}–{fmtTime(entry.end_time)}
                     </div>
-                  )}
-                </div>
-                <div style={{ fontSize: 18, color: '#9CA3AF' }}>›</div>
-              </button>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                      {entry.classes ? `Class ${entry.classes.grade_level}-${entry.classes.section}` : 'Unassigned class'}
+                    </div>
+                    {entry.subjects && (
+                      <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+                        {entry.subjects.name} ({entry.subjects.code})
+                      </div>
+                    )}
+                    {photoState.successFor === entry.id && (
+                      <div style={{ fontSize: 11, color: '#15803D', marginTop: 4, fontWeight: 600 }}>✓ Photo uploaded</div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 18, color: '#9CA3AF' }}>›</div>
+                </button>
+                {entry.classes && (
+                  <label style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 64, padding: '8px 4px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12,
+                    cursor: photoState.loading ? 'default' : 'pointer',
+                    opacity: photoState.loading ? 0.5 : 1,
+                  }}>
+                    <span style={{ fontSize: 22 }}>📷</span>
+                    <span style={{ fontSize: 10, color: '#6B7280', marginTop: 2, fontWeight: 600 }}>
+                      {photoState.loading && photoState.successFor === entry.id ? '…' : 'Photo'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={photoState.loading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handlePhotoUpload(entry, f);
+                        e.target.value = ''; // reset so same file can be re-picked
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                )}
+              </div>
             ))}
           </div>
         )}

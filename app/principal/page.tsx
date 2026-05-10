@@ -168,6 +168,26 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
             </Link>
+            {/* Item 11: substitute assignments quick link */}
+            <Link href="/automation/substitutes" style={{ textDecoration: 'none' }}>
+              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18 }}>⚡</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Substitute Assignments</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Assign coverage when teachers are late or absent</div>
+                </div>
+              </div>
+            </Link>
+            {/* Item 11: classroom proofs quick link */}
+            <Link href="/automation/classroom-proofs" style={{ textDecoration: 'none' }}>
+              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18 }}>📷</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Classroom Proofs</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Review photos teachers uploaded as proof of presence</div>
+                </div>
+              </div>
+            </Link>
           </div>
 
           {/* Second row */}
