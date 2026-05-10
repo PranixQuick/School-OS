@@ -17,6 +17,8 @@ const PUBLIC_PATHS = [
   '/api/cron',           // CRON_SECRET-guarded cron endpoints
   '/parent',
   '/api/parent',
+  '/teacher',
+  '/api/teacher',
   '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
 ];
 
