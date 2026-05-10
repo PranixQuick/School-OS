@@ -157,6 +157,19 @@ export default function PrincipalDashboard() {
             />
           </div>
 
+          {/* Item 10: ops quick links */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            <Link href="/automation/geofence" style={{ textDecoration: 'none' }}>
+              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18 }}>📍</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Geofence & Presence</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Define school polygon, view today's teacher pings</div>
+                </div>
+              </div>
+            </Link>
+          </div>
+
           {/* Second row */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
 
