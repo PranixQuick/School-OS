@@ -28,6 +28,7 @@ interface Student {
   todays_status: string | null;
 }
 interface ClassDetails { id: string; grade_level: string; section: string; }
+interface CheckinResult { inside: boolean; polygon_active: boolean; late_event_logged: boolean; at: number; }
 
 type Screen = 'login' | 'schedule' | 'mark_attendance';
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
@@ -68,6 +69,11 @@ export default function TeacherPortal() {
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [savingMarks, setSavingMarks] = useState(false);
   const [markedToast, setMarkedToast] = useState('');
+
+  // Geo check-in state (Item 10)
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkinResult, setCheckinResult] = useState<CheckinResult | null>(null);
+  const [checkinError, setCheckinError] = useState('');
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -176,6 +182,61 @@ export default function TeacherPortal() {
     }
   }
 
+  // Item 10: geo check-in. Calls navigator.geolocation, POSTs to /api/teacher/checkin.
+  // Phone+PIN re-auth (mirrors other teacher routes). school_id derived server-side.
+  async function handleCheckin() {
+    setCheckingIn(true); setCheckinError(''); setCheckinResult(null);
+    if (!navigator.geolocation) {
+      setCheckinError('Geolocation not supported on this device.');
+      setCheckingIn(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch('/api/teacher/checkin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone, pin,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy_m: pos.coords.accuracy,
+            }),
+          });
+          const d = await res.json();
+          if (!res.ok) {
+            setCheckinError(d.error ?? 'Check-in failed');
+          } else {
+            setCheckinResult({
+              inside: !!d.inside,
+              polygon_active: !!d.polygon_active,
+              late_event_logged: !!d.late_event_logged,
+              at: Date.now(),
+            });
+          }
+        } catch {
+          setCheckinError('Network error.');
+        } finally {
+          setCheckingIn(false);
+        }
+      },
+      (err) => {
+        setCheckinError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied. Enable it in browser settings.'
+            : err.code === err.POSITION_UNAVAILABLE
+            ? 'Location unavailable. Try moving outdoors.'
+            : err.code === err.TIMEOUT
+            ? 'Location request timed out. Try again.'
+            : 'Could not get location.'
+        );
+        setCheckingIn(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
   function handleLogout() {
     setTeacher(null); setSchedule([]); setDayOfWeek(null);
     setPhone(''); setPin(''); setError(''); setMarkedToast('');
@@ -258,6 +319,33 @@ export default function TeacherPortal() {
             style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#374151', background: '#fff', border: '1px solid #D1D5DB', borderRadius: 6, cursor: loading ? 'default' : 'pointer' }}>
             {loading ? '…' : 'Refresh'}
           </button>
+        </div>
+
+        {/* Item 10: geo check-in card */}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>Geo check-in</div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>
+                {checkinResult
+                  ? (checkinResult.inside
+                      ? '✓ Checked in (inside school zone)'
+                      : checkinResult.polygon_active
+                        ? (checkinResult.late_event_logged
+                            ? '⚠ Outside school zone — late event logged'
+                            : '⚠ Outside school zone')
+                        : 'Checked in (no geofence defined for school)')
+                  : 'Tap to share your location and confirm presence at school.'}
+              </div>
+            </div>
+            <button onClick={handleCheckin} disabled={checkingIn}
+              style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: checkingIn ? '#9CA3AF' : '#15803D', border: 'none', borderRadius: 8, cursor: checkingIn ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+              {checkingIn ? 'Locating…' : 'Check in'}
+            </button>
+          </div>
+          {checkinError && (
+            <div style={{ background: '#FEE2E2', color: '#B91C1C', padding: '8px 10px', borderRadius: 6, fontSize: 12, marginTop: 10 }}>{checkinError}</div>
+          )}
         </div>
 
         {error && (
