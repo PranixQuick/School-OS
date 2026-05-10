@@ -1,235 +1,512 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+// PATH: app/parent/page.tsx
+//
+// Parent dashboard: phone+PIN login + 4 tabs (Homework, Announcements, Attendance, Lesson Plans).
+// Bare layout (no Layout wrapper) per PRE-FLIGHT-A — consistent with /teacher pattern.
+// Single-file with 4 tabs per PRE-FLIGHT-B — mobile-first, fewer route hops.
+//
+// Phone+PIN stored in component state, NOT localStorage (artifact-style restriction).
+// Each tab makes its own API call with phone+pin in body (Item 13 auth model).
+//
+// Status enums consumed:
+//   - homework_submissions.status: pending|submitted|late|graded|missed
+//   - lesson_plans.completion_status: planned|in_progress|completed|skipped
+//   - attendance.status: present|absent|late|excused
 
-interface AttendanceSummary { present: number; total: number; percentage: number; }
-interface AttRecord { date: string; status: string; }
-interface Fee { fee_type: string; amount: number; due_date: string; status: string; paid_date: string | null; }
-interface Narrative { term: string; narrative_text: string; status: string; }
-interface Student { name: string; class: string; section: string; roll_number: string | null; }
+import { useState, useEffect, FormEvent } from 'react';
 
-interface PortalData {
-  parent: { name: string };
-  student: Student;
-  attendance: { records: AttRecord[]; summary: AttendanceSummary };
-  fees: Fee[];
-  narratives: Narrative[];
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans';
+
+interface ParentInfo {
+  id: string;
+  school_id: string;
+  name: string;
+  phone: string;
+  language_pref: string;
 }
 
-type Screen = 'login' | 'portal';
+interface StudentInfo {
+  id: string;
+  name: string;
+  class: string | null;
+  section: string | null;
+  is_active: boolean;
+}
 
-const STATUS_COLOR: Record<string, string> = {
-  present: '#15803D', absent: '#B91C1C', late: '#A16207', excused: '#6B7280',
+interface HomeworkRow {
+  submission_id: string;
+  status: string;
+  submitted_at: string | null;
+  marks_obtained: number | null;
+  teacher_remarks: string | null;
+  submission_attachments: string[];
+  homework: {
+    id: string;
+    title: string;
+    description: string | null;
+    due_date: string;
+    attachments: string[];
+    subject: { id: string; name: string; code: string } | null;
+  } | null;
+}
+
+interface AnnRow {
+  id: string;
+  title: string;
+  message: string;
+  scheduled_at: string;
+  sent_at: string | null;
+  is_school_wide: boolean;
+}
+
+interface AttRow {
+  id: string;
+  date: string;
+  status: string;
+  marked_via: string | null;
+}
+
+interface LessonPlanRow {
+  id: string;
+  planned_date: string;
+  completion_status: string;
+  completed_at: string | null;
+  notes: string | null;
+  subject: { id: string; name: string; code: string } | null;
+}
+
+const STATUS_BADGE_HW: Record<string, { bg: string; fg: string; label: string }> = {
+  pending: { bg: '#FEF3C7', fg: '#92400E', label: 'Pending' },
+  submitted: { bg: '#DBEAFE', fg: '#1E40AF', label: 'Submitted' },
+  late: { bg: '#FED7AA', fg: '#9A3412', label: 'Late' },
+  graded: { bg: '#D1FAE5', fg: '#065F46', label: 'Graded' },
+  missed: { bg: '#FEE2E2', fg: '#991B1B', label: 'Missed' },
 };
 
-const FEE_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  paid:    { bg: '#DCFCE7', color: '#15803D' },
-  pending: { bg: '#FEF9C3', color: '#A16207' },
-  overdue: { bg: '#FEE2E2', color: '#B91C1C' },
-  waived:  { bg: '#F3F4F6', color: '#6B7280' },
+const STATUS_BADGE_LP: Record<string, { bg: string; fg: string; label: string }> = {
+  planned: { bg: '#E0E7FF', fg: '#3730A3', label: 'Planned' },
+  in_progress: { bg: '#FEF3C7', fg: '#92400E', label: 'In progress' },
+  completed: { bg: '#D1FAE5', fg: '#065F46', label: 'Completed' },
+  skipped: { bg: '#F3F4F6', fg: '#4B5563', label: 'Skipped' },
 };
 
-export default function ParentPortal() {
-  const [screen, setScreen] = useState<Screen>('login');
+const STATUS_BADGE_ATT: Record<string, { bg: string; fg: string; label: string }> = {
+  present: { bg: '#D1FAE5', fg: '#065F46', label: 'Present' },
+  absent: { bg: '#FEE2E2', fg: '#991B1B', label: 'Absent' },
+  late: { bg: '#FED7AA', fg: '#9A3412', label: 'Late' },
+  excused: { bg: '#E0E7FF', fg: '#3730A3', label: 'Excused' },
+};
+
+function fmtDate(s: string): string {
+  return new Date(s + (s.length === 10 ? 'T00:00:00+05:30' : '')).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
+  });
+}
+
+function fmtDateTime(s: string): string {
+  return new Date(s).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  });
+}
+
+export default function ParentPage() {
+  // Auth state
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
+  const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [data, setData] = useState<PortalData | null>(null);
-  const [activeTab, setActiveTab] = useState<'attendance' | 'fees' | 'reports'>('attendance');
+  const [parent, setParent] = useState<ParentInfo | null>(null);
+  const [student, setStudent] = useState<StudentInfo | null>(null);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<Tab>('homework');
+
+  // Data state per tab
+  const [homework, setHomework] = useState<HomeworkRow[]>([]);
+  const [hwSummary, setHwSummary] = useState({ pending: 0, submitted: 0, late: 0, graded: 0, missed: 0 });
+  const [hwLoading, setHwLoading] = useState(false);
+
+  const [announcements, setAnnouncements] = useState<AnnRow[]>([]);
+  const [annLoading, setAnnLoading] = useState(false);
+
+  const [attendance, setAttendance] = useState<AttRow[]>([]);
+  const [attSummary, setAttSummary] = useState({ present: 0, absent: 0, late: 0, excused: 0 });
+  const [attPresentPct, setAttPresentPct] = useState<number | null>(null);
+  const [attLoading, setAttLoading] = useState(false);
+  const [attDays, setAttDays] = useState(30);
+
+  const [lessonPlans, setLessonPlans] = useState<LessonPlanRow[]>([]);
+  const [lpWeekStart, setLpWeekStart] = useState('');
+  const [lpWeekEnd, setLpWeekEnd] = useState('');
+  const [lpMessage, setLpMessage] = useState('');
+  const [lpLoading, setLpLoading] = useState(false);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setLoading(true); setError('');
-
+    setAuthError('');
+    if (!phone || !pin) {
+      setAuthError('Phone and PIN required');
+      return;
+    }
+    setLoading(true);
     try {
-      const res = await fetch('/api/parent/student', {
+      const res = await fetch('/api/parent/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, pin }),
       });
-      const d = await res.json() as PortalData & { error?: string };
-      if (!res.ok) { setError(d.error ?? 'Login failed'); return; }
-      setData(d);
-      setScreen('portal');
-    } catch { setError('Network error. Please try again.');
-    } finally { setLoading(false); }
+      const d = await res.json();
+      if (!res.ok) {
+        setAuthError(d.error ?? 'Login failed');
+        return;
+      }
+      setParent(d.parent);
+      setStudent(d.student);
+      // Auto-load homework tab.
+      void loadHomework();
+    } catch {
+      setAuthError('Network error');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const pct = data?.attendance.summary.percentage ?? 0;
+  async function loadHomework() {
+    setHwLoading(true);
+    try {
+      const res = await fetch('/api/parent/homework', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setHomework(d.homework ?? []);
+        setHwSummary(d.summary ?? { pending: 0, submitted: 0, late: 0, graded: 0, missed: 0 });
+      }
+    } finally {
+      setHwLoading(false);
+    }
+  }
 
-  if (screen === 'login') return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', padding: 16 }}>
-      <div style={{ width: '100%', maxWidth: 360 }}>
+  async function loadAnnouncements() {
+    setAnnLoading(true);
+    try {
+      const res = await fetch('/api/parent/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin }),
+      });
+      const d = await res.json();
+      if (res.ok) setAnnouncements(d.announcements ?? []);
+    } finally {
+      setAnnLoading(false);
+    }
+  }
 
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24, fontWeight: 800, color: '#fff' }}>S</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>Parent Portal</div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3 }}>Suchitra Academy</div>
-        </div>
+  async function loadAttendance(days: number) {
+    setAttLoading(true);
+    try {
+      const res = await fetch('/api/parent/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, days }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setAttendance(d.attendance ?? []);
+        setAttSummary(d.summary ?? { present: 0, absent: 0, late: 0, excused: 0 });
+        setAttPresentPct(d.present_pct);
+      }
+    } finally {
+      setAttLoading(false);
+    }
+  }
 
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Sign in</div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Enter your phone number and the PIN sent by the school</div>
+  async function loadLessonPlans() {
+    setLpLoading(true);
+    try {
+      const res = await fetch('/api/parent/lesson-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setLessonPlans(d.plans ?? []);
+        setLpWeekStart(d.week_start ?? '');
+        setLpWeekEnd(d.week_end ?? '');
+        setLpMessage(d.message ?? '');
+      }
+    } finally {
+      setLpLoading(false);
+    }
+  }
 
-          {error && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>{error}</div>}
+  // Auto-load tab when switched.
+  useEffect(() => {
+    if (!parent) return;
+    if (activeTab === 'homework' && homework.length === 0 && !hwLoading) void loadHomework();
+    if (activeTab === 'announcements' && announcements.length === 0 && !annLoading) void loadAnnouncements();
+    if (activeTab === 'attendance' && attendance.length === 0 && !attLoading) void loadAttendance(attDays);
+    if (activeTab === 'lesson_plans' && lessonPlans.length === 0 && !lpLoading) void loadLessonPlans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, parent]);
 
+  // === LOGIN SCREEN ===
+  if (!parent || !student) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F9FAFB', padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 6, color: '#111827' }}>Parent Portal</div>
+          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24 }}>Log in to see your child&apos;s school activity</div>
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>PHONE NUMBER</label>
-              <input
-                required type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                style={{ width: '100%', height: 44, borderRadius: 9, border: '1px solid #D1D5DB', background: '#F9FAFB', fontSize: 15, padding: '0 14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>4-DIGIT PIN</label>
-              <input
-                required type="password" maxLength={4} value={pin} onChange={e => setPin(e.target.value)}
-                placeholder="••••"
-                style={{ width: '100%', height: 44, borderRadius: 9, border: '1px solid #D1D5DB', background: '#F9FAFB', fontSize: 20, padding: '0 14px', outline: 'none', fontFamily: 'inherit', letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box' }}
-              />
-            </div>
-            <button type="submit" disabled={loading} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: loading ? '#818CF8' : '#4F46E5', color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {loading ? 'Verifying...' : 'View My Child\'s Report →'}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Phone</label>
+            <input
+              type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+              placeholder="+91 ..."
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }}
+            />
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>PIN</label>
+            <input
+              type="password" inputMode="numeric" value={pin} onChange={e => setPin(e.target.value)}
+              placeholder="4-digit PIN"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }}
+            />
+            {authError && (
+              <div style={{ padding: '10px 12px', background: '#FEE2E2', color: '#991B1B', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+                {authError}
+              </div>
+            )}
+            <button
+              type="submit" disabled={loading}
+              style={{ width: '100%', padding: '12px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}
+            >
+              {loading ? 'Logging in...' : 'Log in'}
             </button>
           </form>
-
-          <div style={{ marginTop: 16, padding: '10px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
-            Contact the school office to get your 4-digit PIN: <strong>040-12345678</strong>
-          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (!data) return null;
-
+  // === MAIN APP ===
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-
+    <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       {/* Header */}
-      <div style={{ background: '#4F46E5', color: '#fff', padding: '20px 16px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 2 }}>SUCHITRA ACADEMY</div>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>{data.student.name}</div>
-            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Class {data.student.class}-{data.student.section} · Welcome, {data.parent.name}</div>
-          </div>
-          <button onClick={() => setScreen('login')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-            Logout
-          </button>
-        </div>
-
-        {/* Quick attendance stat */}
-        <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 3 }}>ATTENDANCE (LAST 30 DAYS)</div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{pct}%</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, opacity: 0.7 }}>{data.attendance.summary.present}/{data.attendance.summary.total} days</div>
-            <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
-              {pct >= 90 ? '✓ Excellent' : pct >= 75 ? '⚠ Needs attention' : '⛔ Low attendance'}
-            </div>
-          </div>
+      <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ fontSize: 11, color: '#6B7280' }}>Parent of</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{student.name}</div>
+        <div style={{ fontSize: 11, color: '#6B7280' }}>
+          Class {student.class}-{student.section} · {parent.name}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB' }}>
-        {(['attendance', 'fees', 'reports'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{ flex: 1, padding: '12px 0', border: 'none', background: 'none', fontSize: 13, fontWeight: activeTab === tab ? 700 : 500, color: activeTab === tab ? '#4F46E5' : '#6B7280', borderBottom: activeTab === tab ? '2px solid #4F46E5' : '2px solid transparent', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
-            {tab}
+      {/* Tab bar */}
+      <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 64, zIndex: 9, overflowX: 'auto' }}>
+        {([
+          { key: 'homework' as Tab, label: '📚 Homework' },
+          { key: 'announcements' as Tab, label: '📢 News' },
+          { key: 'attendance' as Tab, label: '✓ Attendance' },
+          { key: 'lesson_plans' as Tab, label: '📅 Plans' },
+        ]).map(t => (
+          <button
+            key={t.key} onClick={() => setActiveTab(t.key)}
+            style={{
+              flex: 1, minWidth: 90,
+              padding: '12px 8px',
+              background: 'transparent', border: 'none',
+              borderBottom: activeTab === t.key ? '2px solid #4F46E5' : '2px solid transparent',
+              color: activeTab === t.key ? '#4F46E5' : '#6B7280',
+              fontSize: 13, fontWeight: activeTab === t.key ? 700 : 500,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
           </button>
         ))}
       </div>
 
+      {/* Tab content */}
       <div style={{ padding: 16 }}>
+        {/* === HOMEWORK TAB === */}
+        {activeTab === 'homework' && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 16 }}>
+              {(Object.entries(STATUS_BADGE_HW) as [string, typeof STATUS_BADGE_HW[string]][]).map(([k, b]) => (
+                <div key={k} style={{ background: b.bg, padding: '8px 4px', borderRadius: 8, textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: b.fg }}>{(hwSummary as Record<string, number>)[k] ?? 0}</div>
+                  <div style={{ fontSize: 9, color: b.fg, marginTop: 2 }}>{b.label}</div>
+                </div>
+              ))}
+            </div>
 
-        {/* Attendance tab */}
-        {activeTab === 'attendance' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Recent Attendance</div>
-            {data.attendance.records.length === 0 ? (
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', padding: 32, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No attendance records found.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {data.attendance.records.map((rec, i) => (
-                  <div key={i} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>
-                      {new Date(rec.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: STATUS_COLOR[rec.status] + '18', color: STATUS_COLOR[rec.status] ?? '#6B7280' }}>
-                      {rec.status.toUpperCase()}
-                    </span>
-                  </div>
-                ))}
+            {hwLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6B7280', fontSize: 13 }}>Loading...</div>
+            ) : homework.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📚</div>
+                <div style={{ fontSize: 14, color: '#6B7280' }}>No homework yet</div>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Fees tab */}
-        {activeTab === 'fees' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Fee Details</div>
-            {data.fees.length === 0 ? (
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', padding: 32, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No fee records found.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {data.fees.map((fee, i) => {
-                  const style = FEE_STATUS_STYLE[fee.status] ?? FEE_STATUS_STYLE.pending;
+                {homework.map(row => {
+                  const hw = row.homework!;
+                  const badge = STATUS_BADGE_HW[row.status];
                   return (
-                    <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', textTransform: 'capitalize' }}>
-                          {fee.fee_type.replace('_', ' ')} Fee
+                    <div key={row.submission_id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', flex: 1, marginRight: 8 }}>{hw.title}</div>
+                        <span style={{ background: badge.bg, color: badge.fg, padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{badge.label}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>
+                        Due {fmtDate(hw.due_date)}{hw.subject ? ` · ${hw.subject.name}` : ''}
+                      </div>
+                      {hw.description && (
+                        <div style={{ fontSize: 12, color: '#374151', marginBottom: 6 }}>{hw.description}</div>
+                      )}
+                      {row.status === 'graded' && row.marks_obtained !== null && (
+                        <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600 }}>
+                          Marks: {row.marks_obtained}
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: style.bg, color: style.color }}>
-                          {fee.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6 }}>₹{Number(fee.amount).toLocaleString('en-IN')}</div>
-                      <div style={{ fontSize: 12, color: '#9CA3AF' }}>
-                        Due: {new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        {fee.paid_date && ` · Paid: ${new Date(fee.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
-                      </div>
+                      )}
+                      {row.teacher_remarks && (
+                        <div style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                          Teacher: {row.teacher_remarks}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
-                <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                  For fee payment, contact: <strong>040-12345678</strong>
-                </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Reports tab */}
-        {activeTab === 'reports' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Teacher Remarks</div>
-            {data.narratives.length === 0 ? (
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', padding: 32, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>No reports available yet.</div>
+        {/* === ANNOUNCEMENTS TAB === */}
+        {activeTab === 'announcements' && (
+          <>
+            {annLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6B7280', fontSize: 13 }}>Loading...</div>
+            ) : announcements.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📢</div>
+                <div style={{ fontSize: 14, color: '#6B7280' }}>No announcements yet</div>
+              </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {data.narratives.map((n, i) => (
-                  <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>{n.term}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#DCFCE7', color: '#15803D' }}>
-                        {n.status.toUpperCase()}
-                      </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {announcements.map(a => (
+                  <div key={a.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{a.title}</div>
+                      {a.is_school_wide && (
+                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>School-wide</span>
+                      )}
                     </div>
-                    <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, margin: 0 }}>{n.narrative_text}</p>
+                    <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 8 }}>{fmtDateTime(a.scheduled_at)}</div>
+                    <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{a.message}</div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </>
+        )}
+
+        {/* === ATTENDANCE TAB === */}
+        {activeTab === 'attendance' && (
+          <>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Attendance rate (last {attDays} days)</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: attPresentPct === null ? '#9CA3AF' : attPresentPct >= 90 ? '#065F46' : attPresentPct >= 75 ? '#92400E' : '#991B1B' }}>
+                    {attPresentPct === null ? '—' : `${attPresentPct}%`}
+                  </div>
+                </div>
+                <select
+                  value={attDays}
+                  onChange={e => { const d = Number(e.target.value); setAttDays(d); void loadAttendance(d); }}
+                  style={{ padding: '6px 10px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 13, background: '#fff' }}
+                >
+                  <option value={7}>Last 7 days</option>
+                  <option value={30}>Last 30 days</option>
+                  <option value={60}>Last 60 days</option>
+                  <option value={90}>Last 90 days</option>
+                  <option value={180}>Last 6 months</option>
+                </select>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                {(Object.entries(STATUS_BADGE_ATT) as [string, typeof STATUS_BADGE_ATT[string]][]).map(([k, b]) => (
+                  <div key={k} style={{ background: b.bg, padding: '8px 4px', borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: b.fg }}>{(attSummary as Record<string, number>)[k] ?? 0}</div>
+                    <div style={{ fontSize: 9, color: b.fg, marginTop: 2 }}>{b.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {attLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6B7280', fontSize: 13 }}>Loading...</div>
+            ) : attendance.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>✓</div>
+                <div style={{ fontSize: 14, color: '#6B7280' }}>No attendance records in this range</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {attendance.map(r => {
+                  const badge = STATUS_BADGE_ATT[r.status];
+                  return (
+                    <div key={r.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: 13, color: '#111827' }}>{fmtDate(r.date)}</div>
+                      <span style={{ background: badge.bg, color: badge.fg, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{badge.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* === LESSON PLANS TAB === */}
+        {activeTab === 'lesson_plans' && (
+          <>
+            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+              Week of {lpWeekStart ? fmtDate(lpWeekStart) : '...'} – {lpWeekEnd ? fmtDate(lpWeekEnd) : '...'}
+            </div>
+
+            {lpLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6B7280', fontSize: 13 }}>Loading...</div>
+            ) : lessonPlans.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📅</div>
+                <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 6 }}>No lesson plans this week</div>
+                {lpMessage && <div style={{ fontSize: 11, color: '#9CA3AF' }}>{lpMessage}</div>}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {lessonPlans.map(p => {
+                  const badge = STATUS_BADGE_LP[p.completion_status];
+                  return (
+                    <div key={p.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                          {p.subject ? p.subject.name : 'Subject TBD'}
+                        </div>
+                        <span style={{ background: badge.bg, color: badge.fg, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>{badge.label}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: p.notes ? 6 : 0 }}>{fmtDate(p.planned_date)}</div>
+                      {p.notes && (
+                        <div style={{ fontSize: 12, color: '#374151' }}>{p.notes}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
