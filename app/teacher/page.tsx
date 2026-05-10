@@ -514,6 +514,23 @@ export default function TeacherPortal() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Item 12: secondary nav to homework + lesson plans */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+              <a href="/teacher/homework" style={{ flex: 1, minWidth: 140, textDecoration: 'none', padding: '10px 14px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>📚</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Homework</div>
+                  <div style={{ fontSize: 10, color: '#6B7280' }}>Assign + grade</div>
+                </div>
+              </a>
+              <a href="/teacher/lesson-plans" style={{ flex: 1, minWidth: 140, textDecoration: 'none', padding: '10px 14px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>📅</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Lesson Plans</div>
+                  <div style={{ fontSize: 10, color: '#6B7280' }}>Week view</div>
+                </div>
+              </a>
+            </div>
             {schedule.map(entry => (
               <div key={entry.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', gap: 8 }}>
                 <button onClick={() => openClass(entry)} disabled={!entry.classes}
