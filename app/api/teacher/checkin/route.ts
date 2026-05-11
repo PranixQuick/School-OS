@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { writeNotification } from '@/lib/notifications';
 
 // Teacher geo check-in. Phone+PIN auth (mirrors /api/teacher/login pattern).
 //
@@ -181,7 +182,9 @@ export async function POST(req: NextRequest) {
             .lt('expected_at', `${tomorrowStr}T00:00:00+05:30`);
 
           if (!existingCount || existingCount === 0) {
-            const { error: leErr } = await supabaseAdmin
+            // Item 14a (Spawn 7 #H): capture inserted row id via .select('id').single()
+            // so notification reference_id can link back to the source event.
+            const { data: lateEventRow, error: leErr } = await supabaseAdmin
               .from('teacher_late_events')
               .insert({
                 school_id: teacher.school_id,
@@ -190,9 +193,30 @@ export async function POST(req: NextRequest) {
                 expected_at: expectedAt.toISOString(),
                 delta_minutes: deltaMinutes,
                 strike_count: 1,
-              });
-            if (!leErr) lateEventLogged = true;
-            else console.error('Late event insert error:', leErr);
+              })
+              .select('id')
+              .single();
+            if (!leErr && lateEventRow) {
+              lateEventLogged = true;
+              // Item 14a: Best-effort notification write. Failure is non-fatal.
+              try {
+                const notifResult = await writeNotification(supabaseAdmin, {
+                  school_id: teacher.school_id,
+                  type: 'risk',
+                  title: 'Teacher arrived late',
+                  message: `${teacher.name} arrived ${deltaMinutes} min late for period ${t.period}.`,
+                  module: 'teacher_late',
+                  reference_id: lateEventRow.id,
+                });
+                if (!notifResult.ok) {
+                  console.error('Notification write failed (non-fatal):', notifResult.error);
+                }
+              } catch (notifErr) {
+                console.error('Notification write threw (non-fatal):', notifErr);
+              }
+            } else if (leErr) {
+              console.error('Late event insert error:', leErr);
+            }
           }
         }
       }

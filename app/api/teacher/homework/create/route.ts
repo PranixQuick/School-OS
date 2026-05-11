@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { writeNotification } from '@/lib/notifications';
 
 // Teacher creates a homework assignment for a class.
 // Auth: phone+PIN per request.
@@ -198,6 +199,23 @@ export async function POST(req: NextRequest) {
       } else {
         submissionsCreated = subRows.length;
       }
+    }
+
+    // Item 14a: Best-effort notification write. Failure is non-fatal — homework is already committed.
+    try {
+      const notifResult = await writeNotification(supabaseAdmin, {
+        school_id: teacher.school_id,
+        type: 'alert',
+        title: `New homework: ${body.title.trim()}`,
+        message: `${body.title.trim()} is due by ${homework.due_date}. Open the parent app to view details.`,
+        module: 'homework_created',
+        reference_id: homework.id,
+      });
+      if (!notifResult.ok) {
+        console.error('Notification write failed (non-fatal):', notifResult.error);
+      }
+    } catch (notifErr) {
+      console.error('Notification write threw (non-fatal):', notifErr);
     }
 
     return NextResponse.json({
