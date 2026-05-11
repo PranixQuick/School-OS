@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { writeNotification } from '@/lib/notifications';
 
 // Teacher grades a single homework submission.
 // Auth: phone+PIN per request.
@@ -133,6 +134,48 @@ export async function POST(req: NextRequest) {
     if (uErr || !updated) {
       console.error('Submission UPDATE error:', uErr);
       return NextResponse.json({ error: 'Failed to update submission' }, { status: 500 });
+    }
+
+    // Item 14a: Best-effort notification write — ONLY when status moves to 'graded'.
+    // Other status transitions (pending/submitted/late/missed) don't notify parents.
+    if (resolvedStatus === 'graded') {
+      try {
+        // Look up homework title + student name for the message.
+        const [hwTitleRes, studentRes] = await Promise.all([
+          supabaseAdmin.from('homework').select('title').eq('id', parentHw.id).single(),
+          supabaseAdmin.from('students').select('name').eq('id', submission.student_id).single(),
+        ]);
+
+        const hwTitle = hwTitleRes.data?.title ?? 'Homework';
+        const studentName = studentRes.data?.name ?? 'Your child';
+
+        // Compose message: name + marks (if provided) + remarks (truncated to 100 chars if provided).
+        const messageParts: string[] = [`${studentName}'s ${hwTitle} has been graded.`];
+        if (body.marks_obtained !== undefined && body.marks_obtained !== null) {
+          messageParts.push(`Marks: ${body.marks_obtained}.`);
+        }
+        if (body.teacher_remarks && body.teacher_remarks.trim().length > 0) {
+          const truncated = body.teacher_remarks.trim().length > 100
+            ? body.teacher_remarks.trim().slice(0, 100) + '...'
+            : body.teacher_remarks.trim();
+          messageParts.push(`Teacher note: ${truncated}`);
+        }
+        messageParts.push('Open the parent app to view details.');
+
+        const notifResult = await writeNotification(supabaseAdmin, {
+          school_id: teacher.school_id,
+          type: 'alert',
+          title: `Homework graded: ${hwTitle}`,
+          message: messageParts.join(' '),
+          module: 'homework_graded',
+          reference_id: submission.id,
+        });
+        if (!notifResult.ok) {
+          console.error('Notification write failed (non-fatal):', notifResult.error);
+        }
+      } catch (notifErr) {
+        console.error('Notification write threw (non-fatal):', notifErr);
+      }
     }
 
     return NextResponse.json({
