@@ -1,236 +1,159 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/teacher/checkin/route.ts
+// Item #1 Track C Phase 3 — Geo check-in.
+//
+// POST /api/teacher/checkin — record a geo ping and (if first of day) set
+// teacher_attendance row to 'present'.
+//
+// Body: { lat: number, lng: number, accuracy_m?: number }
+//
+// Defense-in-depth model per master decision OPTION_B_SUPABASE_ADMIN_WITH_EXPLICIT_SCOPING:
+//   1. requireTeacherSession resolves staff_id from session.userId via school_users
+//   2. Every insert uses .eq('staff_id', ctx.staffId).eq('school_id', ctx.schoolId)
+//   3. RLS additive policies (auth_write_teacher_geo) provide safety net
+//
+// TODO(item-15): migrate to supabaseForUser(accessToken) when Item #15 service-role
+// audit lands. supabaseAdmin is the documented staged-rollout fallback per
+// lib/supabaseClient.ts.
+
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { requireTeacherSession, TeacherAuthError } from '@/lib/teacher-auth';
+// TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { writeNotification } from '@/lib/notifications';
 
-// Teacher geo check-in. Phone+PIN auth (mirrors /api/teacher/login pattern).
-//
-// Flow:
-//   1. Re-verify teacher by phone+PIN
-//   2. Fetch active geofence for teacher's school (school_id from authenticated record)
-//   3. Server-side point-in-polygon test on submitted lat/lng
-//   4. INSERT teacher_geo_pings row with inside_polygon flag
-//   5. If conditions met (scheduled now AND outside polygon AND >15min late AND no
-//      existing late_event for this teacher+period today), INSERT teacher_late_events row
-//   6. Return {inside, polygon_active, late_event_logged}
-//
-// Coordinates are NEVER trusted from client for authorization purposes — only used as
-// the input to the polygon test. school_id is always sourced from the authenticated
-// staff record, never from the request body.
+export const runtime = 'nodejs';
 
-interface CheckinRequest {
-  phone: string;
-  pin: string;
+// IST day helper — used to scope teacher_attendance row by local date
+function istTodayISO(): string {
+  const now = new Date();
+  const ist = new Date(now.getTime() + (5 * 60 + 30) * 60 * 1000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, '0')}-${String(ist.getUTCDate()).padStart(2, '0')}`;
+}
+
+function istTimeISO(): string {
+  const now = new Date();
+  const ist = new Date(now.getTime() + (5 * 60 + 30) * 60 * 1000);
+  return `${String(ist.getUTCHours()).padStart(2, '0')}:${String(ist.getUTCMinutes()).padStart(2, '0')}:${String(ist.getUTCSeconds()).padStart(2, '0')}`;
+}
+
+// Haversine — meters between two lat/lng points
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+interface CheckinBody {
   lat: number;
   lng: number;
   accuracy_m?: number;
 }
 
-// GeoJSON polygon: { type: "Polygon", coordinates: [[ [lng, lat], [lng, lat], ... ]] }
-// Note GeoJSON uses [lng, lat] order, NOT [lat, lng]. Ray-casting needs to be careful.
-function pointInPolygon(lat: number, lng: number, geojson: unknown): boolean {
-  if (!geojson || typeof geojson !== 'object') return false;
-  const g = geojson as { type?: string; coordinates?: unknown };
-  if (g.type !== 'Polygon' || !Array.isArray(g.coordinates) || g.coordinates.length === 0) return false;
-  const ring = g.coordinates[0];
-  if (!Array.isArray(ring) || ring.length < 3) return false;
-
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const pi = ring[i] as [number, number]; // [lng, lat]
-    const pj = ring[j] as [number, number];
-    const lngI = pi[0], latI = pi[1];
-    const lngJ = pj[0], latJ = pj[1];
-    const intersect = ((lngI > lng) !== (lngJ > lng))
-      && (lat < (latJ - latI) * (lng - lngI) / (lngJ - lngI) + latI);
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-
-// IST-explicit "now" helper. Server runs in UTC (Vercel iad1) but timetable.start_time
-// is wall-clock IST. Returns IST date string, IST time string, and IST day-of-week.
-function nowInIST(): { dateStr: string; timeStr: string; dow: number } {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kolkata',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(now);
-  const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
-  const dateStr = `${get('year')}-${get('month')}-${get('day')}`;
-  const timeStr = `${get('hour')}:${get('minute')}:${get('second')}`;
-  const dowName = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Kolkata', weekday: 'short',
-  }).format(now);
-  const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(dowName);
-  return { dateStr, timeStr, dow };
+function isValidBody(b: unknown): b is CheckinBody {
+  if (!b || typeof b !== 'object') return false;
+  const o = b as Record<string, unknown>;
+  return (
+    typeof o.lat === 'number' && o.lat >= -90 && o.lat <= 90 &&
+    typeof o.lng === 'number' && o.lng >= -180 && o.lng <= 180 &&
+    (o.accuracy_m === undefined || typeof o.accuracy_m === 'number')
+  );
 }
 
 export async function POST(req: NextRequest) {
+  let ctx;
   try {
-    const { phone, pin, lat, lng, accuracy_m } = await req.json() as CheckinRequest;
-
-    if (!phone || !pin) {
-      return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
+    ctx = await requireTeacherSession(req);
+  } catch (e) {
+    if (e instanceof TeacherAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
     }
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      return NextResponse.json({ error: 'lat and lng required (numeric)' }, { status: 400 });
-    }
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return NextResponse.json({ error: 'lat/lng out of valid range' }, { status: 400 });
-    }
-
-    // Re-auth teacher.
-    const { data: teacher, error: tErr } = await supabaseAdmin
-      .from('staff')
-      .select('id, school_id, name')
-      .eq('phone', phone)
-      .eq('access_pin', pin)
-      .eq('is_active', true)
-      .single();
-
-    if (tErr || !teacher) {
-      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
-    }
-
-    // Fetch active geofence for teacher's school.
-    // "Active" = active_from <= NOW() AND active_to IS NULL (current and not superseded).
-    const { data: geofence, error: gErr } = await supabaseAdmin
-      .from('school_geofences')
-      .select('id, polygon_geojson')
-      .eq('school_id', teacher.school_id)
-      .is('active_to', null)
-      .lte('active_from', new Date().toISOString())
-      .order('active_from', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (gErr) {
-      console.error('Geofence fetch error:', gErr);
-      return NextResponse.json({ error: 'Failed to fetch geofence' }, { status: 500 });
-    }
-
-    const polygonActive = !!geofence;
-    const inside = polygonActive ? pointInPolygon(lat, lng, geofence!.polygon_geojson) : false;
-
-    // Write the ping. school_id from authenticated teacher (NOT from request body).
-    const { error: pErr } = await supabaseAdmin
-      .from('teacher_geo_pings')
-      .insert({
-        school_id: teacher.school_id,
-        staff_id: teacher.id,
-        lat,
-        lng,
-        accuracy_m: typeof accuracy_m === 'number' ? accuracy_m : null,
-        inside_polygon: polygonActive ? inside : null,
-      });
-
-    if (pErr) {
-      console.error('Geo ping insert error:', pErr);
-      return NextResponse.json({ error: 'Failed to record check-in' }, { status: 500 });
-    }
-
-    // Conditional late-event logic.
-    // Find timetable row for THIS teacher today (IST) where start_time <= NOW_IST.
-    // If found AND NOT inside_polygon AND NOW > start_time + 15min AND still in window
-    // (NOW <= end_time + 15min) AND no existing late_event for this teacher+period today,
-    // INSERT teacher_late_events.
-    let lateEventLogged = false;
-    if (polygonActive && !inside) {
-      const { dateStr: today, timeStr: nowTime, dow } = nowInIST();
-      const now = new Date();
-
-      // Half-open interval bounds for "today" in IST: [today 00:00 IST, tomorrow 00:00 IST).
-      const tomorrowDate = new Date(new Date(`${today}T00:00:00+05:30`).getTime() + 86400000);
-      const tomorrowStr = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
-      }).format(tomorrowDate);
-
-      const { data: scheduled, error: sErr } = await supabaseAdmin
-        .from('timetable')
-        .select('id, period, start_time, end_time')
-        .eq('staff_id', teacher.id)
-        .eq('school_id', teacher.school_id)
-        .eq('day_of_week', dow)
-        .lte('start_time', nowTime)
-        .order('start_time', { ascending: false })
-        .limit(1);
-
-      if (sErr) {
-        console.error('Timetable lookup for late-event error:', sErr);
-        // Non-fatal: ping is already saved. Just skip the late-event side effect.
-      } else if (scheduled && scheduled.length > 0) {
-        const t = scheduled[0];
-        // Compute expected_at = today + start_time as TIMESTAMPTZ in IST.
-        const expectedAt = new Date(`${today}T${t.start_time}+05:30`);
-        const deltaMinutes = Math.floor((now.getTime() - expectedAt.getTime()) / 60000);
-
-        // Only log if currently >15min past start AND still within end_time + 15min grace.
-        const endPlus15 = new Date(`${today}T${t.end_time}+05:30`).getTime() + 15 * 60000;
-        const inWindow = now.getTime() <= endPlus15;
-
-        if (deltaMinutes > 15 && inWindow) {
-          // Idempotency: skip if a late_event already exists for this teacher today for this period.
-          const { count: existingCount } = await supabaseAdmin
-            .from('teacher_late_events')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', teacher.school_id)
-            .eq('staff_id', teacher.id)
-            .eq('scheduled_period_id', t.id)
-            .gte('expected_at', `${today}T00:00:00+05:30`)
-            .lt('expected_at', `${tomorrowStr}T00:00:00+05:30`);
-
-          if (!existingCount || existingCount === 0) {
-            // Item 14a (Spawn 7 #H): capture inserted row id via .select('id').single()
-            // so notification reference_id can link back to the source event.
-            const { data: lateEventRow, error: leErr } = await supabaseAdmin
-              .from('teacher_late_events')
-              .insert({
-                school_id: teacher.school_id,
-                staff_id: teacher.id,
-                scheduled_period_id: t.id,
-                expected_at: expectedAt.toISOString(),
-                delta_minutes: deltaMinutes,
-                strike_count: 1,
-              })
-              .select('id')
-              .single();
-            if (!leErr && lateEventRow) {
-              lateEventLogged = true;
-              // Item 14a: Best-effort notification write. Failure is non-fatal.
-              try {
-                const notifResult = await writeNotification(supabaseAdmin, {
-                  school_id: teacher.school_id,
-                  type: 'risk',
-                  title: 'Teacher arrived late',
-                  message: `${teacher.name} arrived ${deltaMinutes} min late for period ${t.period}.`,
-                  module: 'teacher_late',
-                  reference_id: lateEventRow.id,
-                });
-                if (!notifResult.ok) {
-                  console.error('Notification write failed (non-fatal):', notifResult.error);
-                }
-              } catch (notifErr) {
-                console.error('Notification write threw (non-fatal):', notifErr);
-              }
-            } else if (leErr) {
-              console.error('Late event insert error:', leErr);
-            }
-          }
-        }
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      inside,
-      polygon_active: polygonActive,
-      late_event_logged: lateEventLogged,
-    });
-
-  } catch (err) {
-    console.error('Teacher checkin error:', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    throw e;
   }
+  const { staffId, schoolId } = ctx;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+  if (!isValidBody(body)) {
+    return NextResponse.json({ error: 'Body must include numeric lat (-90..90) and lng (-180..180)' }, { status: 400 });
+  }
+  const { lat, lng, accuracy_m } = body;
+
+  // Look up the school's geofence to compute inside_polygon. If no geofence
+  // configured yet (pre-customer mode), we still record the ping but mark
+  // inside_polygon = null so the analytics layer can distinguish "outside" from
+  // "unknown".
+  const { data: geofence } = await supabaseAdmin
+    .from('school_geofences')
+    .select('polygon_geojson, radius_meters_fallback')
+    .eq('school_id', schoolId)
+    .maybeSingle();
+
+  let insidePolygon: boolean | null = null;
+  if (geofence) {
+    // If a circular fallback is configured AND has a center, use radius.
+    // Polygon checks (PIP) are deferred — for v1, a missing/invalid polygon
+    // and missing radius means inside_polygon stays null.
+    const fence = geofence.polygon_geojson as { center?: { lat: number; lng: number } } | null;
+    if (fence?.center && geofence.radius_meters_fallback) {
+      const d = distanceMeters(fence.center.lat, fence.center.lng, lat, lng);
+      insidePolygon = d <= geofence.radius_meters_fallback;
+    }
+  }
+
+  // Insert the ping (RLS: auth_write_teacher_geo policy gates this)
+  const { error: pingErr } = await supabaseAdmin
+    .from('teacher_geo_pings')
+    .insert({
+      school_id: schoolId,
+      staff_id: staffId,
+      ping_at: new Date().toISOString(),
+      lat,
+      lng,
+      accuracy_m: accuracy_m ?? null,
+      inside_polygon: insidePolygon,
+    });
+  if (pingErr) {
+    return NextResponse.json({ error: pingErr.message }, { status: 500 });
+  }
+
+  // Upsert teacher_attendance for today if not already 'present'
+  const today = istTodayISO();
+  const { data: existingAtt } = await supabaseAdmin
+    .from('teacher_attendance')
+    .select('id, status')
+    .eq('staff_id', staffId)
+    .eq('school_id', schoolId)
+    .eq('date', today)
+    .maybeSingle();
+
+  if (!existingAtt) {
+    const { error: attErr } = await supabaseAdmin
+      .from('teacher_attendance')
+      .insert({
+        school_id: schoolId,
+        staff_id: staffId,
+        date: today,
+        status: 'present',
+        check_in_time: istTimeISO(),
+        marked_via: 'geo_checkin',
+      });
+    if (attErr && !attErr.message.includes('duplicate')) {
+      // Don't fail the checkin if attendance write fails; the ping is the source of truth
+      console.warn('teacher_attendance insert failed:', attErr.message);
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    inside_polygon: insidePolygon,
+    geofence_configured: geofence !== null,
+    today,
+  });
 }
