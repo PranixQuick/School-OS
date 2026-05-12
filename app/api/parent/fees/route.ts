@@ -17,6 +17,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getInstitutionFlags } from '@/lib/institution-flags';
 
 export const runtime = 'nodejs';
 
@@ -114,6 +115,9 @@ async function handleFees(body: FeesRequest) {
     if (s === 'pending' || s === 'overdue') totalDue += amt;
   }
 
+  // Check online payment flag for this school (Item #13)
+  const flags = await getInstitutionFlags(schoolId);
+
   return NextResponse.json({
     student: {
       id: student?.id,
@@ -127,5 +131,6 @@ async function handleFees(body: FeesRequest) {
     total_due: totalDue,
     total_paid: totalPaid,
     fee_count: (fees ?? []).length,
+    online_payment_enabled: flags.fee_module_enabled === true && flags.online_payment_enabled === true,
   });
 }
