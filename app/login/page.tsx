@@ -233,7 +233,8 @@ export default function LoginPage() {
 
           <div style={{ marginTop: 24, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
             <strong style={{ color: '#374151' }}>Demo credentials:</strong><br />
-            Password format: schoolos + first 4 chars of school code
+            Email: your-email@school.edu.in<br />
+            Password: schoolos&lt;first-4-of-school-id&gt;
           </div>
         </div>
 
