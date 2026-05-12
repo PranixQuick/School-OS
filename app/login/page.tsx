@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@suchitracademy.edu.in');
-  const [password, setPassword] = useState('admin@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push(data.redirectTo ?? '/dashboard');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -106,7 +106,7 @@ export default function LoginPage() {
             Sign in to your school
           </div>
           <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24 }}>
-            Enter your admin credentials to continue
+            Sign in with your school credentials
           </div>
 
           {error && (
@@ -233,8 +233,7 @@ export default function LoginPage() {
 
           <div style={{ marginTop: 24, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
             <strong style={{ color: '#374151' }}>Demo credentials:</strong><br />
-            Email: admin@suchitracademy.edu.in<br />
-            Password: admin@123
+            Password format: schoolos + first 4 chars of school code
           </div>
         </div>
 
