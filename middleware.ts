@@ -24,6 +24,7 @@ const PUBLIC_PATHS = [
   '/api/parent',
   // '/teacher' and '/api/teacher' removed in Item #1 Track C — now session-protected
   '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
+  '/api/webhooks',      // Item #13: Razorpay webhook — must be public (raw body verification)
 ];
 
 // Super admin only paths
