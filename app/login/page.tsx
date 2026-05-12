@@ -29,7 +29,7 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json() as { error?: string; code?: string; school?: string };
+      const data = await res.json() as { error?: string; code?: string; school?: string; redirectTo?: string };
 
       if (!res.ok) {
         if (data.code === 'USE_MAGIC_LINK') {
