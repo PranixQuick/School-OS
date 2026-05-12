@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
 
   const { data: schoolUser, error: userErr } = await supabaseAdmin
     .from('school_users')
-    .select('id, school_id, email, name, role, role_v2, is_active, password_migrated_at, auth_user_id')
+    .select('id, school_id, email, name, role, is_active, password_migrated_at, auth_user_id')
     .eq('email', email)
     .eq('is_active', true)
     .maybeSingle();
@@ -195,13 +195,12 @@ export async function POST(req: NextRequest) {
 
   const token = await issueSession(sessionShape, { variant: 'legacy' });
 
-  const redirectTo = (
-    schoolUser.role_v2 === 'principal' ? '/principal' :
-    schoolUser.role_v2 === 'teacher' ? '/teacher' :
-    (schoolUser.role_v2 === 'admin_staff' || schoolUser.role === 'admin') ? '/admin' :
-    schoolUser.role_v2 === 'owner' ? '/dashboard' :
-    '/dashboard'
-  );
+  // Role-based redirect target for the login page (Item #6.1).
+  const redirectTo =
+    schoolUser.role === 'principal' ? '/principal' :
+    schoolUser.role === 'teacher'   ? '/teacher' :
+    (schoolUser.role === 'admin_staff' || schoolUser.role === 'admin') ? '/admin' :
+    '/dashboard';
 
   const response = NextResponse.json({
     success: true,
