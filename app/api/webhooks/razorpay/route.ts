@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   // Fetch fee
   const { data: fee, error: feeErr } = await supabaseAdmin
     .from('fees')
-    .select('id, status')
+    .select('id, status, school_id')
     .eq('id', feeId)
     .maybeSingle();
 
@@ -108,7 +108,8 @@ export async function POST(req: NextRequest) {
       paid_date: todayIST(),
       payment_verified_at: new Date().toISOString(),
     })
-    .eq('id', feeId);
+    .eq('id', feeId)
+    .eq('school_id', fee.school_id); // Item #15: explicit school_id scope for defense-in-depth
 
   if (updateErr) {
     console.error('[webhook/razorpay] update failed:', feeId, updateErr.message);
