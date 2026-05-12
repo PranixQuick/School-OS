@@ -1,3 +1,4 @@
+// Parent auth is phone+PIN. OTP flow is NOT deployed. Future migration to OTP is separate roadmap work.
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
