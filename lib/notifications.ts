@@ -26,7 +26,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // All writers are best-effort: caller wraps in try/catch and continues on failure.
 // This helper returns {ok, id?, error?} rather than throwing.
 
-export type NotificationType = 'broadcast' | 'fee_reminder' | 'ptm' | 'alert' | 'system' | 'risk';
+export type NotificationType = 'broadcast' | 'fee_reminder' | 'ptm' | 'alert' | 'system' | 'risk' | 'homework_assigned' | 'leave_status'; // Item #14 PR #2
 export type NotificationChannel = 'whatsapp' | 'email' | 'both' | 'none';
 
 export interface WriteNotificationParams {
@@ -48,7 +48,7 @@ export interface WriteNotificationResult {
 // Compile-time guard: the 6 valid types. If a caller ever passes a value outside this
 // set (via a string variable cast to NotificationType, e.g.), Postgres CHECK still
 // blocks the INSERT, but we want the TS layer to catch it earlier.
-const VALID_TYPES: readonly NotificationType[] = ['broadcast', 'fee_reminder', 'ptm', 'alert', 'system', 'risk'] as const;
+const VALID_TYPES: readonly NotificationType[] = ['broadcast', 'fee_reminder', 'ptm', 'alert', 'system', 'risk', 'homework_assigned', 'leave_status'] as const; // Item #14 PR #2
 const VALID_CHANNELS: readonly NotificationChannel[] = ['whatsapp', 'email', 'both', 'none'] as const;
 
 /**
