@@ -26,6 +26,14 @@ interface ExtraKPIs {
   comm_last_24h_count: number;
 }
 
+// Item #6 PR #2 — drill-down section interfaces
+interface AdmissionsStatusGroup { status: string; count: number; avg_score: number; oldest_age_days: number; high_priority: number; }
+interface AdmissionsInquiry { id: string; parent_name: string | null; child_name: string | null; priority: string | null; status: string | null; score: number | null; age_days: number; }
+interface OverdueFee { id: string; student_name: string; class_label: string; amount: number; fee_type: string | null; status: string; due_date: string; days_past_due: number; intervention_status: string | null; intervention_notes: string | null; }
+interface LeaveItem { id: string; staff_name: string; leave_type: string; from_date: string; to_date: string; reason: string | null; }
+interface ProofItem { id: string; staff_name: string; class_label: string; taken_at: string; signed_url: string | null; }
+interface CommGroup { module: string; total: number; last_24h: number; }
+
 interface DashboardData {
   as_of: string;
   today: string;
@@ -84,17 +92,25 @@ export default function PrincipalDashboard() {
   const [showBriefing, setShowBriefing] = useState(false);
   // Item #6 additions
   const [extraKpis, setExtraKpis] = useState<ExtraKPIs | null>(null);
+  // Item #6 PR #2 — drill-down state
+  const [admissions, setAdmissions] = useState<{ by_status: AdmissionsStatusGroup[]; inquiries: AdmissionsInquiry[]; total: number; high_priority_count: number } | null>(null);
+  const [overdueFees, setOverdueFees] = useState<{ fees: OverdueFee[]; total_count: number; total_amount: number; with_intervention_count: number } | null>(null);
+  const [leaveList, setLeaveList] = useState<LeaveItem[] | null>(null);
+  const [proofsList, setProofsList] = useState<ProofItem[] | null>(null);
+  const [commGroups, setCommGroups] = useState<CommGroup[] | null>(null);
 
   useEffect(() => { fetch_data(); }, []);
 
   async function fetch_data() {
     setRefreshing(true);
     try {
-      const [res, leaveRes, proofsRes, commRes] = await Promise.all([
+      const [res, leaveRes, proofsRes, commRes, admRes, feesRes] = await Promise.all([
         fetch('/api/principal/dashboard'),
         fetch('/api/principal/leave-approvals').catch(() => null),
         fetch('/api/principal/classroom-proofs').catch(() => null),
         fetch('/api/principal/communications').catch(() => null),
+        fetch('/api/principal/admissions-pipeline').catch(() => null),
+        fetch('/api/principal/fees-overdue').catch(() => null),
       ]);
       const d = await res.json() as DashboardData;
       setData(d);
@@ -107,6 +123,14 @@ export default function PrincipalDashboard() {
         proofs_to_review_count: proofsJson?.pending_count ?? 0,
         comm_last_24h_count: commJson?.total_last_24h ?? 0,
       });
+      // Item #6 PR #2 — populate drill-down lists
+      const admJson = admRes && admRes.ok ? await admRes.json() : null;
+      const feesJson = feesRes && feesRes.ok ? await feesRes.json() : null;
+      setAdmissions(admJson);
+      setOverdueFees(feesJson);
+      setLeaveList(leaveJson?.pending ?? []);
+      setProofsList(proofsJson?.pending ?? []);
+      setCommGroups(commJson?.by_module ?? []);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -406,6 +430,139 @@ export default function PrincipalDashboard() {
                 background: d.fees.collection_pct >= 80 ? '#22C55E' : d.fees.collection_pct >= 60 ? '#F59E0B' : '#EF4444',
               }} />
             </div>
+          </div>
+          {/* Item #6 PR #2 — Drill-down sections */}
+
+          {/* Admissions Pipeline (Loop 1) */}
+          <div id="principal-admissions-pipeline" className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div>
+                <div className="section-title">Admissions Pipeline (last 90 days)</div>
+                <div className="section-sub">{admissions ? `${admissions.total} inquiries · ${admissions.high_priority_count} high priority` : 'Loading...'}</div>
+              </div>
+              <Link href="/automation/admissions" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full admissions →</Link>
+            </div>
+            {admissions && admissions.by_status.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
+                {admissions.by_status.map(g => (
+                  <div key={g.status} style={{ background: '#F3F4F6', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>{g.status}</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#374151' }}>{g.count}</div>
+                    <div style={{ fontSize: 10, color: '#6B7280' }}>avg score {g.avg_score} · oldest {g.oldest_age_days}d</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {admissions && admissions.inquiries.length > 0 ? (
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                {admissions.inquiries.slice(0, 10).map(i => (
+                  <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{i.parent_name || '—'} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>for {i.child_name || '—'}</span></div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{i.status} · {i.priority || 'normal'} · score {i.score ?? 0}</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{i.age_days}d ago</span>
+                  </div>
+                ))}
+              </div>
+            ) : admissions ? (
+              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No inquiries in the last 90 days.</div>
+            ) : null}
+          </div>
+
+          {/* Overdue Fees with Intervention (Loop 2) */}
+          <div id="principal-fees-overdue" className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div>
+                <div className="section-title">Overdue Fees · Intervention Tracking</div>
+                <div className="section-sub">{overdueFees ? `${overdueFees.total_count} accounts · ₹${Math.round(overdueFees.total_amount / 1000)}K total · ${overdueFees.with_intervention_count} with intervention` : 'Loading...'}</div>
+              </div>
+              <Link href="/billing" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full billing →</Link>
+            </div>
+            {overdueFees && overdueFees.fees.length > 0 ? (
+              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                {overdueFees.fees.slice(0, 15).map(f => (
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F3F4F6', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{f.student_name} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>· {f.class_label}</span></div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{f.fee_type || 'Fee'} · due {f.due_date} · {f.days_past_due}d past due</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#B91C1C' }}>₹{Math.round(Number(f.amount))}</div>
+                      {f.intervention_status ? (
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#15803D', background: '#DCFCE7', padding: '2px 6px', borderRadius: 4 }}>{f.intervention_status.replace(/_/g, ' ')}</span>
+                      ) : (
+                        <span style={{ fontSize: 10, color: '#9CA3AF' }}>no intervention</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : overdueFees ? (
+              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No overdue fees. Nice.</div>
+            ) : null}
+          </div>
+
+          {/* Pending Leave Approvals (Loop 3) */}
+          <div id="principal-leave-approvals" className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div className="section-title">Pending Leave Approvals</div>
+              <Link href="/automation/teacher-attendance" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Manage →</Link>
+            </div>
+            {leaveList && leaveList.length > 0 ? (
+              <div>
+                {leaveList.slice(0, 8).map(l => (
+                  <div key={l.id} style={{ padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{l.staff_name} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>· {l.leave_type}</span></div>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>{l.from_date} → {l.to_date}{l.reason ? ' · ' + l.reason : ''}</div>
+                  </div>
+                ))}
+              </div>
+            ) : leaveList ? (
+              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No pending leave requests.</div>
+            ) : null}
+          </div>
+
+          {/* Classroom Proofs to Review (Loop 4) */}
+          <div id="principal-classroom-proofs" className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div className="section-title">Classroom Proofs to Review</div>
+              <Link href="/automation/teacher-attendance" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Manage →</Link>
+            </div>
+            {proofsList && proofsList.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                {proofsList.slice(0, 6).map(p => (
+                  <div key={p.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 10 }}>
+                    {p.signed_url && <img src={p.signed_url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />}
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{p.staff_name}</div>
+                    <div style={{ fontSize: 10, color: '#6B7280' }}>{p.class_label} · {new Date(p.taken_at).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            ) : proofsList ? (
+              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No proofs pending review.</div>
+            ) : null}
+          </div>
+
+          {/* Recent Parent Communications (Loop 5) */}
+          <div id="principal-communications" className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div className="section-title">Parent Communications by Module (7d)</div>
+              <Link href="/automation/notifications" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full log →</Link>
+            </div>
+            {commGroups && commGroups.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                {commGroups.map(g => (
+                  <div key={g.module} style={{ background: '#F3F4F6', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>{g.module}</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#374151' }}>{g.total}</div>
+                    <div style={{ fontSize: 10, color: '#6B7280' }}>{g.last_24h} in last 24h</div>
+                  </div>
+                ))}
+              </div>
+            ) : commGroups ? (
+              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No communications sent in the last 7 days.</div>
+            ) : null}
           </div>
         </>
       )}
