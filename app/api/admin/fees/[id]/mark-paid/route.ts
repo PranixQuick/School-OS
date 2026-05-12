@@ -156,7 +156,7 @@ export async function PATCH(
         .from('students').select('name')
         .eq('id', fee.student_id).eq('school_id', schoolId).maybeSingle();
       const studentName = studentRow?.name ?? 'student';
-      const receiptRef = data.payment_reference ?? data.fee_receipt_number ?? '—';
+      const receiptRef = data.payment_reference ?? '—';
       await writeNotification(supabaseAdmin, {
         school_id: schoolId,
         type: 'fee_reminder',
