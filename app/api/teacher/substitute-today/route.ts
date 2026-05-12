@@ -1,14 +1,12 @@
 // app/api/teacher/substitute-today/route.ts
 // Item #1 Track C Phase 4 — read-only substitute info for today.
+// Item #10 update: filter by date column (added in Item #10 migration) instead of
+//   UTC range on assigned_at. More reliable for multi-timezone setups.
 //
 // GET /api/teacher/substitute-today
 //   Returns:
 //     - covering_for: assignments where this teacher is substitute_staff_id today
 //     - covered_by:   assignments where this teacher is original_staff_id today
-//                     (i.e., someone else is covering for them)
-//
-// Read-only per directive: Item #10 owns full substitute workflow. Phase 4
-// only displays existing assignments.
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -19,11 +17,9 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 export const runtime = 'nodejs';
 
 function istTodayISO(): string {
-  const now = new Date();
-  const ist = new Date(now.getTime() + (5 * 60 + 30) * 60 * 1000);
-  return ist.getUTCFullYear() + '-' +
-    String(ist.getUTCMonth() + 1).padStart(2, '0') + '-' +
-    String(ist.getUTCDate()).padStart(2, '0');
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
 }
 
 export async function GET(req: NextRequest) {
@@ -35,26 +31,29 @@ export async function GET(req: NextRequest) {
   }
   const { staffId, schoolId } = ctx;
   const today = istTodayISO();
-  // Today range in UTC for assigned_at filtering
-  const startOfDayIst = new Date(today + 'T00:00:00+05:30').toISOString();
-  const endOfDayIst = new Date(today + 'T23:59:59+05:30').toISOString();
 
   const [coveringForRes, coveredByRes] = await Promise.all([
     supabaseAdmin
       .from('substitute_assignments')
-      .select('id, original_staff_id, original_class_id, status, assigned_at, reason')
+      .select(`
+        id, original_staff_id, original_class_id, status, reason, date,
+        original_staff:original_staff_id ( name ),
+        class:original_class_id ( grade_level, section )
+      `)
       .eq('substitute_staff_id', staffId)
       .eq('school_id', schoolId)
-      .gte('assigned_at', startOfDayIst)
-      .lte('assigned_at', endOfDayIst)
+      .eq('date', today)
       .neq('status', 'cancelled'),
     supabaseAdmin
       .from('substitute_assignments')
-      .select('id, substitute_staff_id, original_class_id, status, assigned_at, reason')
+      .select(`
+        id, substitute_staff_id, original_class_id, status, reason, date,
+        substitute_staff:substitute_staff_id ( name ),
+        class:original_class_id ( grade_level, section )
+      `)
       .eq('original_staff_id', staffId)
       .eq('school_id', schoolId)
-      .gte('assigned_at', startOfDayIst)
-      .lte('assigned_at', endOfDayIst)
+      .eq('date', today)
       .neq('status', 'cancelled'),
   ]);
 
