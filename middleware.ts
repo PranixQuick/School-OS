@@ -45,6 +45,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);
 
+  // TODO(item-15): unauthenticated /api/* requests currently 302 to /login HTML. Should return 401 JSON. Deferred to Item #15.
   if (!session) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('redirect', pathname);
