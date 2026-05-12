@@ -1,77 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
-
-// Teacher portal: verify by phone + PIN, return today's schedule.
-// Mirrors /api/parent/student auth pattern: phone + access_pin direct lookup,
-// throttled last_access stamp via update_staff_access RPC, all in one round-trip.
+// app/api/teacher/login/route.ts
+// Item #1 Track C (OPTION_1_TRACK_C_ITEM_1_TEACHER_DASHBOARD).
 //
-// Auth model (Item 9 MVP):
-//   - No session cookies. Each subsequent /api/teacher/* call re-verifies phone + PIN.
-//   - Frontend stores teacher_id + school_id in component state, NOT cookies.
-//   - Future Item can upgrade to session cookies once teacher count justifies it.
-export async function POST(req: NextRequest) {
-  try {
-    const { phone, pin } = await req.json() as { phone: string; pin: string };
+// The prior phone+PIN-per-request endpoint has been removed in favor of the
+// shared /api/auth/login flow.
+//
+// This stub remains only so old clients (if any cached the URL) receive a
+// clear 410 Gone with a redirect hint. After 30 days of zero traffic this
+// file should be deleted from the repo entirely.
+//
+// Engine note: this is technically a content replacement rather than a true
+// git delete, because Spawn 3's GitHub action surface does not include a
+// delete-file primitive. Founder may delete the file manually post-merge.
 
-    if (!phone || !pin) {
-      return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
-    }
+import { NextResponse } from 'next/server';
 
-    const { data: teacher, error: tErr } = await supabaseAdmin
-      .from('staff')
-      .select('id, school_id, name, role, subject, phone')
-      .eq('phone', phone)
-      .eq('access_pin', pin)
-      .eq('is_active', true)
-      .single();
+export const runtime = 'nodejs';
 
-    if (tErr || !teacher) {
-      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
-    }
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: 'gone',
+      message: 'This endpoint has been removed. Use POST /api/auth/login instead.',
+      replacement: '/api/auth/login',
+    },
+    { status: 410 }
+  );
+}
 
-    // Throttled last_access update — prevents write storms on rapid reloads (1-min window).
-    await supabaseAdmin.rpc('update_staff_access', { p_staff_id: teacher.id });
-
-    // Today's schedule: classes assigned to this teacher for the current day-of-week.
-    // Postgres EXTRACT(DOW FROM ...) returns 0-6 (Sun-Sat); timetable.day_of_week uses same.
-    const dow = new Date().getDay();
-
-    const { data: schedule, error: sErr } = await supabaseAdmin
-      .from('timetable')
-      .select(`
-        id,
-        period,
-        day_of_week,
-        start_time,
-        end_time,
-        classes:class_id ( id, grade_level, section ),
-        subjects:subject_id ( id, code, name )
-      `)
-      .eq('staff_id', teacher.id)
-      .eq('school_id', teacher.school_id)
-      .eq('day_of_week', dow)
-      .order('period', { ascending: true });
-
-    if (sErr) {
-      console.error('Teacher schedule fetch error:', sErr);
-      return NextResponse.json({ error: 'Failed to load schedule' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      teacher: {
-        id: teacher.id,
-        school_id: teacher.school_id,
-        name: teacher.name,
-        role: teacher.role,
-        subject: teacher.subject,
-      },
-      schedule: schedule ?? [],
-      day_of_week: dow,
-    });
-
-  } catch (err) {
-    console.error('Teacher login error:', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'gone',
+      message: 'This endpoint has been removed. Use POST /api/auth/login instead.',
+      replacement: '/api/auth/login',
+    },
+    { status: 410 }
+  );
 }
