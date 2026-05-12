@@ -19,6 +19,13 @@ interface TeacherData { present_today: number; total_tracked: number; absent_tod
 interface Event { title: string; event_date: string; is_holiday: boolean; }
 interface Briefing { briefing_text: string; generated_at: string; }
 
+// Item #6 minimum additions — 3 new KPIs + 2 drill-down sections
+interface ExtraKPIs {
+  pending_leave_count: number;
+  proofs_to_review_count: number;
+  comm_last_24h_count: number;
+}
+
 interface DashboardData {
   as_of: string;
   today: string;
@@ -75,15 +82,31 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  // Item #6 additions
+  const [extraKpis, setExtraKpis] = useState<ExtraKPIs | null>(null);
 
   useEffect(() => { fetch_data(); }, []);
 
   async function fetch_data() {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/principal/dashboard');
+      const [res, leaveRes, proofsRes, commRes] = await Promise.all([
+        fetch('/api/principal/dashboard'),
+        fetch('/api/principal/leave-approvals').catch(() => null),
+        fetch('/api/principal/classroom-proofs').catch(() => null),
+        fetch('/api/principal/communications').catch(() => null),
+      ]);
       const d = await res.json() as DashboardData;
       setData(d);
+      // Item #6 extras — best-effort, silent failure
+      const leaveJson = leaveRes && leaveRes.ok ? await leaveRes.json() : null;
+      const proofsJson = proofsRes && proofsRes.ok ? await proofsRes.json() : null;
+      const commJson = commRes && commRes.ok ? await commRes.json() : null;
+      setExtraKpis({
+        pending_leave_count: leaveJson?.pending_count ?? 0,
+        proofs_to_review_count: proofsJson?.pending_count ?? 0,
+        comm_last_24h_count: commJson?.total_last_24h ?? 0,
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -154,6 +177,34 @@ export default function PrincipalDashboard() {
               status={d.teachers.status}
               href="/automation/teacher-attendance"
               icon="👩‍🏫"
+            />
+          </div>
+
+          {/* Item #6 — Principal-specific operational KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
+            <MetricCard
+              label="Pending Leave Approvals"
+              value={extraKpis?.pending_leave_count ?? '—'}
+              sub={extraKpis && extraKpis.pending_leave_count > 0 ? 'Awaiting your decision' : 'All caught up'}
+              status={extraKpis && extraKpis.pending_leave_count > 0 ? 'warning' : 'good'}
+              href="#principal-leave-approvals"
+              icon="🗓️"
+            />
+            <MetricCard
+              label="Proofs to Review"
+              value={extraKpis?.proofs_to_review_count ?? '—'}
+              sub={extraKpis && extraKpis.proofs_to_review_count > 0 ? 'Classroom photos pending audit' : 'No proofs pending'}
+              status={extraKpis && extraKpis.proofs_to_review_count > 0 ? 'warning' : 'good'}
+              href="#principal-classroom-proofs"
+              icon="📷"
+            />
+            <MetricCard
+              label="Parent Communications (24h)"
+              value={extraKpis?.comm_last_24h_count ?? '—'}
+              sub={extraKpis && extraKpis.comm_last_24h_count > 0 ? 'Notifications sent today' : 'Quiet today'}
+              status={'good'}
+              href="#principal-communications"
+              icon="💬"
             />
           </div>
 
