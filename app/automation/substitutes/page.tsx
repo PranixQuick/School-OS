@@ -40,6 +40,41 @@ export default function SubstitutesAdmin() {
   const [pickedSub, setPickedSub] = useState<Record<string, string>>({}); // late_event_id → staff_id
   const [reasons, setReasons] = useState<Record<string, string>>({}); // late_event_id → reason
   const [submittingFor, setSubmittingFor] = useState<string | null>(null);
+
+  // Item #10: Today's assignments + confirm/cancel
+  interface Assignment {
+    id: string; status: string; date: string; reason: string | null;
+    original_staff: { name: string } | null;
+    substitute_staff: { name: string; phone?: string } | null;
+    class: { grade_level: string; section: string | null } | null;
+  }
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [patchingId, setPatchingId] = useState<string | null>(null);
+  const [assignToast, setAssignToast] = useState('');
+
+  async function loadTodayAssignments() {
+    setAssignmentsLoading(true);
+    try {
+      const res = await fetch('/api/admin/substitute-assignments');
+      if (res.ok) { const d = await res.json(); setAssignments(d.assignments ?? []); }
+    } finally { setAssignmentsLoading(false); }
+  }
+
+  async function patchStatus(assignId: string, status: 'confirmed' | 'cancelled') {
+    setPatchingId(assignId);
+    const res = await fetch(`/api/admin/substitute-assignments/${assignId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    setPatchingId(null);
+    if (res.ok) {
+      setAssignToast(status === 'confirmed' ? 'Assignment confirmed' : 'Assignment cancelled');
+      setTimeout(() => setAssignToast(''), 3000);
+      void loadTodayAssignments();
+    }
+  }
   const [errorFor, setErrorFor] = useState<Record<string, string>>({});
   const [successFor, setSuccessFor] = useState<Record<string, string>>({});
 
@@ -233,6 +268,68 @@ export default function SubstitutesAdmin() {
                       </button>
                     </div>
                   </form>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Item #10: Today's assignments section */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Today's Assignments</div>
+          <button onClick={() => void loadTodayAssignments()}
+            style={{ fontSize: 11, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}>↻ Refresh</button>
+        </div>
+        {assignToast && <div style={{ background: '#D1FAE5', color: '#065F46', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>{assignToast}</div>}
+        {assignmentsLoading ? (
+          <div style={{ color: '#6B7280', fontSize: 13 }}>Loading...</div>
+        ) : assignments.length === 0 ? (
+          <div style={{ color: '#6B7280', fontSize: 13 }}>No substitute assignments for today.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {assignments.map(a => {
+              const cls = a.class;
+              const className = cls ? `Grade ${cls.grade_level}${cls.section ? '-' + cls.section : ''}` : '—';
+              const statusColors: Record<string, { bg: string; fg: string }> = {
+                pending:   { bg: '#FEF3C7', fg: '#92400E' },
+                confirmed: { bg: '#D1FAE5', fg: '#065F46' },
+                cancelled: { bg: '#FEE2E2', fg: '#991B1B' },
+              };
+              const sc = statusColors[a.status] ?? statusColors['pending'];
+              return (
+                <div key={a.id} style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px 14px', border: '1px solid #E5E7EB' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{className}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        Sub: {a.substitute_staff?.name ?? '—'} · For: {a.original_staff?.name ?? '—'}
+                      </div>
+                      {a.reason && <div style={{ fontSize: 11, color: '#6B7280' }}>Reason: {a.reason}</div>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ background: sc.bg, color: sc.fg, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                        {a.status}
+                      </span>
+                      {a.status === 'pending' && (
+                        <>
+                          <button
+                            disabled={patchingId === a.id}
+                            onClick={() => void patchStatus(a.id, 'confirmed')}
+                            style={{ padding: '4px 10px', background: '#065F46', color: '#fff', border: 'none', borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            Confirm
+                          </button>
+                          <button
+                            disabled={patchingId === a.id}
+                            onClick={() => void patchStatus(a.id, 'cancelled')}
+                            style={{ padding: '4px 10px', background: '#991B1B', color: '#fff', border: 'none', borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
