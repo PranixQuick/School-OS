@@ -195,10 +195,18 @@ export async function POST(req: NextRequest) {
 
   const token = await issueSession(sessionShape, { variant: 'legacy' });
 
+  // Role-based redirect target for the login page (Item #6.1).
+  const redirectTo =
+    schoolUser.role === 'principal' ? '/principal' :
+    schoolUser.role === 'teacher'   ? '/teacher' :
+    (schoolUser.role === 'admin_staff' || schoolUser.role === 'admin') ? '/admin' :
+    '/dashboard';
+
   const response = NextResponse.json({
     success: true,
     school: school.name,
     role: schoolUser.role,
+    redirectTo,
     magicLinkSent: !dispatch.skipped,
     magicLinkSkipped: dispatch.skipped,
     sessionVariant: 'legacy',
