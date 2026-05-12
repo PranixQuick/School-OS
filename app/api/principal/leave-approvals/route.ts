@@ -14,6 +14,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-auth';
+import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
@@ -127,7 +128,7 @@ export async function POST(req: NextRequest) {
   // Verify the leave request exists and is still pending (defense against double-decision)
   const { data: existing, error: lookupErr } = await supabaseAdmin
     .from('teacher_leave_requests')
-    .select('id, status')
+    .select('id, status, staff_id, from_date, to_date')
     .eq('id', body.id)
     .eq('school_id', schoolId)
     .maybeSingle();
@@ -154,5 +155,20 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Item #14 PR #2: best-effort notification on leave approved/rejected
+  try {
+    // Quick staff name lookup for notification message
+    const { data: staffRow } = await supabaseAdmin.from('staff').select('name').eq('id', existing.staff_id).eq('school_id', schoolId).maybeSingle();
+    const staffName = staffRow?.name ?? 'staff';
+    await writeNotification(supabaseAdmin, {
+      school_id: schoolId,
+      type: 'leave_status',
+      title: `Leave request ${body.decision}`,
+      message: `Leave request for ${staffName} from ${existing.from_date} to ${existing.to_date} has been ${body.decision}.`,
+      module: 'leave',
+      reference_id: body.id,
+    });
+  } catch (notifErr) { console.error('[leave-approvals] notification hook failed (non-fatal):', notifErr); }
+
   return NextResponse.json({ leave_request: data });
 }

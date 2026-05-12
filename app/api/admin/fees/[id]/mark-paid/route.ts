@@ -27,6 +27,7 @@ import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 
 export const runtime = 'nodejs';
 
@@ -147,5 +148,25 @@ export async function PATCH(
     .single();
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  // Item #14 PR #2: best-effort notification on payment confirmed
+  if (!isWaiver) {
+    try {
+      // Fetch student name for the message
+      const { data: studentRow } = await supabaseAdmin
+        .from('students').select('name')
+        .eq('id', fee.student_id).eq('school_id', schoolId).maybeSingle();
+      const studentName = studentRow?.name ?? 'student';
+      const receiptRef = data.payment_reference ?? '—';
+      await writeNotification(supabaseAdmin, {
+        school_id: schoolId,
+        type: 'fee_reminder',
+        title: 'Fee payment confirmed',
+        message: `Payment of ₹${Math.round(Number(fee.amount))} for ${studentName} confirmed. Receipt: ${receiptRef}.`,
+        module: 'fees',
+        reference_id: feeId,
+      });
+    } catch (notifErr) { console.error('[mark-paid] notification hook failed (non-fatal):', notifErr); }
+  }
+
   return NextResponse.json({ fee: data });
 }

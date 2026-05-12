@@ -205,9 +205,9 @@ export async function POST(req: NextRequest) {
     try {
       const notifResult = await writeNotification(supabaseAdmin, {
         school_id: teacher.school_id,
-        type: 'alert',
+        type: 'homework_assigned',
         title: `New homework: ${body.title.trim()}`,
-        message: `${body.title.trim()} is due by ${homework.due_date}. Open the parent app to view details.`,
+        message: `New homework for Class ${classRow.grade_level}${classRow.section ? '-' + classRow.section : ''}: ${body.title.trim()}. Due: ${homework.due_date}.`,
         module: 'homework_created',
         reference_id: homework.id,
       });
