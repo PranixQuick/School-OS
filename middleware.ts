@@ -3,6 +3,11 @@ import type { NextRequest } from 'next/server';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
 
 // Fully public — no auth required
+//
+// Item #1 Track C: /teacher and /api/teacher were previously in this list
+// (phone+PIN-per-request anti-pattern from prior Items 9-13). They have been
+// removed so the new session-based teacher flow runs through the same
+// verifySession/redirect-to-login pipeline as admin and principal routes.
 const PUBLIC_PATHS = [
   '/',
   '/login',
@@ -17,8 +22,7 @@ const PUBLIC_PATHS = [
   '/api/cron',           // CRON_SECRET-guarded cron endpoints
   '/parent',
   '/api/parent',
-  '/teacher',
-  '/api/teacher',
+  // '/teacher' and '/api/teacher' removed in Item #1 Track C — now session-protected
   '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
 ];
 
