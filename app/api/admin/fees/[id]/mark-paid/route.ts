@@ -62,7 +62,7 @@ function todayIST(): string {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Auth
   let ctx;
@@ -74,7 +74,7 @@ export async function PATCH(
   const { schoolId, staffId, userId } = ctx;
 
   // Param validation
-  const feeId = params.id;
+  const { id: feeId } = await params;
   if (!isUuid(feeId)) return NextResponse.json({ error: 'Invalid fee id' }, { status: 400 });
 
   // Institution gate
