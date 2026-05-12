@@ -146,6 +146,17 @@ export default function ParentPage() {
   const [feeTotalPaid, setFeeTotalPaid] = useState(0);
   const [feesLoading, setFeesLoading] = useState(false);
   const [feeFilter, setFeeFilter] = useState<string>('all');
+  // Item #13 PR #2 — payment action state
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
+  const [proofFormFeeId, setProofFormFeeId] = useState<string | null>(null);
+  const [proofRef, setProofRef] = useState('');
+  const [proofScreenshotDataUrl, setProofScreenshotDataUrl] = useState<string | null>(null);
+  const [proofScreenshotName, setProofScreenshotName] = useState('');
+  const [proofSubmitting, setProofSubmitting] = useState(false);
+  const [proofError, setProofError] = useState('');
+  const [payingFeeId, setPayingFeeId] = useState<string | null>(null);
+  const [rzpLoaded, setRzpLoaded] = useState(false);
+  const [feeActionToast, setFeeActionToast] = useState('');
   const [parent, setParent] = useState<ParentInfo | null>(null);
   const [student, setStudent] = useState<StudentInfo | null>(null);
 
@@ -300,10 +311,72 @@ export default function ParentPage() {
         setFeeSummary(d.summary ?? {});
         setFeeTotalDue(d.total_due ?? 0);
         setFeeTotalPaid(d.total_paid ?? 0);
+        setOnlineEnabled(!!d.online_payment_enabled);
       }
     } finally {
       setFeesLoading(false);
     }
+  }
+
+  // Item #13 PR #2 — payment action functions
+  function loadRazorpayScript() {
+    if (rzpLoaded || document.querySelector('script[src*="razorpay"]')) { setRzpLoaded(true); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => setRzpLoaded(true);
+    document.head.appendChild(s);
+  }
+
+  async function submitProof(feeId: string) {
+    if (!proofRef.trim()) { setProofError('Transaction reference is required'); return; }
+    setProofSubmitting(true); setProofError('');
+    const res = await fetch(`/api/parent/fees/${feeId}/submit-payment-proof`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, pin, payment_reference: proofRef.trim(), screenshot_data_url: proofScreenshotDataUrl ?? undefined }),
+    });
+    const d = await res.json();
+    setProofSubmitting(false);
+    if (!res.ok) { setProofError(d.error ?? 'Submission failed'); return; }
+    setProofFormFeeId(null); setProofRef(''); setProofScreenshotDataUrl(null); setProofScreenshotName('');
+    setFeeActionToast('Payment proof submitted — pending admin review');
+    setTimeout(() => setFeeActionToast(''), 4000);
+    void loadFees(feeFilter);
+  }
+
+  async function payOnline(feeId: string, amount: number) {
+    setPayingFeeId(feeId);
+    loadRazorpayScript();
+    try {
+      const orderRes = await fetch('/api/parent/fees/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, fee_id: feeId }),
+      });
+      const order = await orderRes.json();
+      if (!orderRes.ok) { setFeeActionToast(order.error ?? 'Could not create payment order'); setTimeout(() => setFeeActionToast(''), 4000); setPayingFeeId(null); return; }
+      const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { open(): void } }).Razorpay({
+        key: order.key_id,
+        amount: order.amount_paise,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: 'School Fees',
+        description: 'Fee payment',
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          const confRes = await fetch('/api/parent/fees/confirm-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, pin, fee_id: feeId, ...response }),
+          });
+          const conf = await confRes.json();
+          setPayingFeeId(null);
+          if (conf.success) { setFeeActionToast('Payment successful! Receipt: ' + conf.receipt_number); setTimeout(() => setFeeActionToast(''), 5000); void loadFees(feeFilter); }
+          else { setFeeActionToast(conf.error ?? 'Payment failed'); setTimeout(() => setFeeActionToast(''), 4000); }
+        },
+        modal: { ondismiss: () => setPayingFeeId(null) },
+      });
+      rzp.open();
+    } catch { setPayingFeeId(null); setFeeActionToast('Payment error — please try again'); setTimeout(() => setFeeActionToast(''), 4000); }
   }
 
   // === LOGIN SCREEN ===
@@ -346,6 +419,13 @@ export default function ParentPage() {
   // === MAIN APP ===
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
+      {/* Item #13 fee action toast */}
+      {feeActionToast ? (
+        <div style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#111827', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+          {feeActionToast}
+        </div>
+      ) : null}
+
       {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ fontSize: 11, color: '#6B7280' }}>Parent of</div>
@@ -631,6 +711,63 @@ export default function ParentPage() {
                           {f.tax_amount != null && f.tax_amount > 0 && <div style={{ fontSize: 9, color: '#9CA3AF' }}>incl. tax</div>}
                         </div>
                       </div>
+
+                      {/* Action buttons — Item #13 PR #2 */}
+                      {(f.status === 'pending' || f.status === 'overdue') && (
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {onlineEnabled && (
+                            <button
+                              onClick={() => { void payOnline(f.id, Number(f.amount)); }}
+                              disabled={payingFeeId === f.id}
+                              style={{ flex: '0 0 auto', padding: '8px 16px', background: payingFeeId === f.id ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: payingFeeId === f.id ? 'not-allowed' : 'pointer' }}>
+                              {payingFeeId === f.id ? 'Processing...' : 'Pay Now'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setProofFormFeeId(proofFormFeeId === f.id ? null : f.id); setProofRef(''); setProofScreenshotDataUrl(null); setProofScreenshotName(''); setProofError(''); }}
+                            style={{ flex: '0 0 auto', padding: '8px 16px', background: proofFormFeeId === f.id ? '#F3F4F6' : '#fff', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            {proofFormFeeId === f.id ? 'Cancel' : 'I Have Paid'}
+                          </button>
+                        </div>
+                      )}
+
+                      {f.status === 'pending_verification' && (
+                        <div style={{ marginTop: 8, background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 6, padding: '6px 10px', fontSize: 11, fontWeight: 600, color: '#713F12' }}>
+                          ⏳ Verification Pending — admin reviewing your payment
+                        </div>
+                      )}
+
+                      {/* Inline I Have Paid form */}
+                      {proofFormFeeId === f.id && (
+                        <div style={{ marginTop: 10, background: '#F9FAFB', borderRadius: 8, padding: 12, border: '1px solid #E5E7EB' }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Submit Payment Proof</div>
+                          <div style={{ marginBottom: 8 }}>
+                            <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>TRANSACTION REFERENCE *</label>
+                            <input value={proofRef} onChange={e => setProofRef(e.target.value)}
+                              placeholder="UPI transaction ID / cheque number"
+                              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' as const }} />
+                          </div>
+                          <div style={{ marginBottom: 8 }}>
+                            <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>SCREENSHOT <span style={{ fontWeight: 400, color: '#6B7280' }}>(optional)</span></label>
+                            <input type="file" accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) { setProofScreenshotDataUrl(null); setProofScreenshotName(''); return; }
+                                setProofScreenshotName(file.name);
+                                const reader = new FileReader();
+                                reader.onload = () => setProofScreenshotDataUrl(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }}
+                              style={{ width: '100%', fontSize: 12 }} />
+                            {proofScreenshotName && <div style={{ fontSize: 10, color: '#6B7280', marginTop: 3 }}>Selected: {proofScreenshotName}</div>}
+                          </div>
+                          {proofError && <div style={{ fontSize: 11, color: '#991B1B', marginBottom: 6 }}>{proofError}</div>}
+                          <button onClick={() => void submitProof(f.id)} disabled={proofSubmitting}
+                            style={{ width: '100%', padding: '9px', background: proofSubmitting ? '#9CA3AF' : '#065F46', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: proofSubmitting ? 'not-allowed' : 'pointer' }}>
+                            {proofSubmitting ? 'Submitting...' : 'Submit Proof'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
