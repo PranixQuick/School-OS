@@ -16,7 +16,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 
-type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans';
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees';
 
 interface ParentInfo {
   id: string;
@@ -76,6 +76,28 @@ interface LessonPlanRow {
   subject: { id: string; name: string; code: string } | null;
 }
 
+// Item #2
+interface FeeRow {
+  id: string;
+  amount: number;
+  due_date: string;
+  paid_date: string | null;
+  status: string;
+  fee_type: string | null;
+  description: string | null;
+  fee_receipt_number: string | null;
+  gst_rate: number | null;
+  tax_amount: number | null;
+}
+
+const STATUS_BADGE_FEE: Record<string, { bg: string; fg: string; label: string }> = {
+  pending:  { bg: '#FEF3C7', fg: '#92400E', label: 'Pending' },
+  overdue:  { bg: '#FEE2E2', fg: '#991B1B', label: 'Overdue' },
+  paid:     { bg: '#D1FAE5', fg: '#065F46', label: 'Paid' },
+  partial:  { bg: '#DBEAFE', fg: '#1E40AF', label: 'Partial' },
+  waived:   { bg: '#F3F4F6', fg: '#4B5563', label: 'Waived' },
+};
+
 const STATUS_BADGE_HW: Record<string, { bg: string; fg: string; label: string }> = {
   pending: { bg: '#FEF3C7', fg: '#92400E', label: 'Pending' },
   submitted: { bg: '#DBEAFE', fg: '#1E40AF', label: 'Submitted' },
@@ -117,6 +139,13 @@ export default function ParentPage() {
   const [pin, setPin] = useState('');
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Item #2 — fees tab state
+  const [fees, setFees] = useState<FeeRow[]>([]);
+  const [feeSummary, setFeeSummary] = useState<Record<string, number>>({});
+  const [feeTotalDue, setFeeTotalDue] = useState(0);
+  const [feeTotalPaid, setFeeTotalPaid] = useState(0);
+  const [feesLoading, setFeesLoading] = useState(false);
+  const [feeFilter, setFeeFilter] = useState<string>('all');
   const [parent, setParent] = useState<ParentInfo | null>(null);
   const [student, setStudent] = useState<StudentInfo | null>(null);
 
@@ -252,8 +281,30 @@ export default function ParentPage() {
     if (activeTab === 'announcements' && announcements.length === 0 && !annLoading) void loadAnnouncements();
     if (activeTab === 'attendance' && attendance.length === 0 && !attLoading) void loadAttendance(attDays);
     if (activeTab === 'lesson_plans' && lessonPlans.length === 0 && !lpLoading) void loadLessonPlans();
+    if (activeTab === 'fees' && fees.length === 0 && !feesLoading) void loadFees(feeFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
+
+  // Item #2
+  async function loadFees(statusFilter?: string) {
+    setFeesLoading(true);
+    try {
+      const res = await fetch('/api/parent/fees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setFees(d.fees ?? []);
+        setFeeSummary(d.summary ?? {});
+        setFeeTotalDue(d.total_due ?? 0);
+        setFeeTotalPaid(d.total_paid ?? 0);
+      }
+    } finally {
+      setFeesLoading(false);
+    }
+  }
 
   // === LOGIN SCREEN ===
   if (!parent || !student) {
@@ -311,6 +362,7 @@ export default function ParentPage() {
           { key: 'announcements' as Tab, label: '📢 News' },
           { key: 'attendance' as Tab, label: '✓ Attendance' },
           { key: 'lesson_plans' as Tab, label: '📅 Plans' },
+          { key: 'fees' as Tab, label: '₹ Fees' },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
@@ -501,6 +553,84 @@ export default function ParentPage() {
                       {p.notes && (
                         <div style={{ fontSize: 12, color: '#374151' }}>{p.notes}</div>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+        {/* === FEES TAB === */}
+        {activeTab === 'fees' && (
+          <>
+            {/* Summary strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+              {(['pending','overdue','paid'] as const).map(s => {
+                const b = STATUS_BADGE_FEE[s];
+                return (
+                  <div key={s} style={{ background: b.bg, padding: '10px 4px', borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: b.fg }}>{feeSummary[s] ?? 0}</div>
+                    <div style={{ fontSize: 9, color: b.fg, marginTop: 2 }}>{b.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Totals row */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <div style={{ flex: 1, background: '#FEE2E2', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: '#991B1B', fontWeight: 600 }}>AMOUNT DUE</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#991B1B' }}>₹{Math.round(feeTotalDue).toLocaleString('en-IN')}</div>
+              </div>
+              <div style={{ flex: 1, background: '#D1FAE5', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: '#065F46', fontWeight: 600 }}>TOTAL PAID</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#065F46' }}>₹{Math.round(feeTotalPaid).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+            {/* Filter pills */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
+              {['all','pending','overdue','paid','partial','waived'].map(s => (
+                <button key={s} onClick={() => { setFeeFilter(s); setFees([]); void loadFees(s); }}
+                  style={{ padding: '4px 12px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600,
+                    background: feeFilter === s ? '#4F46E5' : '#F3F4F6',
+                    color: feeFilter === s ? '#fff' : '#374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+            {feesLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6B7280', fontSize: 13 }}>Loading...</div>
+            ) : fees.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>₹</div>
+                <div style={{ fontSize: 14, color: '#6B7280' }}>No fee records{feeFilter !== 'all' ? ' for ' + feeFilter + ' status' : ''}</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {fees.map(f => {
+                  const b = STATUS_BADGE_FEE[f.status] ?? STATUS_BADGE_FEE['pending'];
+                  const isPaid = f.status === 'paid' || f.status === 'partial';
+                  const totalAmt = Number(f.amount ?? 0) + Number(f.tax_amount ?? 0);
+                  return (
+                    <div key={f.id} style={{ background: '#fff', borderRadius: 10, padding: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '3px solid ' + b.bg }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{f.fee_type ? f.fee_type.charAt(0).toUpperCase() + f.fee_type.slice(1) : 'Fee'}</div>
+                          {f.description && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{f.description}</div>}
+                        </div>
+                        <span style={{ background: b.bg, color: b.fg, padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{b.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: '#6B7280' }}>Due: {f.due_date}</div>
+                          {isPaid && f.paid_date && <div style={{ fontSize: 11, color: '#065F46' }}>Paid: {f.paid_date}</div>}
+                          {f.gst_rate != null && <div style={{ fontSize: 10, color: '#9CA3AF' }}>GST {f.gst_rate}%{f.tax_amount != null ? ' = ₹' + Number(f.tax_amount).toLocaleString('en-IN') : ''}</div>}
+                          {f.fee_receipt_number && <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>Receipt: {f.fee_receipt_number}</div>}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: isPaid ? '#065F46' : '#111827' }}>₹{Math.round(totalAmt).toLocaleString('en-IN')}</div>
+                          {f.tax_amount != null && f.tax_amount > 0 && <div style={{ fontSize: 9, color: '#9CA3AF' }}>incl. tax</div>}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
