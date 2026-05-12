@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const hydrate = (rows: typeof pendingRes.data) =>
+  const hydrate = <T extends { staff_id: string }>(rows: T[] | null) =>
     (rows ?? []).map((r) => ({
       ...r,
       staff_name: staffMap[r.staff_id]?.name ?? 'Unknown',
