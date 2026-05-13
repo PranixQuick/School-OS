@@ -87,3 +87,33 @@ export async function POST(req: NextRequest) {
     target_count: parentCount ?? 0,
   });
 }
+
+
+// GET: fetch recent broadcast history (batch1 addition)
+export async function GET(req: NextRequest) {
+  let schoolId: string;
+  try {
+    const ctx = await requireAdminSession(req);
+    schoolId = ctx.schoolId;
+  } catch (adminErr) {
+    if (!(adminErr instanceof AdminAuthError)) throw adminErr;
+    try {
+      const ctx = await requirePrincipalSession(req);
+      schoolId = ctx.schoolId;
+    } catch (principalErr) {
+      if (principalErr instanceof PrincipalAuthError)
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      throw principalErr;
+    }
+  }
+  // Fetch recent broadcasts sent from this school (via notifications table, module=broadcast)
+  const { data, error } = await supabaseAdmin
+    .from('notifications')
+    .select('id, title, message, status, created_at, attempts')
+    .eq('school_id', schoolId)
+    .eq('module', 'broadcast')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ broadcasts: data ?? [], count: (data ?? []).length });
+}

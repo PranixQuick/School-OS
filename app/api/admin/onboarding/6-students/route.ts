@@ -1,10 +1,8 @@
 // app/api/admin/onboarding/6-students/route.ts
 // Onboarding Step 6: Bulk student + parent import
 // Body: { students: [{ student_name, class, section, parent_name, parent_phone, parent_email }] }
+// PATCH (batch1): parent INSERT → upsert(onConflict:'school_id,phone') + phone_parent on student row
 // CSV parsed client-side (papaparse). This route receives parsed rows.
-// For each row: INSERT student → INSERT parent linked to student.
-// Idempotent on parent phone: upserts parent by school_id+phone if unique constraint exists,
-// else inserts fresh (phone is best-effort dedup).
 // TODO(item-15): migrate to supabaseForUser
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -23,24 +21,37 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
   for (const row of rows) {
     if (!row.student_name?.trim() || !row.class?.trim()) { errors.push(`Row missing student_name or class`); continue; }
-    // Insert student
+    const parentPhone = row.parent_phone?.trim() || null;
+    // Insert student (include phone_parent for attendance notification lookup)
     const { data: student, error: sErr } = await supabaseAdmin.from('students').insert({
       school_id: schoolId, name: row.student_name.trim(),
       class: row.class.trim(), section: (row.section ?? 'A').trim().toUpperCase(),
+      phone_parent: parentPhone,
       is_active: true,
     }).select('id').single();
     if (sErr) { errors.push(`Student insert failed (${row.student_name}): ${sErr.message}`); continue; }
     studentsCreated++;
-    // Insert parent if phone or name provided
-    if (row.parent_name?.trim() || row.parent_phone?.trim()) {
-      const { error: pErr } = await supabaseAdmin.from('parents').insert({
-        school_id: schoolId, student_id: student.id,
-        name: (row.parent_name ?? '').trim() || 'Parent',
-        phone: row.parent_phone?.trim() ?? null,
-        email: row.parent_email?.trim() ?? null,
-        access_pin: String(Math.floor(1000 + Math.random() * 9000)),
-      });
-      if (!pErr) parentsCreated++;
+    // Upsert parent — idempotent on (school_id, phone) for re-imports
+    if (parentPhone || row.parent_name?.trim()) {
+      try {
+        const { error: pErr } = await supabaseAdmin.from('parents').upsert(
+          {
+            school_id: schoolId, student_id: student.id,
+            name: (row.parent_name ?? '').trim() || 'Parent',
+            phone: parentPhone,
+            email: row.parent_email?.trim() || null,
+            access_pin: String(Math.floor(1000 + Math.random() * 9000)),
+          },
+          // onConflict: parents_school_id_phone_key — idempotent for re-imports
+          // ignoreDuplicates: do NOT overwrite existing parent record if phone already registered
+          { onConflict: 'school_id,phone', ignoreDuplicates: true }
+        );
+        if (!pErr) parentsCreated++;
+        else errors.push(`Parent upsert (${row.student_name}): ${pErr.message}`);
+      } catch (e) {
+        console.error('[onboarding/6-students] parent upsert failed (non-fatal):', e);
+        // Do NOT throw — student import must succeed regardless
+      }
     }
   }
   return NextResponse.json({ success: true, step: 6, students_created: studentsCreated, parents_created: parentsCreated, errors });
