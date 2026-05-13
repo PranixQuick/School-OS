@@ -55,6 +55,6 @@ jobs:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           TEST_TEACHER_EMAIL: ${{ secrets.TEST_TEACHER_EMAIL }}
           TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
-          TEST_PARENT_PHONE: ${{ secrets.TEST_PARENT_PHONE }}
+          TEST_PARENT_PHONE: '9515479595'
           TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
