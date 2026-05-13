@@ -27,7 +27,7 @@ export interface AdminContext {
   userEmail: string;
 }
 
-const ALLOWED_ROLES = new Set(['owner', 'principal', 'admin_staff', 'accountant']);
+const ALLOWED_ROLES = new Set(['owner', 'principal', 'admin_staff', 'admin', 'accountant']);
 
 /**
  * Resolves the calling admin's context from middleware-injected headers.
