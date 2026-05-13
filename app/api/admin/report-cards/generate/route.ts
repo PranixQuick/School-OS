@@ -53,16 +53,18 @@ export async function POST(req: NextRequest) {
     supabaseAdmin.from('schools').select('name, address').eq('id', schoolId).maybeSingle(),
   ]);
   if (!studentRes.data) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
-  const student = studentRes.data as {
-    name: string; roll_number: string | null;
-    class_id: string | null;
-    classes: { grade_level: string; section: string } | null;
+  // Supabase returns related records as arrays even for single FK joins
+  interface StudentRow {
+    name: string; roll_number: string | null; class_id: string | null;
+    classes: { grade_level: string; section: string }[] | null;
     parents: { name: string }[] | null;
-  };
+  }
+  const student = studentRes.data as unknown as StudentRow;
   const school = schoolRes.data;
   const parentName = Array.isArray(student.parents) && student.parents.length > 0
     ? student.parents[0].name : 'N/A';
-  const className = student.classes ? `${student.classes.grade_level}-${student.classes.section}` : 'N/A';
+  const classRow = Array.isArray(student.classes) ? student.classes[0] : null;
+  const className = classRow ? `${classRow.grade_level}-${classRow.section}` : 'N/A';
 
   // ── Step 2: Fetch marks for this student + term ────────────────────────────
   const { data: marks } = await supabaseAdmin
@@ -147,7 +149,7 @@ export async function POST(req: NextRequest) {
     doc.text(String(m.max_marks ?? ''), 100, y + 4.5, { align: 'right' });
     doc.text(String(m.marks_obtained ?? ''), 145, y + 4.5, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(m.grade ?? calcGrade(m.max_marks > 0 ? (m.marks_obtained / m.max_marks) * 100 : 0), 185, y + 4.5, { align: 'right' });
+    doc.text(m.grade ?? calcGrade(Number(m.max_marks) > 0 ? (Number(m.marks_obtained) / Number(m.max_marks)) * 100 : 0), 185, y + 4.5, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     y += 6;
   });
