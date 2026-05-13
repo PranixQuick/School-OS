@@ -13,7 +13,7 @@ test.describe('Fee template API', () => {
     await loginAsAdmin(page);
     // Capture session cookie
     const cookies = await page.context().cookies();
-    const session = cookies.find(c => c.name.includes('session') || c.name.includes('token'));
+    const session = cookies.find(c => c.name === 'school_session');
     if (session) sessionCookie = `${session.name}=${session.value}`;
     await page.close();
   });
