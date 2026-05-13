@@ -1,10 +1,11 @@
 'use client';
 // PATH: app/parent/consent/page.tsx
+// Next.js 15: useSearchParams requires Suspense boundary — see wrapper at bottom.
 // Item #3 DPDP Compliance — PR #2
 // Parent consent management: four toggles, append-only record, permanent audit trail.
 // Auth: phone+PIN passed in query params (same as all other parent pages).
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface ConsentEntry {
@@ -40,7 +41,7 @@ const CONSENT_CONFIG: { type: string; label: string; description: string; withdr
   },
 ];
 
-export default function ParentConsentPage() {
+function ParentConsentInner() {
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') ?? '';
   const pin   = searchParams.get('pin')   ?? '';
@@ -193,5 +194,13 @@ export default function ParentConsentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ParentConsentPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 13 }}>Loading...</div>}>
+      <ParentConsentInner />
+    </Suspense>
   );
 }
