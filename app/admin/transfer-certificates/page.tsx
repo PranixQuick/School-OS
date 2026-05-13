@@ -100,6 +100,19 @@ export default function TCListPage() {
     window.open(`/api/admin/transfer-certificates/${tcId}/download`, '_blank');
   }
 
+  // Batch 8: Section 65B certificate
+  async function do65BCertificate(tcId: string, tcNumber: string) {
+    try {
+      const res = await fetch(`/api/admin/transfer-certificates/${tcId}/section-65b-certificate`, { method: 'POST' });
+      const d = await res.json() as { pdf_base64?: string; student_name?: string; error?: string };
+      if (!res.ok || !d.pdf_base64) { alert(d.error ?? 'Failed to generate certificate'); return; }
+      const a = document.createElement('a');
+      a.href = `data:application/pdf;base64,${d.pdf_base64}`;
+      a.download = `65B-Certificate-${d.student_name?.replace(/\s+/g,'_') ?? tcNumber}.pdf`;
+      a.click();
+    } catch { alert('Network error generating certificate'); }
+  }
+
   // Student search for new TC modal
   useEffect(() => {
     if (!studentSearch.trim() || studentSearch.length < 2) { setStudentResults([]); return; }
@@ -238,10 +251,16 @@ export default function TCListPage() {
                             </button>
                           )}
                           {tc.status === 'issued' && (
-                            <button onClick={() => doDownload(tc.id, tc.tc_number ?? 'TC')}
-                              style={{ padding:'3px 10px', background:'#4F46E5', color:'#fff', border:'none', borderRadius:5, fontSize:10, fontWeight:700, cursor:'pointer' }}>
-                              ⬇ Download PDF
-                            </button>
+                            <>
+                              <button onClick={() => doDownload(tc.id, tc.tc_number ?? 'TC')}
+                                style={{ padding:'3px 10px', background:'#4F46E5', color:'#fff', border:'none', borderRadius:5, fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                                ⬇ Download PDF
+                              </button>
+                              <button onClick={() => void do65BCertificate(tc.id, tc.tc_number ?? 'TC')}
+                                style={{ padding:'3px 10px', background:'#065F46', color:'#fff', border:'none', borderRadius:5, fontSize:10, fontWeight:700, cursor:'pointer', marginLeft:4 }}>
+                                📜 65B Cert
+                              </button>
+                            </>
                           )}
                           {tc.status === 'rejected' && tc.rejection_reason && (
                             <span style={{ fontSize:10, color:'#991B1B', maxWidth:120 }} title={tc.rejection_reason}>
