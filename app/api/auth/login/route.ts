@@ -20,7 +20,7 @@ import {
   SESSION_COOKIE,
   LEGACY_SESSION_MAX_AGE_SEC,
 } from '@/lib/session';
-import { enforceLoginRateLimit } from '@/lib/rate-limit';
+import { enforceLoginRateLimit, isE2EBypass } from '@/lib/rate-limit';
 import { isIpBlocked } from '@/lib/abuse/blocklist';
 import { env } from '@/lib/env';
 
@@ -58,35 +58,40 @@ export async function POST(req: NextRequest) {
 
   // IP blocklist (Phase 0 Task 0.5). Rejected immediately — no DB work, no
   // rate-limit bookkeeping, so a blocked attacker cannot DoS the counter.
-  const block = await isIpBlocked(ip);
-  if (block.blocked) {
-    await logAuthEvent({
-      eventType: 'rate_limited',
-      email,
-      ip,
-      userAgent,
-      metadata: { reason: 'ip_blocked', until: block.until, block_reason: block.reason },
-    });
-    return NextResponse.json(
-      { error: 'Access from this network has been temporarily restricted.' },
-      { status: 403 }
-    );
+  if (!isE2EBypass(req.headers.get('x-e2e-bypass'))) {
+    const block = await isIpBlocked(ip);
+    if (block.blocked) {
+      await logAuthEvent({
+        eventType: 'rate_limited',
+        email,
+        ip,
+        userAgent,
+        metadata: { reason: 'ip_blocked', until: block.until, block_reason: block.reason },
+      });
+      return NextResponse.json(
+        { error: 'Access from this network has been temporarily restricted.' },
+        { status: 403 }
+      );
+    }
   }
 
   // Rate limit before any DB work or password check.
-  const rl = await enforceLoginRateLimit({ email, ip });
-  if (!rl.allowed) {
-    await logAuthEvent({
-      eventType: 'rate_limited',
-      email,
-      ip,
-      userAgent,
-      metadata: { reason: 'login_rate_limit', count: rl.count, source: rl.source },
-    });
-    return NextResponse.json(
-      { error: 'Too many login attempts. Please try again later.' },
-      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
-    );
+  const bypassHeader = req.headers.get('x-e2e-bypass');
+  if (!isE2EBypass(bypassHeader)) {
+    const rl = await enforceLoginRateLimit({ email, ip });
+    if (!rl.allowed) {
+      await logAuthEvent({
+        eventType: 'rate_limited',
+        email,
+        ip,
+        userAgent,
+        metadata: { reason: 'login_rate_limit', count: rl.count, source: rl.source },
+      });
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
+      );
+    }
   }
 
   const { data: schoolUser, error: userErr } = await supabaseAdmin
