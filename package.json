@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "jose": "^5.9.6",
+    "jspdf": "^2.5.1",
     "jszip": "^3.10.1",
     "next": "^15.3.0",
     "react": "^19.0.0",
@@ -19,6 +20,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/jspdf": "^2.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
