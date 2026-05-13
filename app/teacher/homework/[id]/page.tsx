@@ -2,6 +2,7 @@
 // Item #1 Track C Phase 3 PR #2b — homework detail + grade submissions.
 
 'use client';
+import Link from 'next/link';
 
 import { useCallback, useEffect, useState } from 'react';
 import { use } from 'react';
@@ -98,7 +99,7 @@ export default function HomeworkDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-4">
       <div>
-        <a href="/teacher/homework" className="text-xs text-blue-600 hover:underline">← Back to homework</a>
+        <Link href="/teacher/homework" className="text-xs text-blue-600 hover:underline">← Back to homework</Link>
         <h1 className="mt-1 text-xl font-semibold text-gray-900">{homework.title}</h1>
         <p className="mt-1 text-sm text-gray-500">Due {homework.due_date}</p>
         {homework.description && <p className="mt-2 text-sm text-gray-700">{homework.description}</p>}
