@@ -16,7 +16,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 
-type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees';
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm';
 
 interface ParentInfo {
   id: string;
@@ -146,6 +146,9 @@ export default function ParentPage() {
   const [feeTotalPaid, setFeeTotalPaid] = useState(0);
   const [feesLoading, setFeesLoading] = useState(false);
   const [feeFilter, setFeeFilter] = useState<string>('all');
+  // Batch 7: PTM state
+  const [ptmSlots, setPtmSlots] = useState<{id:string;slot_time:string;slot_date:string;parent_confirmed:boolean;staff_name:string;session_title:string}[]>([]);
+  const [ptmLoading, setPtmLoading] = useState(false);
   // Item #13 PR #2 — payment action state
   const [onlineEnabled, setOnlineEnabled] = useState(false);
   const [proofFormFeeId, setProofFormFeeId] = useState<string | null>(null);
@@ -293,6 +296,7 @@ export default function ParentPage() {
     if (activeTab === 'attendance' && attendance.length === 0 && !attLoading) void loadAttendance(attDays);
     if (activeTab === 'lesson_plans' && lessonPlans.length === 0 && !lpLoading) void loadLessonPlans();
     if (activeTab === 'fees' && fees.length === 0 && !feesLoading) void loadFees(feeFilter);
+    if (activeTab === 'ptm' && ptmSlots.length === 0 && !ptmLoading) void loadPtm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
 
@@ -316,6 +320,27 @@ export default function ParentPage() {
     } finally {
       setFeesLoading(false);
     }
+  }
+
+  // Batch 7: PTM
+  async function loadPtm() {
+    if (!parent) return;
+    setPtmLoading(true);
+    try {
+      const res = await fetch(`/api/parent/ptm?phone=${encodeURIComponent(phone)}&pin=${encodeURIComponent(pin)}`);
+      const d = await res.json();
+      if (res.ok) setPtmSlots(d.slots ?? []);
+    } catch { /* ignore */ }
+    setPtmLoading(false);
+  }
+
+  async function confirmPtmSlot(slotId: string) {
+    const res = await fetch(`/api/parent/ptm/${slotId}/confirm`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, pin }),
+    });
+    if (res.ok) setPtmSlots(prev => prev.map(s => s.id === slotId ? { ...s, parent_confirmed: true } : s));
   }
 
   // Item #13 PR #2 — payment action functions
@@ -443,6 +468,7 @@ export default function ParentPage() {
           { key: 'attendance' as Tab, label: '✓ Attendance' },
           { key: 'lesson_plans' as Tab, label: '📅 Plans' },
           { key: 'fees' as Tab, label: '₹ Fees' },
+          { key: 'ptm' as Tab, label: '🤝 PTM' },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
