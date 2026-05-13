@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { href: '/import',                     label: 'CSV Import',           icon: '↑',  roles: ['owner','admin'] },
   { href: '/billing',                    label: 'Billing',              icon: '💳', roles: ['owner'] },
   { href: '/settings',                   label: 'Settings',             icon: '⚙',  roles: ['owner','admin'] },
+  { href: '/admin/observability',         label: 'Observability',         icon: '📡', roles: ['owner','admin'] },
 ];
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
