@@ -23,12 +23,12 @@ async function resolveSession(req: NextRequest) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { student_id: string } }
+  { params }: { params: Promise<{ student_id: string }> }
 ) {
   const ctx = await resolveSession(req);
   if (!ctx) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   const { schoolId } = ctx;
-  const { student_id } = params;
+  const { student_id } = await params;
   const term = req.nextUrl.searchParams.get('term');
   if (!term) return NextResponse.json({ error: 'term is required' }, { status: 400 });
 
