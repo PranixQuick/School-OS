@@ -56,6 +56,13 @@ export default function OnboardingWizard() {
   // Step 4: Fees
   const [feeDefaults, setFeeDefaults] = useState<FeeDefault[]>([{ fee_type: 'tuition', amount: '', due_date: '', class: '' }]);
 
+  // Item #3 DPDP: legal acceptance state for Step 7
+  interface LegalDoc { id: string; doc_type: string; title: string; content_url: string; accepted: boolean; accepted_at: string|null; }
+  const [legalDocs, setLegalDocs] = useState<LegalDoc[]>([]);
+  const [legalDocsLoading, setLegalDocsLoading] = useState(false);
+  const [legalChecked, setLegalChecked] = useState<Record<string,boolean>>({});
+  const allLegalChecked = legalDocs.length > 0 && legalDocs.every(d => d.accepted || legalChecked[d.id]);
+
   // Step 5: Razorpay
   const [rzpKeyId, setRzpKeyId] = useState('');
   const [rzpKeySecret, setRzpKeySecret] = useState('');
@@ -71,6 +78,22 @@ export default function OnboardingWizard() {
   const labelStyle = { fontSize: 11, fontWeight: 600 as const, color: '#6B7280', marginBottom: 4, display: 'block' as const };
   const btnPrimary = { padding: '10px 20px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 as const, cursor: 'pointer' };
   const btnSecondary = { padding: '10px 20px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600 as const, cursor: 'pointer' };
+
+  useEffect(() => {
+    if (step === 7 && legalDocs.length === 0) {
+      setLegalDocsLoading(true);
+      fetch('/api/admin/legal/documents').then(async r => {
+        if (r.ok) {
+          const d = await r.json();
+          setLegalDocs(d.documents ?? []);
+          // Pre-check already-accepted docs
+          const pre: Record<string,boolean> = {};
+          for (const doc of (d.documents ?? [])) if (doc.accepted) pre[doc.id] = true;
+          setLegalChecked(pre);
+        }
+      }).finally(() => setLegalDocsLoading(false));
+    }
+  }, [step]);
 
   async function saveStep() {
     setSaving(true); setStepError(null); setStepSuccess(null);
@@ -95,6 +118,12 @@ export default function OnboardingWizard() {
           : studentRows.filter(r => r.student_name.trim());
         result = await post('/api/admin/onboarding/6-students', { students });
       } else if (step === 7) {
+        // DPDP: accept any unchecked docs first
+        const unaccepted = legalDocs.filter(d => !d.accepted && legalChecked[d.id]).map(d => d.id);
+        if (unaccepted.length > 0) {
+          const acceptRes = await post('/api/admin/legal/accept', { doc_type_ids: unaccepted });
+          if (!acceptRes.ok) { setStepError(acceptRes.data?.error ?? 'Legal acceptance failed'); setSaving(false); return; }
+        }
         result = await post('/api/admin/onboarding/7-activate', {});
         if (result.ok) { router.push('/admin'); return; }
       }
@@ -226,13 +255,41 @@ export default function OnboardingWizard() {
     if (step === 7) return (
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
         <div style={{ background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:8, padding:'14px 16px' }}>
-          <div style={{ fontWeight:700, fontSize:15, color:'#065F46', marginBottom:8 }}>Ready to activate</div>
-          <div style={{ fontSize:13, color:'#374151', lineHeight:1.7 }}>
-            Your school profile, classes, staff, fees, and students have been configured.<br />
-            Clicking <strong>Activate School</strong> will mark onboarding as complete and take you to the admin dashboard.
-          </div>
+          <div style={{ fontWeight:700, fontSize:15, color:'#065F46', marginBottom:8 }}>Review + Legal Acceptance</div>
+          <div style={{ fontSize:13, color:'#374151' }}>Your school profile, classes, staff, and students are configured.<br />Please review and accept the legal documents below before activating.</div>
         </div>
-        <div style={{ fontSize:12, color:'#6B7280' }}>You can update any of these settings later from the admin dashboard.</div>
+        {/* Legal acceptance checklist */}
+        <div style={{ border:'1px solid #E5E7EB', borderRadius:8, overflow:'hidden' }}>
+          <div style={{ padding:'10px 14px', background:'#F9FAFB', fontSize:11, fontWeight:700, color:'#6B7280', borderBottom:'1px solid #E5E7EB' }}>LEGAL DOCUMENTS (DPDP COMPLIANCE)</div>
+          {legalDocsLoading ? <div style={{ padding:16, color:'#6B7280', fontSize:12 }}>Loading documents...</div> : (
+            <div>
+              {legalDocs.map(doc => (
+                <div key={doc.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:'1px solid #F3F4F6' }}>
+                  {doc.accepted ? (
+                    <span style={{ fontSize:16, marginTop:1 }}>✅</span>
+                  ) : (
+                    <input type="checkbox" checked={!!legalChecked[doc.id]} onChange={e => setLegalChecked(prev => ({ ...prev, [doc.id]: e.target.checked }))}
+                      style={{ marginTop:3, flexShrink:0, width:15, height:15 }} />
+                  )}
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:13, fontWeight:600 }}>{doc.title}</div>
+                    {doc.accepted && doc.accepted_at ? (
+                      <div style={{ fontSize:10, color:'#065F46', marginTop:1 }}>Accepted {new Date(doc.accepted_at).toLocaleDateString('en-IN')}</div>
+                    ) : (
+                      <a href={doc.content_url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize:10, color:'#4F46E5', textDecoration:'none' }}>Read document ↗</a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {!allLegalChecked && legalDocs.length > 0 && (
+          <div style={{ fontSize:11, color:'#991B1B', textAlign:'center' }}>Please read and accept all legal documents to proceed.</div>
+        )}
+        {/* TODO(item-3-renewal): re-acceptance prompt on new document version */}
+        <div style={{ fontSize:11, color:'#6B7280' }}>You can update settings later from the admin dashboard.</div>
       </div>
     );
   }
@@ -278,8 +335,8 @@ export default function OnboardingWizard() {
             {(step===4||step===5) && step<7 && (
               <button onClick={()=>setStep(s=>s+1)} style={{ ...btnSecondary, marginLeft:'auto' }}>Skip</button>
             )}
-            <button onClick={()=>void saveStep()} disabled={saving}
-              style={{ ...btnPrimary, marginLeft:'auto', opacity: saving ? 0.7 : 1 }}>
+            <button onClick={()=>void saveStep()} disabled={saving || (step===7 && !allLegalChecked)}
+              style={{ ...btnPrimary, marginLeft:'auto', opacity: (saving || (step===7 && !allLegalChecked)) ? 0.5 : 1 }}>
               {saving ? 'Saving...' : step===7 ? '🎓 Activate School' : 'Save & Continue →'}
             </button>
           </div>
