@@ -11,7 +11,7 @@ test.describe('Transfer Certificate API', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     const cookies = await page.context().cookies();
-    const session = cookies.find(c => c.name.includes('session') || c.name.includes('token'));
+    const session = cookies.find(c => c.name === 'school_session');
     if (session) sessionCookie = `${session.name}=${session.value}`;
     await page.close();
   });
