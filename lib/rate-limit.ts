@@ -117,3 +117,16 @@ export async function enforceLoginRateLimit(params: {
     source: 'db',
   };
 }
+
+
+/**
+ * Returns true when the request carries a valid E2E bypass header.
+ * Used only in /api/auth/login to skip rate-limiting for CI test accounts.
+ * Safe in production: bypass is a no-op unless E2E_BYPASS_SECRET is set
+ * AND the request sends the matching header value.
+ */
+export function isE2EBypass(headerValue: string | null): boolean {
+  const secret = process.env.E2E_BYPASS_SECRET;
+  if (!secret || secret.length < 16) return false; // secret must be set and non-trivial
+  return headerValue === secret;
+}
