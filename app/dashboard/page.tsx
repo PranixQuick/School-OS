@@ -41,6 +41,8 @@ export default function DashboardPage() {
   const [evals, setEvals] = useState<Eval[]>(DEMO_EVALS);
   const [events, setEvents] = useState<Event[]>(DEMO_EVENTS);
   const [loading, setLoading] = useState(true);
+  // Item #3: legal acceptance renewal banner
+  const [legalPendingCount, setLegalPendingCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/dashboard/summary')
@@ -55,6 +57,14 @@ export default function DashboardPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+
+  // Item #3: legal acceptance renewal check (best-effort, non-fatal)
+  useEffect(() => {
+    fetch('/api/admin/legal/acceptance-status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.all_accepted) setLegalPendingCount((d.pending ?? []).length); })
+      .catch(() => {});
   }, []);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -83,6 +93,17 @@ export default function DashboardPage() {
         </Link>
       }
     >
+      {/* Item #3: legal renewal banner */}
+      {legalPendingCount > 0 && (
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#92400E' }}>⚠️ Legal documents require re-acceptance</div>
+            <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>{legalPendingCount} document{legalPendingCount !== 1 ? 's' : ''} have been updated and require your review.</div>
+          </div>
+          <a href='/onboarding#step7' style={{ padding: '7px 14px', background: '#92400E', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>Review and accept →</a>
+        </div>
+      )}
+
       {/* KPI grid — each card is a clickable link */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {KPI_CARDS.map((k, i) => (
