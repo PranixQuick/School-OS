@@ -55,8 +55,8 @@ export default function ReportCardsPage() {
       // Get students in the class
       const classRes = await fetch(`/api/admin/students?grade_level=${gradeLevel}&section=${section}`);
       if (!classRes.ok) { setLoading(false); return; }
-      const classData = await classRes.json() as { students: { id: string; name: string }[] };
-      const studentList = classData.students ?? [];
+      const classData = await classRes.json() as Record<string,unknown>;
+      const studentList = (classData.students as { id: string; name: string }[] | undefined) ?? [];
       if (!studentList.length) { setLoading(false); return; }
 
       // Fetch marks summary per student in parallel (batch of 5)
@@ -75,7 +75,7 @@ export default function ReportCardsPage() {
             percentage: d.percentage ?? 0,
             grade: calcGrade(d.percentage ?? 0),
             generating: false, generated: false, error: null,
-          } satisfies StudentSummary;
+          } as StudentSummary;
         }));
         summaries.push(...results);
       }
