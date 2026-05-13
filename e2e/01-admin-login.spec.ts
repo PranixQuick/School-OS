@@ -16,9 +16,9 @@ test.describe('Admin login', () => {
     await loginAsAdmin(page);
     // After login: should NOT be on /login
     expect(page.url()).not.toContain('/login');
-    // Should land on /dashboard, /admin, /principal, or /teacher
+    // admin@suchitracademy.edu.in redirects to /dashboard (not /admin — that is super-admin only)
     const url = new URL(page.url());
-    const validPaths = ['/dashboard', '/admin', '/principal', '/teacher'];
+    const validPaths = ['/dashboard', '/admin', '/principal', '/teacher', '/accounts'];
     const onValid = validPaths.some(p => url.pathname.startsWith(p));
     expect(onValid).toBe(true);
   });
