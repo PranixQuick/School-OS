@@ -243,6 +243,16 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
             </Link>
+            {/* Item #9: Academic Year Promotion quick link */}
+            <Link href="/automation/promotion" style={{ textDecoration: 'none' }}>
+              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
+                <span style={{ fontSize: 20 }}>🎓</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>Academic Year Promotion</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>Promote students to next class</div>
+                </div>
+              </div>
+            </Link>
             {/* Item 11: substitute assignments quick link */}
             <Link href="/automation/substitutes" style={{ textDecoration: 'none' }}>
               <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
