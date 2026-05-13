@@ -13,6 +13,7 @@ const QUICK_ACTIONS = [
   { href: '/teacher/lesson-plans', label: 'Lesson plans', desc: 'Plan and track' },
   { href: '/teacher/leave', label: 'Leave', desc: 'Request and view status' },
   { href: '/teacher/proofs', label: 'Classroom proofs', desc: 'Capture and view' },
+  { href: '/teacher/marks', label: 'Marks Entry', desc: 'Enter and manage student marks' },
 ];
 
 export default function TeacherHome() {
