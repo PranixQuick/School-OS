@@ -44,6 +44,12 @@ const STATUS_BADGE: Record<string, { bg: string; fg: string; label: string }> = 
 
 export default function AdminFeesPage() {
   const [fees, setFees] = useState<FeeRow[]>([]);
+  // Batch 8: refund + GST state
+  const [refundModal, setRefundModal] = useState<{feeId:string;amount:number;feeType:string} | null>(null);
+  const [refundAmount, setRefundAmount] = useState('0');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [gstLoading, setGstLoading] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -67,6 +73,39 @@ export default function AdminFeesPage() {
   function showToast(msg: string, ok: boolean) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
+  }
+
+  // Batch 8: submit refund
+  async function submitRefund() {
+    if (!refundModal) return;
+    setRefundSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/fees/${refundModal.feeId}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: parseFloat(refundAmount), reason: refundReason }),
+      });
+      const d = await res.json() as { success?: boolean; error?: string };
+      if (res.ok) { setRefundModal(null); void loadFees(); }
+      else alert(d.error ?? 'Refund failed');
+    } catch { alert('Network error'); }
+    setRefundSubmitting(false);
+  }
+
+  // Batch 8: download GST invoice
+  async function downloadGstInvoice(feeId: string) {
+    setGstLoading(feeId);
+    try {
+      const res = await fetch(`/api/admin/fees/${feeId}/gst-invoice`, { method: 'POST' });
+      const d = await res.json() as { pdf_base64?: string; invoice_number?: string; error?: string };
+      if (res.ok && d.pdf_base64) {
+        const a = document.createElement('a');
+        a.href = `data:application/pdf;base64,${d.pdf_base64}`;
+        a.download = `GST-Invoice-${d.invoice_number ?? feeId.slice(0,8)}.pdf`;
+        a.click();
+      } else alert(d.error ?? 'Failed to generate invoice');
+    } catch { alert('Network error'); }
+    setGstLoading(null);
   }
 
   async function loadFees() {
@@ -238,11 +277,57 @@ export default function AdminFeesPage() {
                         </button>
                       </div>
                     )}
+                    {/* Batch 8: Refund + GST Invoice */}
+                    {f.status === 'paid' && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                        {f.payment_method === 'online' && (f.refund_status ?? 'none') === 'none' && (
+                          <button onClick={() => { setRefundModal({ feeId: f.id, amount: Number(f.amount), feeType: f.fee_type ?? 'Fee' }); setRefundAmount(String(f.amount)); setRefundReason(''); }}
+                            style={{ padding: '4px 10px', background: '#92400E', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                            Refund
+                          </button>
+                        )}
+                        {(f.refund_status && f.refund_status !== 'none') && (
+                          <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5,
+                            background: f.refund_status === 'completed' ? '#D1FAE5' : f.refund_status === 'failed' ? '#FEE2E2' : '#FEF3C7',
+                            color: f.refund_status === 'completed' ? '#065F46' : f.refund_status === 'failed' ? '#991B1B' : '#92400E',
+                            fontWeight: 700 }}>
+                            Refund {f.refund_status}
+                          </span>
+                        )}
+                        <button onClick={() => void downloadGstInvoice(f.id)} disabled={gstLoading === f.id}
+                          style={{ padding: '4px 10px', background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: gstLoading === f.id ? 'not-allowed' : 'pointer', opacity: gstLoading === f.id ? 0.7 : 1 }}>
+                          GST Invoice
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Batch 8: Refund modal */}
+      {refundModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 360, maxWidth: '90vw' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Initiate Refund</h3>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Refund Amount</label>
+            <input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #D1D5DB', borderRadius: 6, marginTop: 4, marginBottom: 10, fontSize: 13 }} />
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Reason</label>
+            <textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} rows={3}
+              style={{ width: '100%', padding: '8px', border: '1px solid #D1D5DB', borderRadius: 6, marginTop: 4, marginBottom: 14, fontSize: 12, resize: 'vertical' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setRefundModal(null)}
+                style={{ flex: 1, padding: '9px', background: '#F3F4F6', border: 'none', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => void submitRefund()} disabled={refundSubmitting || !refundReason.trim()}
+                style={{ flex: 1, padding: '9px', background: '#B45309', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {refundSubmitting ? 'Processing...' : 'Initiate Refund'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
