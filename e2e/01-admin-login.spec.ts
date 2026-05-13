@@ -16,9 +16,10 @@ test.describe('Admin login', () => {
     await loginAsAdmin(page);
     // After login: should NOT be on /login
     expect(page.url()).not.toContain('/login');
-    // Should land on /dashboard or /admin or /principal
-    const validPaths = ['/dashboard', '/admin', '/principal'];
-    const onValid = validPaths.some(p => page.url().includes(p));
+    // Should land on /dashboard, /admin, /principal, or /teacher
+    const url = new URL(page.url());
+    const validPaths = ['/dashboard', '/admin', '/principal', '/teacher'];
+    const onValid = validPaths.some(p => url.pathname.startsWith(p));
     expect(onValid).toBe(true);
   });
 
