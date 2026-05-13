@@ -45,24 +45,24 @@ export async function GET(req: NextRequest) {
     const within24h = n.created_at >= twentyFourHoursAgo;
     if (within24h) totalLast24h += 1;
 
-    const module = n.module || 'unknown';
-    if (!byModule[module]) {
-      byModule[module] = { total: 0, last_24h: 0, channels: {}, statuses: {} };
+    const moduleKey = n.module || 'unknown'; // renamed from module — avoids @next/next/no-assign-module-variable
+    if (!byModule[moduleKey]) {
+      byModule[moduleKey] = { total: 0, last_24h: 0, channels: {}, statuses: {} };
     }
-    byModule[module].total += 1;
-    if (within24h) byModule[module].last_24h += 1;
+    byModule[moduleKey].total += 1;
+    if (within24h) byModule[moduleKey].last_24h += 1;
 
     if (n.channel) {
-      byModule[module].channels[n.channel] = (byModule[module].channels[n.channel] || 0) + 1;
+      byModule[moduleKey].channels[n.channel] = (byModule[moduleKey].channels[n.channel] || 0) + 1;
     }
     if (n.status) {
-      byModule[module].statuses[n.status] = (byModule[module].statuses[n.status] || 0) + 1;
+      byModule[moduleKey].statuses[n.status] = (byModule[moduleKey].statuses[n.status] || 0) + 1;
     }
   }
 
   // Sort modules by total desc
   const groups = Object.entries(byModule)
-    .map(([module, stats]) => ({ module, ...stats }))
+    .map(([moduleKey, stats]) => ({ module: moduleKey, ...stats }))
     .sort((a, b) => b.total - a.total);
 
   return NextResponse.json({
