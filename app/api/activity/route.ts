@@ -5,7 +5,7 @@ import { getSchoolId } from '@/lib/getSchoolId';
 export async function GET(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const module = req.nextUrl.searchParams.get('module');
+    const moduleFilter = req.nextUrl.searchParams.get('module'); // renamed from module — avoids @next/next/no-assign-module-variable
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '20');
 
     let query = supabaseAdmin
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(Math.min(limit, 100));
 
-    if (module) query = query.eq('module', module);
+    if (moduleFilter) query = query.eq('module', moduleFilter);
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
