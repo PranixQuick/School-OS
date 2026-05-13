@@ -13,6 +13,20 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
   await page.waitForSelector('input[type="password"]', { state: 'visible', timeout: 5_000 });
 
+  // Intercept the login API call to inject the E2E bypass header (skips rate limiter in CI)
+  const bypassSecret = process.env.E2E_BYPASS_SECRET ?? '';
+  if (bypassSecret) {
+    await page.route('**/api/auth/login', async (route) => {
+      const request = route.request();
+      await route.continue({
+        headers: {
+          ...request.headers(),
+          'x-e2e-bypass': bypassSecret,
+        },
+      });
+    });
+  }
+
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);
 
