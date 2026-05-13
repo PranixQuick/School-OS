@@ -26,6 +26,8 @@ interface FeeRow {
   fee_receipt_number: string | null;
   payment_method: string | null;
   payment_reference: string | null;
+  refund_status: string | null;
+  refund_amount: number | null;
   payment_screenshot_url: string | null;
   payment_verified_at: string | null;
   discount_amount: number | null;
