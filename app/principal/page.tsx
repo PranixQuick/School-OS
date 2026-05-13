@@ -90,6 +90,11 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  // Batch 5: AI layer state
+  const [generatingBriefing, setGeneratingBriefing] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
+  const [riskFlags, setRiskFlags] = useState<{flags: {student_name:string;risk_level:string;risk_factors:string[];id:string}[];count:number;high_risk:number;medium_risk:number} | null>(null);
+  const [generatingRisk, setGeneratingRisk] = useState(false);
   const [tcQueueCount, setTcQueueCount] = useState(0); // Item #11: pending TC approvals
   // Item #6 additions
   const [extraKpis, setExtraKpis] = useState<ExtraKPIs | null>(null);
@@ -100,7 +105,34 @@ export default function PrincipalDashboard() {
   const [proofsList, setProofsList] = useState<ProofItem[] | null>(null);
   const [commGroups, setCommGroups] = useState<CommGroup[] | null>(null);
 
-  useEffect(() => { fetch_data(); }, []);
+  useEffect(() => {
+    fetch_data();
+    // Batch 5: fetch risk flags on mount
+    void fetch('/api/admin/risk-flags').then(r => r.ok ? r.json() : null).then(d => { if (d) setRiskFlags(d); }).catch(() => {});
+  }, []);
+
+  // Batch 5: generate briefing
+  async function generateBriefing() {
+    setGeneratingBriefing(true); setBriefingError(null);
+    try {
+      const r = await fetch('/api/admin/principal-briefing/generate', { method: 'POST' });
+      const d = await r.json();
+      if (r.ok) { await fetch_data(); setShowBriefing(true); }
+      else setBriefingError(d.error ?? 'Failed to generate briefing');
+    } catch { setBriefingError('Network error'); }
+    setGeneratingBriefing(false);
+  }
+
+  // Batch 5: generate risk flags
+  async function generateRiskFlags() {
+    setGeneratingRisk(true);
+    try {
+      await fetch('/api/admin/risk-flags/generate', { method: 'POST' });
+      const r = await fetch('/api/admin/risk-flags');
+      if (r.ok) setRiskFlags(await r.json());
+    } catch { /* non-fatal */ }
+    setGeneratingRisk(false);
+  }
 
   async function fetch_data() {
     setRefreshing(true);
@@ -153,9 +185,13 @@ export default function PrincipalDashboard() {
       subtitle={d ? `Live · ${new Date(d.as_of).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : 'Loading...'}
       actions={
         <div style={{ display: 'flex', gap: 8 }}>
-          {d?.briefing && (
+          {d?.briefing ? (
             <button onClick={() => setShowBriefing(true)} className="btn btn-ghost btn-sm">
               📋 Today's Briefing
+            </button>
+          ) : (
+            <button onClick={() => void generateBriefing()} disabled={generatingBriefing} className="btn btn-primary btn-sm">
+              {generatingBriefing ? '⏳ Generating...' : '✨ Generate Briefing'}
             </button>
           )}
           <button onClick={fetch_data} disabled={refreshing} className="btn btn-ghost btn-sm">
@@ -170,6 +206,56 @@ export default function PrincipalDashboard() {
         <div className="alert alert-error">Failed to load dashboard data.</div>
       ) : (
         <>
+          {/* Batch 5: briefing error */}
+          {briefingError && (
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#991B1B' }}>
+              ⚠️ Briefing error: {briefingError}
+            </div>
+          )}
+
+          {/* Batch 5: Risk flags card */}
+          {riskFlags !== null && (
+            <div style={{ background: riskFlags.high_risk > 0 ? '#FFF7ED' : '#F9FAFB', border: `1px solid ${riskFlags.high_risk > 0 ? '#FED7AA' : '#E5E7EB'}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: riskFlags.count > 0 ? 12 : 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
+                  🚦 Student Risk Flags — {riskFlags.count} flagged
+                  {riskFlags.high_risk > 0 && <span style={{ marginLeft: 8, fontSize: 11, background: '#FEE2E2', color: '#991B1B', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>{riskFlags.high_risk} HIGH</span>}
+                  {riskFlags.medium_risk > 0 && <span style={{ marginLeft: 6, fontSize: 11, background: '#FEF3C7', color: '#92400E', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>{riskFlags.medium_risk} MEDIUM</span>}
+                </div>
+                <button onClick={() => void generateRiskFlags()} disabled={generatingRisk}
+                  style={{ fontSize: 11, padding: '4px 10px', background: 'none', border: '1px solid #D1D5DB', borderRadius: 6, cursor: 'pointer', color: '#374151' }}>
+                  {generatingRisk ? 'Analyzing...' : '↻ Run analysis'}
+                </button>
+              </div>
+              {riskFlags.count === 0 ? (
+                <div style={{ fontSize: 12, color: '#6B7280' }}>No students flagged. Click "Run analysis" to check.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {riskFlags.flags.slice(0, 5).map(f => (
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                      <span style={{ fontWeight: 700, minWidth: 50, fontSize: 10,
+                        background: f.risk_level==='high' ? '#FEE2E2' : '#FEF3C7',
+                        color: f.risk_level==='high' ? '#991B1B' : '#92400E',
+                        padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' as const }}>{f.risk_level}</span>
+                      <span style={{ fontWeight: 600 }}>{f.student_name}</span>
+                      <span style={{ color: '#6B7280' }}>{(f.risk_factors ?? []).join(', ')}</span>
+                    </div>
+                  ))}
+                  {riskFlags.count > 5 && <div style={{ fontSize: 11, color: '#9CA3AF' }}>+ {riskFlags.count - 5} more students</div>}
+                </div>
+              )}
+            </div>
+          )}
+          {riskFlags === null && (
+            <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 12, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: '#6B7280' }}>🚦 Student risk analysis not yet run</span>
+              <button onClick={() => void generateRiskFlags()} disabled={generatingRisk}
+                style={{ fontSize: 11, padding: '4px 10px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                {generatingRisk ? 'Analyzing...' : 'Run analysis →'}
+              </button>
+            </div>
+          )}
+
           {/* Top KPI row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
             <MetricCard
