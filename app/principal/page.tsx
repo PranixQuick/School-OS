@@ -90,6 +90,7 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [tcQueueCount, setTcQueueCount] = useState(0); // Item #11: pending TC approvals
   // Item #6 additions
   const [extraKpis, setExtraKpis] = useState<ExtraKPIs | null>(null);
   // Item #6 PR #2 — drill-down state
@@ -104,16 +105,23 @@ export default function PrincipalDashboard() {
   async function fetch_data() {
     setRefreshing(true);
     try {
-      const [res, leaveRes, proofsRes, commRes, admRes, feesRes] = await Promise.all([
+      const [res, leaveRes, proofsRes, commRes, admRes, feesRes, tcQueueRes] = await Promise.all([ // Item #11
         fetch('/api/principal/dashboard'),
         fetch('/api/principal/leave-approvals').catch(() => null),
         fetch('/api/principal/classroom-proofs').catch(() => null),
         fetch('/api/principal/communications').catch(() => null),
         fetch('/api/principal/admissions-pipeline').catch(() => null),
         fetch('/api/principal/fees-overdue').catch(() => null),
+        fetch('/api/principal/tc-queue').catch(() => null), // Item #11
       ]);
       const d = await res.json() as DashboardData;
       setData(d);
+      // Item #11: TC queue count — best-effort, silent failure
+      if (tcQueueRes && tcQueueRes.ok) {
+        const tcData = await tcQueueRes.json();
+        setTcQueueCount(tcData?.pending_approval_count ?? 0);
+      }
+
       // Item #6 extras — best-effort, silent failure
       const leaveJson = leaveRes && leaveRes.ok ? await leaveRes.json() : null;
       const proofsJson = proofsRes && proofsRes.ok ? await proofsRes.json() : null;
@@ -190,6 +198,16 @@ export default function PrincipalDashboard() {
               href="/automation/risk"
               icon="⚠️"
             />
+            {tcQueueCount > 0 && (
+              <MetricCard
+                label="Pending TC Approvals"
+                value={String(tcQueueCount)}
+                sub="Fee cleared — awaiting principal sign-off"
+                status="warning"
+                href="/admin/transfer-certificates?status=pending"
+                icon="📋"
+              />
+            )}
             <MetricCard
               label="Teacher Attendance"
               value={d.teachers.total_tracked > 0
