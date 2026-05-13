@@ -2,23 +2,17 @@
 // Critical path: teacher attendance marking + retrieval.
 // Tests the teacher attendance API directly.
 import { test, expect } from '@playwright/test';
-import { BASE_URL } from './helpers/auth';
-
-const TEACHER_EMAIL    = process.env.TEST_TEACHER_EMAIL    ?? 'test.teacher@schoolos.local';
-const TEACHER_PASSWORD = process.env.TEST_TEACHER_PASSWORD ?? 'schoolos0000';
+import { loginAsTeacher, BASE_URL } from './helpers/auth';
 
 test.describe('Teacher attendance API', () => {
   let teacherCookie = '';
 
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="email"], input[name="email"]', TEACHER_EMAIL);
-    await page.fill('input[type="password"], input[name="password"]', TEACHER_PASSWORD);
-    await page.click('button[type="submit"], button:has-text("Sign in"), button:has-text("Login")');
-    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10_000 });
+    await loginAsTeacher(page);
     const cookies = await page.context().cookies();
-    const session = cookies.find(c => c.name.includes('session') || c.name.includes('token'));
+    // Use exact cookie name confirmed from lib/session.ts
+    const session = cookies.find(c => c.name === 'school_session');
     if (session) teacherCookie = `${session.name}=${session.value}`;
     await page.close();
   });
