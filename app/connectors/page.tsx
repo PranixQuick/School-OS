@@ -294,7 +294,7 @@ export default function ConnectorsPage() {
           <div className="card">
             <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 12 }}>Response format</div>
             <div style={{ background: '#0F172A', borderRadius: 8, padding: '12px 14px', fontFamily: 'monospace', fontSize: 12, color: '#E2E8F0', lineHeight: 1.8, marginBottom: 16 }}>
-              <div style={{ color: '#86EFAC' }}>// Success response</div>
+              <div style={{ color: '#86EFAC' }}>{'// Success response'}</div>
               {`{
   "success": true,
   "run_id": "uuid...",
