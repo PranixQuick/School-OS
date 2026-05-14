@@ -90,6 +90,9 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  // Batch 5A: Regulatory Intelligence
+  const [regulatoryAlerts, setRegulatoryAlerts] = useState<{id:string;title:string;priority:string;source_code:string;url:string}[]>([]);
+  const [regulatorySources, setRegulatorySources] = useState(0);
   // Batch 13: narrative approval state
   const [narratives, setNarratives] = useState<{id:string;student_name:string;student_class:string;student_section:string;term:string;narrative_text:string;status:string}[]>([]);
   const [narrativeCount, setNarrativeCount] = useState(0);
@@ -117,6 +120,10 @@ export default function PrincipalDashboard() {
     void fetch('/api/admin/risk-flags').then(r => r.ok ? r.json() : null).then(d => { if (d) setRiskFlags(d); }).catch(() => {});
     // Batch 13: fetch draft narrative count
     void fetch('/api/principal/report-narratives?status=draft').then(r => r.ok ? r.json() : null).then(d => { if (d) setNarrativeCount(d.count ?? 0); }).catch(() => {});
+    // Batch 5A: fetch urgent regulatory notices
+    void fetch('/api/admin/regulatory/notices?priority=urgent&limit=3').then(r => r.ok ? r.json() : null).then(d => {
+      if (d) { setRegulatoryAlerts(d.notices ?? []); setRegulatorySources(d.sources_configured ?? 0); }
+    }).catch(() => {});
   }, []);
 
   // Batch 5: generate briefing
@@ -779,6 +786,29 @@ export default function PrincipalDashboard() {
         )}
       </div>
 
+
+      {/* Batch 5A: Regulatory Intelligence widget */}
+      {regulatorySources > 0 && regulatoryAlerts.length > 0 && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '14px 18px', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#B91C1C' }}>
+              {regulatoryAlerts.length} urgent regulatory update{regulatoryAlerts.length !== 1 ? 's' : ''}
+            </div>
+            <a href='/admin/regulatory' style={{ fontSize: 11, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>View all</a>
+          </div>
+          {regulatoryAlerts.map(n => (
+            <div key={n.id} style={{ fontSize: 12, color: '#374151', paddingLeft: 12, borderLeft: '2px solid #FCA5A5', marginBottom: 6 }}>
+              <span style={{ fontSize: 9, background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, padding: '1px 5px', borderRadius: 3, marginRight: 6 }}>{n.source_code}</span>
+              {n.title.slice(0, 80)}{n.title.length > 80 ? '...' : ''}
+            </div>
+          ))}
+        </div>
+      )}
+      {regulatorySources === 0 && (
+        <div style={{ marginTop: 12, fontSize: 11, color: '#9CA3AF' }}>
+          <a href='/admin/regulatory' style={{ color: '#9CA3AF', textDecoration: 'none' }}>Enable regulatory tracking</a>
+        </div>
+      )}
     </Layout>
   );
 }
