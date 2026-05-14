@@ -6,7 +6,6 @@
 // POST /api/admin/settings/razorpay on save.
 
 import { useState, useEffect } from 'react';
-import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 
 // Batch 4A: Inline institution config widget
