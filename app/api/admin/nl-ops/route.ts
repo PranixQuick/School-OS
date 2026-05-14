@@ -216,15 +216,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Step 3: Log to conversations
-  await supabaseAdmin.from('conversations').insert({
-    school_id: schoolId,
-    direction: 'inbound',
-    message: instruction,
-    intent,
-    response: JSON.stringify(result),
-    session_id: `nl_ops_${staffId ?? 'admin'}`,
-    metadata: { executed: result.executed, staff_id: staffId },
-  }).catch(() => {});
+  try {
+    await supabaseAdmin.from('conversations').insert({
+      school_id: schoolId,
+      direction: 'inbound',
+      message: instruction,
+      intent,
+      response: JSON.stringify(result),
+      session_id: `nl_ops_${staffId ?? 'admin'}`,
+      metadata: { executed: result.executed, staff_id: staffId },
+    });
+  } catch { /* non-fatal: log failure silently */ }
 
   return NextResponse.json({ intent, preview, result, instruction });
 }
