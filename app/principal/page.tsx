@@ -90,6 +90,12 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  // Batch 13: narrative approval state
+  const [narratives, setNarratives] = useState<{id:string;student_name:string;student_class:string;student_section:string;term:string;narrative_text:string;status:string}[]>([]);
+  const [narrativeCount, setNarrativeCount] = useState(0);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [approveState, setApproveState] = useState<Record<string,'loading'|'done'|'rejected'>>({});
+  const [showNarratives, setShowNarratives] = useState(false);
   // Batch 5: AI layer state
   const [generatingBriefing, setGeneratingBriefing] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
@@ -109,6 +115,8 @@ export default function PrincipalDashboard() {
     fetch_data();
     // Batch 5: fetch risk flags on mount
     void fetch('/api/admin/risk-flags').then(r => r.ok ? r.json() : null).then(d => { if (d) setRiskFlags(d); }).catch(() => {});
+    // Batch 13: fetch draft narrative count
+    void fetch('/api/principal/report-narratives?status=draft').then(r => r.ok ? r.json() : null).then(d => { if (d) setNarrativeCount(d.count ?? 0); }).catch(() => {});
   }, []);
 
   // Batch 5: generate briefing
@@ -704,6 +712,73 @@ export default function PrincipalDashboard() {
           </div>
         </div>
       )}
+
+      {/* Batch 13: Report Narratives Approval */}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>✍ Report Card Narratives</div>
+            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+              {narrativeCount > 0 ? <span style={{ color: '#B45309', fontWeight: 700 }}>{narrativeCount} pending approval</span> : 'No pending narratives'}
+            </div>
+          </div>
+          {narrativeCount > 0 && (
+            <button onClick={() => {
+              setShowNarratives(!showNarratives);
+              if (!showNarratives && narratives.length === 0) {
+                setNarrativeLoading(true);
+                void fetch('/api/principal/report-narratives?status=draft')
+                  .then(r => r.json())
+                  .then((d: {narratives?: {id:string;student_name:string;student_class:string;student_section:string;term:string;narrative_text:string;status:string}[]}) => { if (d.narratives) setNarratives(d.narratives); })
+                  .finally(() => setNarrativeLoading(false));
+              }
+            }} style={{ padding: '6px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {showNarratives ? 'Hide' : 'Review All'}
+            </button>
+          )}
+        </div>
+        {showNarratives && (
+          narrativeLoading ? (
+            <div style={{ fontSize: 12, color: '#9CA3AF', padding: 12 }}>Loading...</div>
+          ) : narratives.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#9CA3AF', padding: 12 }}>No draft narratives.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {narratives.map(n => {
+                const st = approveState[n.id];
+                return (
+                  <div key={n.id} style={{ padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 8, opacity: (st==='done'||st==='rejected') ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{n.student_name} · Grade {n.student_class}-{n.student_section} · {n.term.replace(/_/g,' ')}</div>
+                        <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.5 }}>{n.narrative_text}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {st === 'done' ? <span style={{ fontSize: 10, color: '#065F46', fontWeight: 700 }}>✓ Approved</span> :
+                         st === 'rejected' ? <span style={{ fontSize: 10, color: '#991B1B', fontWeight: 700 }}>✗ Rejected</span> : (
+                          <>
+                            <button disabled={st==='loading'} onClick={() => {
+                              setApproveState(prev => ({ ...prev, [n.id]: 'loading' }));
+                              void fetch(`/api/principal/report-narratives/${n.id}/approve`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve' }) })
+                                .then(r => { setApproveState(prev => ({ ...prev, [n.id]: r.ok ? 'done' : 'rejected' })); if (r.ok) setNarrativeCount(c => c - 1); });
+                            }} style={{ padding: '4px 10px', background: '#065F46', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Approve</button>
+                            <button disabled={st==='loading'} onClick={() => {
+                              setApproveState(prev => ({ ...prev, [n.id]: 'loading' }));
+                              void fetch(`/api/principal/report-narratives/${n.id}/approve`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reject' }) })
+                                .then(r => { setApproveState(prev => ({ ...prev, [n.id]: r.ok ? 'rejected' : 'loading' })); if (r.ok) setNarrativeCount(c => c - 1); });
+                            }} style={{ padding: '4px 10px', background: '#B91C1C', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Reject</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+      </div>
+
     </Layout>
   );
 }
