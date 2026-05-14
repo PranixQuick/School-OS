@@ -55,7 +55,7 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedSchool, setSelectedSchool] = useState('all');
   const [activeTab, setActiveTab] = useState<'overview'|'financials'|'staff'>('overview');
-  const [staffList, setStaffList] = useState<{ id: string; name: string; role: string; school_name: string; department: string | null }[]>([]);
+  const [staffList, setStaffList] = useState<{ id: string; name: string; role: string; school_name: string; department: string | null; email?: string }[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
