@@ -1,0 +1,73 @@
+name: Android APK Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Initialize Capacitor Android
+        run: |
+          npx cap add android || echo "Android platform already exists"
+          npx cap sync android
+
+      - name: Set version from tag
+        run: |
+          TAG=${GITHUB_REF_NAME:-v1.0.0}
+          VERSION=${TAG#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          sed -i "s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle || true
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: school-os-${{ env.VERSION || 'debug' }}.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          name: School OS ${{ github.ref_name }}
+          body: |
+            ## School OS ${{ github.ref_name }}
+
+            Android APK — internal distribution build.
+
+            **Install:** Download APK → enable "Install from unknown sources" → install.
+            **Requires:** Android 7.0+ (API 24+)
+            **App loads:** https://school-os-rh47.vercel.app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
