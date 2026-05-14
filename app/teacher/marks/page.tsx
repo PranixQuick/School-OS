@@ -49,6 +49,9 @@ export default function TeacherMarksPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  // Batch 13: narrative generation state
+  const [narrativeStates, setNarrativeStates] = useState<Record<string,{loading:boolean;text:string;error:string}>>({});
+  const [narrativeNotes, setNarrativeNotes] = useState<Record<string,string>>({});
 
   // Fetch subjects on mount
   useEffect(() => {
@@ -92,6 +95,29 @@ export default function TeacherMarksPage() {
       updated.grade = !isNaN(obt) && !isNaN(max) && max > 0 ? calcGrade(obt, max) : '';
       return updated;
     }));
+  }
+
+  // Batch 13: generate narrative for a student
+  async function generateNarrative(studentId: string, studentName: string) {
+    const key = studentId;
+    setNarrativeStates(prev => ({ ...prev, [key]: { loading: true, text: '', error: '' } }));
+    try {
+      const res = await fetch('/api/teacher/report-narratives/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, term: selectedTerm, teacher_notes: narrativeNotes[studentId] ?? '' }),
+      });
+      const d = await res.json() as { narrative_text?: string; error?: string; message?: string };
+      if (res.ok && d.narrative_text) {
+        setNarrativeStates(prev => ({ ...prev, [key]: { loading: false, text: d.narrative_text!, error: '' } }));
+      } else if (res.status === 409) {
+        setNarrativeStates(prev => ({ ...prev, [key]: { loading: false, text: '', error: 'Already approved — contact principal to reset' } }));
+      } else {
+        setNarrativeStates(prev => ({ ...prev, [key]: { loading: false, text: '', error: d.error ?? 'Generation failed' } }));
+      }
+    } catch {
+      setNarrativeStates(prev => ({ ...prev, [key]: { loading: false, text: '', error: 'Network error' } }));
+    }
   }
 
   async function saveAll() {
@@ -220,6 +246,43 @@ export default function TeacherMarksPage() {
             </button>
             {saveStatus && <span style={{ fontSize: 11, color: '#374151' }}>{saveStatus}</span>}
           </div>
+
+          {/* Batch 13: Report Narratives */}
+          {students.length > 0 && selectedTerm && (
+            <div style={{ marginTop: 24, border: '1px solid #E0E7FF', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ background: '#EEF2FF', padding: '10px 14px', borderBottom: '1px solid #E0E7FF' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#3730A3' }}>✍ Report Card Narratives</div>
+                <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>AI-generated comments for each student. Saved as draft for principal review.</div>
+              </div>
+              {students.map(s => {
+                const ns = narrativeStates[s.student_id];
+                return (
+                  <div key={s.student_id} style={{ padding: '10px 14px', borderBottom: '1px solid #F0F0FF' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', marginBottom: 4 }}>{s.student_name}</div>
+                        {ns?.text && (
+                          <div style={{ fontSize: 11, color: '#374151', background: '#F5F3FF', padding: '6px 9px', borderRadius: 6, marginBottom: 5, lineHeight: 1.5 }}>{ns.text}</div>
+                        )}
+                        {ns?.error && (
+                          <div style={{ fontSize: 10, color: '#B91C1C', marginBottom: 4 }}>{ns.error}</div>
+                        )}
+                        {!ns?.text && (
+                          <input value={narrativeNotes[s.student_id] ?? ''} onChange={e => setNarrativeNotes(prev => ({ ...prev, [s.student_id]: e.target.value }))}
+                            placeholder="Optional teacher notes..." style={{ width: '100%', fontSize: 11, padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 5, boxSizing: 'border-box' as const }} />
+                        )}
+                      </div>
+                      <button onClick={() => void generateNarrative(s.student_id, s.student_name)}
+                        disabled={ns?.loading}
+                        style={{ padding: '5px 10px', background: ns?.text ? '#065F46' : '#4338CA', color: '#fff', border: 'none', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: ns?.loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
+                        {ns?.loading ? 'Generating...' : ns?.text ? '✓ Regenerate' : '✍ Generate'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       ) : (
         <div style={{ padding: 24, textAlign: 'center', color: '#9CA3AF', fontSize: 12 }}>
