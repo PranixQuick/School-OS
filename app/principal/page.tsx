@@ -269,9 +269,11 @@ export default function PrincipalDashboard() {
                 style={{ fontSize: 11, padding: '4px 10px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                 {generatingRisk ? 'Analyzing...' : 'Run analysis →'}
               </button>
-            </div      <NLOpsBar />
+            </div>
 
->
+      <NLOpsBar />
+
+
           )}
 
           {/* Top KPI row */}
