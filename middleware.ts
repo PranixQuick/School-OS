@@ -30,7 +30,7 @@ const PUBLIC_PATHS = [
 ];
 
 // Super admin only paths
-const SUPER_ADMIN_PATHS = ['/admin'];
+const SUPER_ADMIN_PATHS = ['/super-admin'];
 const SUPER_ADMIN_EMAIL = 'pranixailabs@gmail.com';
 
 export async function middleware(req: NextRequest) {
@@ -67,7 +67,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Super admin path protection
-  if (SUPER_ADMIN_PATHS.some(p => pathname.startsWith(p))) {
+  if (SUPER_ADMIN_PATHS.some(p => pathname === p)) {
     if (session.userEmail !== SUPER_ADMIN_EMAIL) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
