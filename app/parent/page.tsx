@@ -16,7 +16,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 
-type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm';
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm' | 'report_cards';
 
 interface ParentInfo {
   id: string;
@@ -149,6 +149,10 @@ export default function ParentPage() {
   // Batch 7: PTM state
   const [ptmSlots, setPtmSlots] = useState<{id:string;slot_time:string;slot_date:string;parent_confirmed:boolean;staff_name:string;session_title:string}[]>([]);
   const [ptmLoading, setPtmLoading] = useState(false);
+  // Batch 9: report cards
+  const [rcData, setRcData] = useState<{term:string;subjects:{subject:string;marks_obtained:number;max_marks:number;grade:string}[];total:number;maxTotal:number;percentage:number;overallGrade:string}[]>([]);
+  const [rcLoading, setRcLoading] = useState(false);
+  const [rcPdfLoading, setRcPdfLoading] = useState<string|null>(null);
   // Item #13 PR #2 — payment action state
   const [onlineEnabled, setOnlineEnabled] = useState(false);
   const [proofFormFeeId, setProofFormFeeId] = useState<string | null>(null);
@@ -297,6 +301,7 @@ export default function ParentPage() {
     if (activeTab === 'lesson_plans' && lessonPlans.length === 0 && !lpLoading) void loadLessonPlans();
     if (activeTab === 'fees' && fees.length === 0 && !feesLoading) void loadFees(feeFilter);
     if (activeTab === 'ptm' && ptmSlots.length === 0 && !ptmLoading) void loadPtm();
+    if (activeTab === 'report_cards' && rcData.length === 0 && !rcLoading) void loadRc();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
 
@@ -341,6 +346,37 @@ export default function ParentPage() {
       body: JSON.stringify({ phone, pin }),
     });
     if (res.ok) setPtmSlots(prev => prev.map(s => s.id === slotId ? { ...s, parent_confirmed: true } : s));
+  }
+
+  // Batch 9: report cards
+  async function loadRc() {
+    if (!parent) return;
+    setRcLoading(true);
+    try {
+      const res = await fetch(`/api/parent/report-cards?phone=${encodeURIComponent(phone)}&pin=${encodeURIComponent(pin)}`);
+      const d = await res.json() as { terms?: {term:string;subjects:{subject:string;marks_obtained:number;max_marks:number;grade:string}[];total:number;maxTotal:number;percentage:number;overallGrade:string}[]; error?: string };
+      if (res.ok) setRcData(d.terms ?? []);
+    } catch { /* ignore */ }
+    setRcLoading(false);
+  }
+
+  async function downloadRcPdf(term: string) {
+    setRcPdfLoading(term);
+    try {
+      const res = await fetch('/api/parent/report-cards/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, term }),
+      });
+      const d = await res.json() as { pdf_base64?: string; error?: string };
+      if (res.ok && d.pdf_base64) {
+        const a = document.createElement('a');
+        a.href = `data:application/pdf;base64,${d.pdf_base64}`;
+        a.download = `Report-Card-${term}.pdf`;
+        a.click();
+      } else alert(d.error ?? 'Could not generate PDF');
+    } catch { alert('Network error'); }
+    setRcPdfLoading(null);
   }
 
   // Item #13 PR #2 — payment action functions
@@ -469,6 +505,7 @@ export default function ParentPage() {
           { key: 'lesson_plans' as Tab, label: '📅 Plans' },
           { key: 'fees' as Tab, label: '₹ Fees' },
           { key: 'ptm' as Tab, label: '🤝 PTM' },
+          { key: 'report_cards' as Tab, label: '📊 Reports' },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
