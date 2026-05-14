@@ -104,7 +104,8 @@ export async function PATCH(
             .eq('route_id', trip.route_id)
             .eq('school_id', schoolId)
             .maybeSingle();
-          const stopName = (Array.isArray(st?.transport_stops) ? st.transport_stops[0] : st?.transport_stops as { stop_name?: string } | null)?.stop_name ?? 'their stop';
+          const rawStop = st?.transport_stops;
+          const stopName = (Array.isArray(rawStop) ? (rawStop[0] as { stop_name?: string } | undefined)?.stop_name : (rawStop as { stop_name?: string } | null | undefined)?.stop_name) ?? 'their stop';
           await supabaseAdmin.from('notifications').insert({
             school_id: schoolId, type: 'alert',
             title: `${student.name} dropped off safely`,
