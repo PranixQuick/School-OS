@@ -20,6 +20,9 @@ const EnvSchema = z
     // ── Auth / session ────────────────────────────────────────────────────
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 chars'),
 
+    // ── Super admin ─────────────────────────────────────────────────────────
+    SUPER_ADMIN_EMAIL: z.string().email().optional(),
+
     // ── Public app origin (magic-link redirectTo, outbound links) ─────────
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 
