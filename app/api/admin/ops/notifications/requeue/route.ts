@@ -29,12 +29,13 @@ export async function POST(req: NextRequest) {
 
   const statuses = status_filter === 'all' ? [...REQUEUEABLE] : [status_filter as typeof REQUEUEABLE[number]];
 
-  // First count matching rows, then update
-  const { count } = await supabaseAdmin
+  // Count then update (Supabase JS v2 .select() takes only 1 arg)
+  const { data: countRows } = await supabaseAdmin
     .from('notifications')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .eq('school_id', schoolId)
     .in('status', statuses);
+  const total = countRows?.length ?? 0;
 
   const { error } = await supabaseAdmin
     .from('notifications')
@@ -43,5 +44,5 @@ export async function POST(req: NextRequest) {
     .in('status', statuses);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ requeued: count ?? 0 });
+  return NextResponse.json({ requeued: total });
 }
