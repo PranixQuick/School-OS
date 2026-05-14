@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { NLOpsBar } from '@/components/NLOpsBar';
 import Link from 'next/link';
 
 interface AttData { today_pct: number | null; today_present: number; today_total: number; today_marked: boolean; month_avg_pct: number; status: string; }
@@ -268,7 +269,9 @@ export default function PrincipalDashboard() {
                 style={{ fontSize: 11, padding: '4px 10px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                 {generatingRisk ? 'Analyzing...' : 'Run analysis →'}
               </button>
-            </div>
+            </div      <NLOpsBar />
+
+>
           )}
 
           {/* Top KPI row */}
