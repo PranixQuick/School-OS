@@ -83,6 +83,9 @@ export default function LandingPage() {
           <Link href="/login" style={{ padding: '7px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#374151', textDecoration: 'none' }}>
             Sign In
           </Link>
+          <Link href="/parent/login" style={{ padding: '8px 14px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#6B7280', textDecoration: 'none', border: '1px solid #E5E7EB' }}>
+            Parent / Student
+          </Link>
           <Link href="/register" style={{ padding: '8px 18px', borderRadius: 9, fontSize: 14, fontWeight: 700, background: '#4F46E5', color: '#fff', textDecoration: 'none' }}>
             Start Free →
           </Link>
@@ -111,23 +114,16 @@ export default function LandingPage() {
             View Demo
           </Link>
         </div>
-        <p style={{ marginTop: 16, fontSize: 13, color: '#9CA3AF' }}>14-day free trial · Used by schools across Hyderabad</p>
+        <p style={{ marginTop: 16, fontSize: 13, color: '#9CA3AF' }}>Free forever on the Free plan · Built for Indian schools</p>
       </section>
 
-      {/* Stats bar */}
-      <section style={{ background: '#0F172A', padding: '28px 24px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
-          {[
-            { value: '2,400+', label: 'Students Managed' },
-            { value: '12,000+', label: 'Reports Generated' },
-            { value: '98%', label: 'Time Saved on Reports' },
-            { value: '4.9/5', label: 'Principal Rating' },
-          ].map((s, i) => (
-            <div key={i} style={{ textAlign: 'center', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.1)' : 'none', padding: '0 20px' }}>
-              <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
-            </div>
-          ))}
+      {/* Beta pill — replaced fabricated stats per Phase C */}
+      <section style={{ background: '#0F172A', padding: '16px 24px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(79,70,229,0.2)', border: '1px solid rgba(79,70,229,0.4)', borderRadius: 20, padding: '8px 20px', fontSize: 14, color: '#A5B4FC', fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818CF8', display: 'inline-block' }} />
+            Beta · Now onboarding schools across Hyderabad
+          </span>
         </div>
       </section>
 
@@ -229,6 +225,10 @@ export default function LandingPage() {
           © 2025 School OS by Pranix AI Labs · Built for Indian schools
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
           <Link href="/login" style={{ color: '#64748B', textDecoration: 'none' }}>Login</Link>
+          <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
+          <Link href="/parent/login" style={{ color: '#64748B', textDecoration: 'none' }}>Parent Portal</Link>
+          <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
+          <Link href="/student/login" style={{ color: '#64748B', textDecoration: 'none' }}>Student Portal</Link>
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
           <Link href="/register" style={{ color: '#64748B', textDecoration: 'none' }}>Register</Link>
         </div>
