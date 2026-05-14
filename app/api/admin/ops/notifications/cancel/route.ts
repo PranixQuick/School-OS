@@ -24,13 +24,12 @@ export async function POST(req: NextRequest) {
   if (!notification_ids?.length) return NextResponse.json({ error: 'notification_ids required (non-empty array)' }, { status: 400 });
   if (notification_ids.length > 100) return NextResponse.json({ error: 'Max 100 IDs per request' }, { status: 400 });
 
-  const { error, count } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from('notifications')
     .update({ status: 'cancelled' })
     .eq('school_id', schoolId)
-    .in('id', notification_ids)
-    .select('id', { count: 'exact', head: true });
+    .in('id', notification_ids);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ cancelled: count ?? 0 });
+  return NextResponse.json({ cancelled: notification_ids.length });
 }
