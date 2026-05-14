@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
   const { schoolId } = ctx;
   let body: Record<string, unknown>; try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
-  const { name, address, board, institution_type, phone, logo_url } = body as Record<string, string>;
+  const { name, address, board, institution_type, ownership_type, phone, logo_url } = body as Record<string, string>;
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
   // Update schools table
   const { error: sErr } = await supabaseAdmin.from('schools').update({
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from('institutions').update({
       name: name.trim(), address: address?.trim() ?? null, board: board?.trim() ?? null,
       contact_phone: phone?.trim() ?? null, institution_type: institution_type?.trim() ?? null,
+      ownership_type: ownership_type?.trim() ?? null,
     }).eq('id', school.institution_id);
   }
   return NextResponse.json({ success: true, step: 1 });

@@ -41,7 +41,8 @@ export default function OnboardingWizard() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [board, setBoard] = useState('');
-  const [instType, setInstType] = useState('school');
+  const [instType, setInstType] = useState('school_k10');
+  const [ownerType, setOwnerType] = useState('private');
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
 
@@ -100,7 +101,7 @@ export default function OnboardingWizard() {
     try {
       let result;
       if (step === 1) {
-        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, phone, logo_url: logoUrl });
+        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl });
       } else if (step === 2) {
         const parsed = classes.filter(c => c.grade.trim()).map(c => ({ grade: c.grade.trim(), sections: c.sections.split(',').map(s => s.trim()).filter(Boolean) }));
         result = await post('/api/admin/onboarding/2-classes', { classes: parsed });
@@ -144,7 +145,27 @@ export default function OnboardingWizard() {
           <div><label style={labelStyle}>Board</label><input style={inputStyle} value={board} onChange={e=>setBoard(e.target.value)} placeholder="CBSE / ICSE / State" /></div>
           <div><label style={labelStyle}>Institution Type</label>
             <select style={inputStyle} value={instType} onChange={e=>setInstType(e.target.value)}>
-              {['school','college','coaching','preschool','other'].map(t=><option key={t} value={t}>{t}</option>)}
+              {[
+                {value:'school_k10',label:'School - Classes 1 to 10 (CBSE/ICSE/State)'},
+                {value:'school_k12',label:'School - Classes 1 to 12'},
+                {value:'govt_school',label:'Government School'},
+                {value:'govt_aided_school',label:'Aided School'},
+                {value:'junior_college',label:'Junior College (11-12)'},
+                {value:'degree_college',label:'Degree College'},
+                {value:'coaching',label:'Coaching / Tuition Centre'},
+                {value:'engineering',label:'Engineering College'},
+                {value:'mba',label:'MBA / Business School'},
+                {value:'medical',label:'Medical College'},
+                {value:'vocational',label:'Vocational / ITI'},
+                {value:'polytechnic',label:'Polytechnic'},
+                {value:'anganwadi',label:'Anganwadi / Preschool'},
+                {value:'welfare_school',label:'Welfare / Residential School'},
+              ].map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div><label style={labelStyle}>Ownership Type</label>
+            <select style={inputStyle} value={ownerType} onChange={e=>setOwnerType(e.target.value)}>
+              {['private','government','aided','franchise'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
             </select>
           </div>
         </div>
