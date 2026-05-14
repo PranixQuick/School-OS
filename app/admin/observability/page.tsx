@@ -4,6 +4,7 @@
 // 4-card grid: Notifications | Payments | Cron Jobs | Errors
 // Auto-refresh every 60s.
 
+import { NLOpsBar } from '@/components/NLOpsBar';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 
@@ -76,6 +77,8 @@ export default function ObservabilityPage() {
 
   return (
     <Layout title="Observability" subtitle="System health dashboard — auto-refreshes every 60s">
+
+      <NLOpsBar />
 
       {/* Status bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>

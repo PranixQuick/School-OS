@@ -45,6 +45,7 @@ const NAV: NavItem[] = [
   { href: '/admin/regulatory',            label: 'Regulatory',               icon: '📋', roles: ['owner','admin','principal'] },
   { href: '/admin/knowledge',             label: 'Knowledge Base',           icon: '📚', roles: ['owner','admin','principal'] },
   { href: '/admin/conversations',         label: 'Conversations',             icon: '💬', roles: ['owner','admin','principal'] },
+  { href: '/admin/nl-ops',                label: 'NL Ops',                   icon: '🤖', roles: ['owner','admin','principal'] },
 ];
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
