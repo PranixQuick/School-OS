@@ -105,7 +105,7 @@ export default function TeacherMarksPage() {
       const res = await fetch('/api/teacher/report-narratives/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, term: selectedTerm, teacher_notes: narrativeNotes[studentId] ?? '' }),
+        body: JSON.stringify({ student_id: studentId, term: term, teacher_notes: narrativeNotes[studentId] ?? '' }),
       });
       const d = await res.json() as { narrative_text?: string; error?: string; message?: string };
       if (res.ok && d.narrative_text) {
@@ -248,13 +248,13 @@ export default function TeacherMarksPage() {
           </div>
 
           {/* Batch 13: Report Narratives */}
-          {students.length > 0 && selectedTerm && (
+          {roster.length > 0 && term && (
             <div style={{ marginTop: 24, border: '1px solid #E0E7FF', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ background: '#EEF2FF', padding: '10px 14px', borderBottom: '1px solid #E0E7FF' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#3730A3' }}>✍ Report Card Narratives</div>
                 <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>AI-generated comments for each student. Saved as draft for principal review.</div>
               </div>
-              {students.map(s => {
+              {roster.map(s => {
                 const ns = narrativeStates[s.student_id];
                 return (
                   <div key={s.student_id} style={{ padding: '10px 14px', borderBottom: '1px solid #F0F0FF' }}>
