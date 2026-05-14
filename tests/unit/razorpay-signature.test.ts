@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createHmac } from 'crypto';
-import { verifyRazorpaySignature } from '@/lib/razorpay-verify';
+import { verifyRazorpaySignature } from '../../lib/razorpay-verify';
 
 // Skip all tests if Razorpay integration is not configured
 // (avoids false failures in environments without the key)
