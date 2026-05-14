@@ -21,7 +21,7 @@
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { verifyRazorpaySignature } from '@/lib/razorpay-verify';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
@@ -76,12 +76,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 });
   }
 
-  // Verify Razorpay signature FIRST — before any DB work
-  const expectedSig = createHmac('sha256', keySecret)
-    .update(`${body.razorpay_order_id}|${body.razorpay_payment_id}`)
-    .digest('hex');
+  // Verify Razorpay signature FIRST — before any DB work (using lib/razorpay-verify)
+  const sigValid = verifyRazorpaySignature(
+    body.razorpay_order_id,
+    body.razorpay_payment_id,
+    body.razorpay_signature,
+    keySecret
+  );
 
-  if (expectedSig !== body.razorpay_signature) {
+  if (!sigValid || body.razorpay_signature) {
     console.warn('[confirm-payment] signature mismatch for fee', body.fee_id);
     return NextResponse.json({ error: 'Payment signature invalid' }, { status: 400 });
   }
