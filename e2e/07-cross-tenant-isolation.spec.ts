@@ -29,8 +29,10 @@ async function getAdminCookies(
   email: string,
   password: string
 ): Promise<string> {
+  const bypassSecret = process.env.E2E_BYPASS_SECRET ?? '';
   const res = await request.post(`${BASE_URL}/api/auth/login`, {
     data: { email, password },
+    headers: bypassSecret ? { 'x-e2e-bypass': bypassSecret } : {},
   });
   const setCookie = res.headers()['set-cookie'] ?? '';
   // Extract the session cookie name=value pair
