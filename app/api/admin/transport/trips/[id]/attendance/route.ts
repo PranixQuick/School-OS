@@ -41,7 +41,7 @@ export async function GET(
     .select('*, students(name, class, section, phone_parent)')
     .eq('trip_id', tripId)
     .eq('school_id', schoolId)
-    .order('students(name)');
+    .order('student_id');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const roster = (data ?? []).map(a => {
