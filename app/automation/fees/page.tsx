@@ -52,6 +52,12 @@ export default function AdminFeesPage() {
   const [refundReason, setRefundReason] = useState('');
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [gstLoading, setGstLoading] = useState<string | null>(null);
+  // Batch 9: installment plan state
+  const [installModal, setInstallModal] = useState<{feeId:string;amount:number} | null>(null);
+  const [installCount, setInstallCount] = useState(3);
+  const [installFreq, setInstallFreq] = useState<'monthly'|'quarterly'>( 'monthly');
+  const [installPlanData, setInstallPlanData] = useState<Record<string,{plan:{installment_count:number;frequency:string};installments:{installment_number:number;amount:number;due_date:string;status:string}[]}>>({});
+  const [installSubmitting, setInstallSubmitting] = useState(false);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -108,6 +114,48 @@ export default function AdminFeesPage() {
       } else alert(d.error ?? 'Failed to generate invoice');
     } catch { alert('Network error'); }
     setGstLoading(null);
+  }
+
+  // Batch 9: load installment plan for a fee
+  async function loadInstallPlan(feeId: string) {
+    try {
+      const res = await fetch(`/api/admin/fees/${feeId}/installment-plan`);
+      const d = await res.json() as { plan: {installment_count:number;frequency:string}|null; installments: {installment_number:number;amount:number;due_date:string;status:string}[] };
+      if (res.ok && d.plan) setInstallPlanData(prev => ({ ...prev, [feeId]: d as {plan:{installment_count:number;frequency:string};installments:{installment_number:number;amount:number;due_date:string;status:string}[]} }));
+    } catch { /* ignore */ }
+  }
+
+  async function submitInstallPlan() {
+    if (!installModal) return;
+    setInstallSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/fees/${installModal.feeId}/installment-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installment_count: installCount, frequency: installFreq }),
+      });
+      const d = await res.json() as { plan_id?: string; error?: string };
+      if (res.ok) { setInstallModal(null); void loadFees(); }
+      else alert(d.error ?? 'Failed to create plan');
+    } catch { alert('Network error'); }
+    setInstallSubmitting(false);
+  }
+
+  async function markInstallmentPaid(installmentId: string, feeId: string) {
+    const res = await fetch(`/api/admin/fees/installments/${installmentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'paid', paid_date: new Date().toISOString().slice(0,10) }),
+    });
+    if (res.ok) {
+      void loadFees();
+      setInstallPlanData(prev => {
+        const plan = prev[feeId];
+        if (!plan) return prev;
+        return { ...prev, [feeId]: { ...plan, installments: plan.installments.map(i => i.installment_number === undefined ? i : i) }};
+      });
+      void loadInstallPlan(feeId);
+    }
   }
 
   async function loadFees() {
@@ -258,6 +306,36 @@ export default function AdminFeesPage() {
                     </div>
                     <span style={{ background: b.bg, color: b.fg, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{b.label}</span>
 
+                    {['pending','overdue'].includes(f.status) && !installPlanData[f.id] && (
+                      <button onClick={() => { void loadInstallPlan(f.id); setInstallModal({ feeId: f.id, amount: Number(f.amount) }); setInstallCount(3); setInstallFreq('monthly'); }}
+                        style={{ padding: '4px 10px', background: '#1E40AF', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginRight: 4 }}>
+                        📅 Installments
+                      </button>
+                    )}
+                    {f.status === 'partial' && !installPlanData[f.id] && (
+                      <button onClick={() => void loadInstallPlan(f.id)}
+                        style={{ padding: '4px 10px', background: '#DBEAFE', color: '#1E40AF', border: '1px solid #93C5FD', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginRight: 4 }}>
+                        📋 View Plan
+                      </button>
+                    )}
+                    {f.status === 'partial' && installPlanData[f.id] && (
+                      <div style={{ marginTop: 8, border: '1px solid #DBEAFE', borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ background: '#EFF6FF', padding: '6px 10px', fontSize: 11, fontWeight: 700, color: '#1E40AF' }}>
+                          Installment Plan · {installPlanData[f.id]!.plan.installment_count}x {installPlanData[f.id]!.plan.frequency}
+                        </div>
+                        {installPlanData[f.id]!.installments.map(inst => (
+                          <div key={inst.installment_number} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', borderTop: '1px solid #DBEAFE', fontSize: 11 }}>
+                            <span>#{inst.installment_number} · {inst.due_date}</span>
+                            <span>₹{Number(inst.amount).toLocaleString('en-IN')}</span>
+                            <span style={{ color: inst.status==='paid' ? '#065F46' : inst.status==='overdue' ? '#991B1B' : '#92400E', fontWeight: 700 }}>{inst.status}</span>
+                            {inst.status !== 'paid' && (
+                              <button onClick={() => void markInstallmentPaid(String(inst.installment_number), f.id)}
+                                style={{ padding: '2px 7px', background: '#065F46', color: '#fff', border: 'none', borderRadius: 4, fontSize: 9, cursor: 'pointer' }}>Paid</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {canMarkPaid && (
                       <button onClick={() => openMarkModal(f)}
                         style={{ padding: '6px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -307,6 +385,36 @@ export default function AdminFeesPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Batch 9: Installment modal */}
+      {installModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 360, maxWidth: '90vw' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Set Up Installment Plan</h3>
+            <p style={{ fontSize: 11, color: '#6B7280', marginBottom: 12 }}>Total: ₹{installModal.amount.toLocaleString('en-IN')}</p>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Number of Installments (2–12)</label>
+            <input type="number" value={installCount} min={2} max={12} onChange={e => setInstallCount(Math.min(12, Math.max(2, parseInt(e.target.value)||2)))}
+              style={{ width: '100%', padding: '8px', border: '1px solid #D1D5DB', borderRadius: 6, marginTop: 4, marginBottom: 10, fontSize: 13 }} />
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Frequency</label>
+            <select value={installFreq} onChange={e => setInstallFreq(e.target.value as 'monthly'|'quarterly')}
+              style={{ width: '100%', padding: '8px', border: '1px solid #D1D5DB', borderRadius: 6, marginTop: 4, marginBottom: 10, fontSize: 12 }}>
+              <option value="monthly">Monthly (every 30 days)</option>
+              <option value="quarterly">Quarterly (every 90 days)</option>
+            </select>
+            <div style={{ background: '#F8FAFF', borderRadius: 6, padding: '8px 10px', marginBottom: 14, fontSize: 11, color: '#374151' }}>
+              Preview: {installCount} payments of ~₹{(installModal.amount/installCount).toFixed(0)} each
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setInstallModal(null)}
+                style={{ flex: 1, padding: '9px', background: '#F3F4F6', border: 'none', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => void submitInstallPlan()} disabled={installSubmitting}
+                style={{ flex: 1, padding: '9px', background: '#1E40AF', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {installSubmitting ? 'Creating...' : 'Create Plan'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
