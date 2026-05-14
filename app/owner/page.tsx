@@ -5,7 +5,6 @@
 // recharts for daily fee collection trend line.
 
 import { useState, useEffect, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface SchoolStat {
   school_id: string; school_name: string; students: number; staff: number;
@@ -20,6 +19,23 @@ interface TrendPoint { date: string; amount: number; }
 
 function formatINR(n: number) {
   return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function SparkLine({ data }: { data: {amount:number}[] }) {
+  if (!data.length) return null;
+  const W = 400; const H = 80; const pad = 8;
+  const vals = data.map(d => d.amount);
+  const max = Math.max(...vals, 1);
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / Math.max(vals.length-1,1)) * (W - 2*pad);
+    const y = H - pad - ((v/max) * (H - 2*pad));
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" stroke="#4F46E5" strokeWidth="2" />
+    </svg>
+  );
 }
 
 function StatusBadge({ school }: { school: SchoolStat }) {
@@ -175,15 +191,7 @@ export default function OwnerDashboard() {
             {trend.length > 0 && (
               <div style={cardStyle}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 16 }}>💰 Daily Fee Collection (Last 30 Days)</div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={n => `₹${(n/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => formatINR(v)} labelFormatter={d => `Date: ${d}`} />
-                    <Line type="monotone" dataKey="amount" stroke="#4F46E5" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <SparkLine data={trend} />
               </div>
             )}
           </>
@@ -197,15 +205,7 @@ export default function OwnerDashboard() {
               <div style={{ color: '#9CA3AF', fontSize: 12 }}>No fee data in the last 30 days.</div>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={n => `₹${(n/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => formatINR(v)} />
-                    <Line type="monotone" dataKey="amount" stroke="#059669" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <SparkLine data={trend} />
               </>
             )}
           </div>
