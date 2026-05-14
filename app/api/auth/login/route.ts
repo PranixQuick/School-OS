@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
   const redirectTo =
     schoolUser.role === 'principal' ? '/principal' :
     schoolUser.role === 'teacher'   ? '/teacher' :
-    (schoolUser.role === 'accountant' ? '/accounts' :
+    schoolUser.role === 'accountant' ? '/accounts' :
     (schoolUser.role === 'admin_staff' || schoolUser.role === 'admin') ? '/admin' :
     '/dashboard';
 
