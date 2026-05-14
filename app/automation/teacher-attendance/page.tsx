@@ -1,8 +1,13 @@
 'use client';
+// app/automation/teacher-attendance/page.tsx
+// Batch 3B patch: added offline detection, offline banner, and offline queue fallback.
+// When offline: markAttendance queues the record in IndexedDB instead of fetching.
+// On reconnect: syncOfflineQueue auto-syncs all pending records.
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { queueTeacherAttendance, syncOfflineQueue, getPendingQueue } from '@/lib/offline-queue';
 
 interface StaffRecord {
   id: string; name: string; role: string; subject: string | null;
@@ -31,8 +36,34 @@ export default function TeacherAttendancePage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [bulkMarking, setBulkMarking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [pendingSync, setPendingSync] = useState(0);
 
-  useEffect(() => { fetchAttendance(); }, [date]);
+  useEffect(() => { void fetchAttendance(); }, [date]);
+
+  // Online/offline event listeners + auto-sync on reconnect
+  useEffect(() => {
+    const onOnline = async () => {
+      setIsOnline(true);
+      const { synced } = await syncOfflineQueue();
+      if (synced > 0) {
+        console.log('[Offline] Synced', synced, 'attendance records');
+        void fetchAttendance(); // Refresh view after sync
+      }
+      const pending = await getPendingQueue();
+      setPendingSync(pending.length);
+    };
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    void getPendingQueue().then((p) => setPendingSync(p.length));
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   async function fetchAttendance() {
     setLoading(true);
@@ -57,13 +88,34 @@ export default function TeacherAttendancePage() {
       ? `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:00`
       : undefined;
 
-    await fetch('/api/teacher-attendance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staff_id: staffId, date, status, check_in_time: checkIn, marked_via: 'portal' }),
-    });
+    try {
+      if (!navigator.onLine) throw new Error('offline');
+      await fetch('/api/teacher-attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId, date, status, check_in_time: checkIn, marked_via: 'portal' }),
+      });
+      void fetchAttendance();
+    } catch {
+      // Offline fallback: queue locally, update UI optimistically
+      await queueTeacherAttendance({
+        staff_id: staffId, date, status, check_in_time: checkIn,
+      });
+      setPendingSync((p) => p + 1);
+      // Optimistic UI update
+      setStaff((prev) => prev.map((s) =>
+        s.id === staffId ? { ...s, status, check_in_time: checkIn ?? s.check_in_time, marked_via: 'offline' } : s
+      ));
+      setSummary((prev) => {
+        const updated = { ...prev };
+        if (prev.not_marked > 0 && status !== 'not_marked') updated.not_marked--;
+        if (status === 'present') updated.present++;
+        if (status === 'absent') updated.absent++;
+        if (status === 'late') updated.late++;
+        return updated;
+      });
+    }
     setSaving(null);
-    fetchAttendance();
   }
 
   async function markAllPresent() {
@@ -83,6 +135,20 @@ export default function TeacherAttendancePage() {
         <Link href="/automation" className="btn btn-ghost btn-sm">← Automation</Link>
       }
     >
+      {/* Offline banner */}
+      {!isOnline && (
+        <div style={{ background: '#FEF9C3', border: '1px solid #FCD34D', color: '#92400E',
+          padding: '8px 14px', fontSize: 12, fontWeight: 600, borderRadius: 8, marginBottom: 12 }}>
+          ⚠️ You&apos;re offline. Attendance will be saved locally and synced when connection is restored.
+        </div>
+      )}
+      {pendingSync > 0 && isOnline && (
+        <div style={{ background: '#EEF2FF', color: '#4338CA', padding: '6px 12px',
+          fontSize: 11, fontWeight: 600, borderRadius: 6, marginBottom: 10 }}>
+          🔄 {pendingSync} offline record{pendingSync !== 1 ? 's' : ''} syncing…
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
           <label className="label">DATE</label>
@@ -112,7 +178,7 @@ export default function TeacherAttendancePage() {
 
         {summary.not_marked > 0 && (
           <button
-            onClick={markAllPresent}
+            onClick={() => void markAllPresent()}
             disabled={bulkMarking}
             className="btn btn-ghost btn-sm"
             style={{ marginTop: 20, background: '#DCFCE7', borderColor: '#BBF7D0', color: '#15803D' }}
@@ -200,7 +266,7 @@ export default function TeacherAttendancePage() {
                       {STATUS_OPTIONS.map(status => (
                         <button
                           key={status}
-                          onClick={() => markAttendance(s.id, status)}
+                          onClick={() => void markAttendance(s.id, status)}
                           disabled={saving === s.id}
                           style={{
                             height: 28, padding: '0 10px', borderRadius: 6,
