@@ -63,12 +63,24 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   const router = useRouter();
   const [session, setSession] = useState<SessionData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [waOk, setWaOk] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/session').then(r => r.json()).then(d => { if (d.session) setSession(d.session); }).catch(() => {});
   }, []);
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
+  // C6: WhatsApp health badge — fetch dispatcher status on mount
+  useEffect(() => {
+    fetch('/api/notifications/health')
+      .then(r => r.json())
+      .then((d: { dispatcher_mode?: string }) => {
+        const mode = d?.dispatcher_mode;
+        setWaOk(!!mode && mode !== 'unknown' && mode !== 'dry_run');
+      })
+      .catch(() => setWaOk(false));
+  }, []);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -128,7 +140,8 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 14, color: '#9CA3AF', cursor: 'pointer' }}>
                 <span className="sidebar-link-icon">◉</span>
                 WhatsApp Bot
-                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: 10 }}>ON</span>
+                {waOk === true && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: 10 }}>LIVE</span>}
+                {waOk === false && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '2px 7px', borderRadius: 10 }}>STUB</span>}
               </div>
             </Link>
           </nav>
