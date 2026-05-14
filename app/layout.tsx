@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import type { ReactNode } from 'react';
 import './globals.css';
 
@@ -64,7 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#1e40af" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body>{children}</body>
+      <body>{children}<ServiceWorkerRegistration /></body>
     </html>
   );
 }
