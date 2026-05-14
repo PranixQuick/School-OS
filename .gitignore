@@ -33,3 +33,9 @@ yarn-error.log*
 # Misc
 .idea/
 .vscode/
+
+# Capacitor — android/ committed for CI reproducibility
+# Exclude generated build outputs only:
+android/app/build/
+android/.gradle/
+android/local.properties
