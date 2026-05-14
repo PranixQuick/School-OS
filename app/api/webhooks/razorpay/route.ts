@@ -7,8 +7,9 @@
 // Razorpay sends webhook with header: x-razorpay-signature
 // Signature = hmac_sha256(raw_body, RAZORPAY_PLATFORM_KEY_SECRET)
 //
-// Handles: payment.captured event only.
+// Handles: payment.captured, refund.processed, refund.speed_changed events.
 // fee_id must be present in event.payload.payment.entity.notes.fee_id
+// refund_id matched via fees.razorpay_refund_id for refund events.
 //
 // Idempotent: always returns 200 to Razorpay even on skip/error, to prevent retries.
 //
@@ -57,8 +58,67 @@ export async function POST(req: NextRequest) {
   }
 
   const eventName = event.event as string | undefined;
+
+  // ── Refund events ──────────────────────────────────────────────────────────
+  // Batch 11: handle refund.processed and refund.speed_changed from Razorpay.
+  // Updates fees.refund_status based on Razorpay confirmation.
+  if (eventName === 'refund.processed' || eventName === 'refund.speed_changed') {
+    const refundEntity = (event as {
+      payload?: { refund?: { entity?: {
+        id?: string;
+        payment_id?: string;
+        status?: string; // 'processed' | 'failed' | 'pending'
+        notes?: { fee_id?: string; school_id?: string };
+      } } }
+    }).payload?.refund?.entity;
+
+    const refundId = refundEntity?.id;
+    const refundStatus = refundEntity?.status;
+
+    if (!refundId) {
+      console.warn('[webhook/razorpay] refund event missing refund id');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Look up fee by razorpay_refund_id (set when refund was initiated)
+    const { data: refundFee } = await supabaseAdmin
+      .from('fees')
+      .select('id, school_id, refund_status')
+      .eq('razorpay_refund_id', refundId)
+      .maybeSingle();
+
+    if (!refundFee) {
+      console.warn('[webhook/razorpay] fee not found for refund_id:', refundId);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Idempotent: skip if already completed
+    if (refundFee.refund_status === 'completed') {
+      console.log('[webhook/razorpay] refund already completed, skipping:', refundId);
+      return NextResponse.json({ ok: true });
+    }
+
+    const newRefundStatus = refundStatus === 'processed' ? 'completed' : 'failed';
+    const { error: refundUpdateErr } = await supabaseAdmin
+      .from('fees')
+      .update({
+        refund_status: newRefundStatus,
+        refund_at: new Date().toISOString(),
+      })
+      .eq('razorpay_refund_id', refundId)
+      .eq('school_id', refundFee.school_id);
+
+    if (refundUpdateErr) {
+      console.error('[webhook/razorpay] refund update failed:', refundId, refundUpdateErr.message);
+    } else {
+      console.log('[webhook/razorpay] refund status updated:', refundId, '→', newRefundStatus);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Payment captured ───────────────────────────────────────────────────────
   if (eventName !== 'payment.captured') {
-    // Silently ignore non-capture events (refunds, disputes etc handled separately)
+    // Silently ignore other events (disputes, etc.)
     return NextResponse.json({ ok: true });
   }
 
