@@ -30,19 +30,10 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
-    intentFilters: [
-      {
-        action: 'android.intent.action.VIEW',
-        autoVerify: true,
-        data: [
-          { scheme: 'https', host: 'school-os-rh47.vercel.app' }
-        ],
-        categories: [
-          'android.intent.category.DEFAULT',
-          'android.intent.category.BROWSABLE'
-        ]
-      }
-    ]
+    // NOTE: Deep link intent filters for school-os-rh47.vercel.app are configured
+    // in android/app/src/main/AndroidManifest.xml after `npx cap add android`.
+    // Add an intent-filter with action VIEW + category DEFAULT/BROWSABLE +
+    // data scheme="https" host="school-os-rh47.vercel.app" inside the main Activity.
   },
 };
 
