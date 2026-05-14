@@ -29,12 +29,18 @@ export async function POST(req: NextRequest) {
 
   const statuses = status_filter === 'all' ? [...REQUEUEABLE] : [status_filter as typeof REQUEUEABLE[number]];
 
-  const { error, count } = await supabaseAdmin
+  // First count matching rows, then update
+  const { count } = await supabaseAdmin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('school_id', schoolId)
+    .in('status', statuses);
+
+  const { error } = await supabaseAdmin
     .from('notifications')
     .update({ status: 'pending', attempts: 0, dispatch_error: null, last_attempt_at: null })
     .eq('school_id', schoolId)
-    .in('status', statuses)
-    .select('id', { count: 'exact', head: true });
+    .in('status', statuses);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ requeued: count ?? 0 });
