@@ -293,6 +293,11 @@ export default function OpsConsolePage() {
             state={quickActionState['risk'] ?? 'idle'}
             onClick={() => void quickAction('risk', '/api/admin/risk-flags/generate')}
           />
+          <ActionBtn
+            label="🏥 Run Health Check"
+            state={quickActionState['health_check'] ?? 'idle'}
+            onClick={() => cronRetry('school_health_monitor')}
+          />
           <Link href="/admin/observability"
             style={{ padding: '6px 12px', background: '#F3F4F6', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#374151', textDecoration: 'none' }}>
             📊 Observability →
