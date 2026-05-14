@@ -31,7 +31,7 @@ const PUBLIC_PATHS = [
 
 // Super admin only paths
 const SUPER_ADMIN_PATHS = ['/super-admin'];
-const SUPER_ADMIN_EMAIL = 'pranixailabs@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? 'pranixailabs@gmail.com';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

@@ -14,17 +14,18 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { href: '/accounts',                 label: 'Accounts',              icon: '💰', roles: ['owner','admin','accountant'] },
   { href: '/dashboard',                  label: 'Dashboard',            icon: '◈', exact: true },
   { href: '/principal',                  label: 'Principal View',       icon: '📊', roles: ['owner','admin'] },
-  { href: '/students',                   label: 'Students',             icon: '👨‍🎓' },
+  { href: '/students',                   label: 'Students',             icon: '👨‍🎓', roles: ['owner','admin','principal','teacher'] },
   { href: '/admissions',                 label: 'New Inquiry',          icon: '✦',  roles: ['owner','admin'] },
   { href: '/admissions/crm',             label: 'Leads CRM',            icon: '◎',  roles: ['owner','admin'] },
   { href: '/admissions/call-analysis',   label: 'Call Analysis',        icon: '📞', roles: ['owner','admin'] },
-  { href: '/report-cards',               label: 'Report Cards',         icon: '◷' },
-  { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕' },
+  { href: '/report-cards',               label: 'Report Cards',         icon: '◷',  roles: ['owner','admin','principal','teacher'] },
+  { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕',  roles: ['owner','admin','principal'] },
   { href: '/automation',                 label: 'Automation',           icon: '⚡', roles: ['owner','admin'] },
   { href: '/automation/cron',            label: 'Automation Schedule',  icon: '🤖', roles: ['owner','admin'] },
-  { href: '/analytics',                  label: 'Analytics',            icon: '◉' },
+  { href: '/analytics',                  label: 'Analytics',            icon: '◉',  roles: ['owner','admin','principal'] },
   { href: '/connectors',                 label: 'Data Connectors',      icon: '🔗', roles: ['owner','admin'] },
   { href: '/whatsapp',                   label: 'WhatsApp Bot',         icon: '💬', roles: ['owner','admin'] },
   { href: '/import',                     label: 'CSV Import',           icon: '↑',  roles: ['owner','admin'] },
