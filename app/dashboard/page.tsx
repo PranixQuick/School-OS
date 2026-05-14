@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-import { DEMO_KPIS, DEMO_LEADS, DEMO_EVALS, DEMO_EVENTS } from '@/lib/demoData';
+// Phase C: demoData removed — no fallback KPIs
 
 interface KPIs {
   total_students: number; total_staff: number; pending_fees_count: number;
@@ -36,10 +36,10 @@ const KPI_CARDS = [
 ];
 
 export default function DashboardPage() {
-  const [kpis, setKpis] = useState<KPIs>(DEMO_KPIS);
-  const [leads, setLeads] = useState<Lead[]>(DEMO_LEADS);
-  const [evals, setEvals] = useState<Eval[]>(DEMO_EVALS);
-  const [events, setEvents] = useState<Event[]>(DEMO_EVENTS);
+  const [kpis, setKpis] = useState<KPIs | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [evals, setEvals] = useState<Eval[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   // Item #3: legal acceptance renewal banner
   const [legalPendingCount, setLegalPendingCount] = useState(0);
@@ -49,10 +49,10 @@ export default function DashboardPage() {
       .then(r => r.json())
       .then(d => {
         if (d.kpis) {
-          setKpis(d.kpis.total_students > 0 ? d.kpis : DEMO_KPIS);
-          setLeads(d.recent_leads?.length ? d.recent_leads : DEMO_LEADS);
-          setEvals(d.recent_evals?.length ? d.recent_evals : DEMO_EVALS);
-          setEvents(d.upcoming_events?.length ? d.upcoming_events : DEMO_EVENTS);
+          setKpis(d.kpis);
+          setLeads(d.recent_leads ?? []);
+          setEvals(d.recent_evals ?? []);
+          setEvents(d.upcoming_events ?? []);
         }
       })
       .catch(() => {})
@@ -68,6 +68,20 @@ export default function DashboardPage() {
   }, []);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // Guard: kpis is null while loading (Phase C: no DEMO_KPIS fallback)
+  if (!kpis) {
+    return (
+      <div style={{ padding: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {[0,1,2,3].map(i => (
+            <div key={i} style={{ height: 90, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ))}
+        </div>
+        <div style={{ height: 200, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      </div>
+    );
+  }
 
   // Compute values from KPIs
   const kpiValues = [
