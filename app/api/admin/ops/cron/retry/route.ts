@@ -49,6 +49,18 @@ export async function POST(req: NextRequest) {
       case 'risk_detection':
         targetUrl = `${baseUrl}/api/admin/risk-flags/generate`;
         break;
+      case 'school_health_monitor': {
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+        const DISPATCH_SECRET = process.env.DISPATCH_SECRET ?? '';
+        if (!DISPATCH_SECRET) return NextResponse.json({ error: 'DISPATCH_SECRET not configured' }, { status: 500 });
+        const hmRes = await fetch(`${SUPABASE_URL}/functions/v1/school-health-monitor`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-DISPATCH-SECRET': DISPATCH_SECRET },
+          body: '{}' 
+        });
+        const hmData = await hmRes.json() as Record<string, unknown>;
+        return NextResponse.json({ triggered: true, job_name, response: hmData });
+      }
       default:
         return NextResponse.json({ error: `Unknown job_name: ${job_name}` }, { status: 400 });
     }
