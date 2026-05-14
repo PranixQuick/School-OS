@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from('notifications').select('status')
       .eq('school_id', schoolId),
     // Dispatched in last 24h
-    supabaseAdmin.from('notifications').select('id', { count: 'exact', head: true })
+    supabaseAdmin.from('notifications').select('id')
       .eq('school_id', schoolId).eq('status', 'dispatched')
       .gte('dispatched_at', since24h),
     // Recent failures (last 5)
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     acc[n.status] = (acc[n.status] ?? 0) + 1;
     return acc;
   }, {});
-  const dispatched24h = notif24hRes.status === 'fulfilled' ? (notif24hRes.value.count ?? 0) : 0;
+  const dispatched24h = notif24hRes.status === 'fulfilled' ? (notif24hRes.value.data?.length ?? 0) : 0;
   const recentFailures = notifFailRes.status === 'fulfilled' ? (notifFailRes.value.data ?? []) : [];
 
   // Cron: deduplicate to latest per job
