@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     .select('id, student_id, route_id, stop_id, opted_in, fee_amount, academic_year_id, students(name, class, section), transport_routes(route_name, route_number), transport_stops(stop_name, stop_order, pickup_time)')
     .eq('school_id', schoolId)
     .eq('opted_in', true)
-    .order('students(name)');
+    .order('student_id');
 
   if (routeId) query = query.eq('route_id', routeId);
 
