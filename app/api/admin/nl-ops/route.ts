@@ -133,21 +133,25 @@ export async function POST(req: NextRequest) {
         break;
       }
       case 'fee_reminder': {
-        const { data: fees } = await supabaseAdmin
-          .from('fees').select('id, student_id, amount, fee_type, students!inner(name, phone_parent)')
-          .eq('school_id', schoolId).in('status', ['pending','overdue'])
-          .eq(params.fee_type_filter ? 'fee_type' : 'school_id', params.fee_type_filter ?? schoolId);
-        const rows = fees ?? [];
+        // Query fees + students separately to avoid join type complexity
+        let feesQuery = supabaseAdmin
+          .from('fees').select('id, student_id, amount, fee_type')
+          .eq('school_id', schoolId).in('status', ['pending','overdue']);
+        if (params.fee_type_filter) feesQuery = feesQuery.eq('fee_type', params.fee_type_filter);
+        const { data: feeRows } = await feesQuery;
+        const rows = feeRows ?? [];
         if (rows.length > 0) {
-          const inserts = rows.map((f) => {
-            const st = (f.students as { name: string; phone_parent?: string });
-            return {
-              school_id: schoolId, type: 'fee_reminder',
-              title: `Fee reminder for ${st.name}`,
-              message: `Dear Parent, ${st.name} has an outstanding ${f.fee_type} fee of ₹${Number(f.amount).toLocaleString('en-IN')}. Please clear it at the earliest.`,
-              target_count: 1, module: 'nl_ops', reference_id: f.id, status: 'pending', channel: 'whatsapp', attempts: 0,
-            };
-          });
+          // Batch fetch student names
+          const studentIds = [...new Set(rows.map(f => f.student_id))];
+          const { data: studentRows } = await supabaseAdmin
+            .from('students').select('id, name').in('id', studentIds);
+          const studentMap = Object.fromEntries((studentRows ?? []).map(s => [s.id, s.name as string]));
+          const inserts = rows.map((f) => ({
+            school_id: schoolId, type: 'fee_reminder',
+            title: `Fee reminder for ${studentMap[f.student_id] ?? 'Student'}`,
+            message: `Dear Parent, ${studentMap[f.student_id] ?? 'your child'} has an outstanding ${String(f.fee_type)} fee of ₹${Number(f.amount).toLocaleString('en-IN')}. Please clear it at the earliest.`,
+            target_count: 1, module: 'nl_ops', reference_id: f.id, status: 'pending', channel: 'whatsapp', attempts: 0,
+          }));
           await supabaseAdmin.from('notifications').insert(inserts);
         }
         result = { executed: 'fee_reminder', reminders_queued: rows.length, preview };
