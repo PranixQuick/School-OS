@@ -9,7 +9,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -32,21 +32,36 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Initialize Capacitor Android platform
+      - name: Create webDir placeholder
+        # capacitor.config.ts sets webDir:'out' but app uses server.url (live Vercel).
+        # Capacitor sync still requires webDir to exist — create a minimal placeholder.
         run: |
-          npx cap add android || echo "Android platform already exists"
-          npx cap sync android
+          mkdir -p out
+          echo '<!DOCTYPE html><html><body>School OS</body></html>' > out/index.html
+
+      - name: Initialize Capacitor Android platform
+        run: npx cap add android || echo "Android platform already exists"
+
+      - name: Sync Capacitor
+        run: npx cap sync android
 
       - name: Set version from tag
         run: |
           TAG=${GITHUB_REF_NAME:-v1.0.0}
           VERSION=${TAG#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          sed -i "s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle || true
+          # Patch versionName in build.gradle if present
+          if grep -q 'versionName' android/app/build.gradle 2>/dev/null; then
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
+          fi
+
+      - name: Make Gradle wrapper executable
+        working-directory: android
+        run: chmod +x gradlew
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
