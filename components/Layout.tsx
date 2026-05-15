@@ -207,7 +207,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             {subtitle && <div className="topbar-sub">{subtitle}</div>}
           </div>
           <div className="topbar-right">
-            <div className="topbar-badge"><div className="topbar-badge-dot" />All systems live</div>
+            <div className="topbar-badge"><div className="topbar-badge-dot" />{waOk === true ? 'All systems live' : waOk === false ? 'Some services degraded' : 'Checking...'}</div>
             {actions}
           </div>
         </header>
