@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
   try { ctx = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
-  const { email } = ctx;
+  const { userEmail } = ctx;
   const superAdminEmail = env.SUPER_ADMIN_EMAIL ?? 'pranixailabs@gmail.com';
-  if (email !== superAdminEmail) {
+  if (userEmail !== superAdminEmail) {
     return NextResponse.json({ error: 'super admin only' }, { status: 403 });
   }
 
