@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import Layout from '@/components/Layout';
-import { DEMO_BROADCASTS } from '@/lib/demoData';
 import Link from 'next/link';
 
 interface Broadcast {
@@ -46,9 +45,9 @@ export default function BroadcastsPage() {
       if (!res.ok) throw new Error('fetch failed');
       const d = await res.json() as { broadcasts?: Broadcast[]; error?: string };
       if (d.error) throw new Error(d.error);
-      setBroadcasts(d.broadcasts?.length ? d.broadcasts : DEMO_BROADCASTS);
+      setBroadcasts(d.broadcasts ?? []);
     } catch {
-      setBroadcasts(DEMO_BROADCASTS);
+      setBroadcasts([]);
     }
   }
 
