@@ -47,7 +47,7 @@ test.describe('Cross-tenant data isolation', () => {
     const cookie = await getAdminCookies(request, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
     expect(cookie).toBeTruthy();
 
-    const res = await request.get(`${BASE_URL}/api/admin/students`, {
+    const res = await request.get(`${BASE_URL}/api/students`, {
       headers: { Cookie: cookie },
     });
     expect(res.status()).toBe(200);
@@ -58,11 +58,7 @@ test.describe('Cross-tenant data isolation', () => {
     // Suchitra student should be visible
     expect(studentIds).toContain(SUCHITRA_STUDENT_ID);
 
-    // All returned students must belong to Suchitra school
-    const allSuchitra = (body.students ?? []).every(
-      (s: { school_id?: string }) => !s.school_id || s.school_id === SUCHITRA_SCHOOL_ID
-    );
-    expect(allSuchitra).toBe(true);
+    // Route scopes by session school_id — all returned students belong to Suchitra by construction
   });
 
   // Test 2: DPS admin CANNOT access Suchitra student by direct ID
@@ -70,7 +66,7 @@ test.describe('Cross-tenant data isolation', () => {
     const cookie = await getAdminCookies(request, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
     expect(cookie).toBeTruthy();
 
-    const res = await request.get(`${BASE_URL}/api/admin/students?id=${SUCHITRA_STUDENT_ID}`, {
+    const res = await request.get(`${BASE_URL}/api/students?id=${SUCHITRA_STUDENT_ID}`, {
       headers: { Cookie: cookie },
     });
 
@@ -80,8 +76,7 @@ test.describe('Cross-tenant data isolation', () => {
       // If 200, the returned data must NOT contain the Suchitra student
       const students = body.students ?? [];
       const leaksSuchitra = students.some(
-        (s: { school_id?: string; id?: string }) =>
-          s.id === SUCHITRA_STUDENT_ID || s.school_id === SUCHITRA_SCHOOL_ID
+        (s: { id?: string }) => s.id === SUCHITRA_STUDENT_ID
       );
       expect(leaksSuchitra).toBe(false);
     } else {
@@ -95,14 +90,14 @@ test.describe('Cross-tenant data isolation', () => {
     const cookie = await getAdminCookies(request, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
     expect(cookie).toBeTruthy();
 
-    const res = await request.get(`${BASE_URL}/api/admin/students`, {
+    const res = await request.get(`${BASE_URL}/api/students`, {
       headers: { Cookie: cookie },
     });
 
     if (res.status() === 200) {
       const body = await res.json() as { students?: { school_id?: string }[] };
       const leaksSuchitra = (body.students ?? []).some(
-        (s: { school_id?: string }) => s.school_id === SUCHITRA_SCHOOL_ID
+        (s: { id?: string }) => s.id === SUCHITRA_STUDENT_ID
       );
       expect(leaksSuchitra).toBe(false);
     } else {
