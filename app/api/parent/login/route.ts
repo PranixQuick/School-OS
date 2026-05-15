@@ -1,6 +1,7 @@
 // Parent auth is phone+PIN. OTP flow is NOT deployed. Future migration to OTP is separate roadmap work.
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 
 // Parent portal login: phone + access_pin auth.
 // Mirrors /api/teacher/login pattern but for parents table.
@@ -38,9 +39,8 @@ export async function POST(req: NextRequest) {
     // Lookup parent. Multi-tenant defense: don't use .single() (which throws on 0 or 2+).
     const { data: parents, error: pErr } = await supabaseAdmin
       .from('parents')
-      .select('id, school_id, student_id, name, phone, language_pref')
-      .eq('phone', phone)
-      .eq('access_pin', pin);
+      .select('id, school_id, student_id, name, phone, language_pref, access_pin, access_pin_hashed')
+      .eq('phone', phone);
 
     if (pErr) {
       console.error('Parent lookup error:', pErr);
@@ -59,6 +59,23 @@ export async function POST(req: NextRequest) {
     }
 
     const parent = parents[0];
+
+    // H2: bcrypt PIN upgrade-on-login
+    let pinValid = false;
+    if (parent.access_pin_hashed) {
+      pinValid = await bcrypt.compare(pin, parent.access_pin_hashed);
+    } else if (parent.access_pin) {
+      pinValid = (parent.access_pin === pin);
+      if (pinValid) {
+        const hashed = await bcrypt.hash(pin, 10);
+        await supabaseAdmin.from('parents')
+          .update({ access_pin_hashed: hashed, access_pin: null })
+          .eq('id', parent.id);
+      }
+    }
+    if (!pinValid) {
+      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+    }
 
     // Hydrate the student record + resolve their class.id by joining
     // students.class + students.section to classes.grade_level + classes.section.
