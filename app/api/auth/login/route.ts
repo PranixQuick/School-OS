@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
   });
 
   // E3: stamp password_migrated_at on first legacy success — skip in E2E/CI bypass
-  if (!isE2EBypass(req)) {
+  if (!isE2EBypass(req.headers.get('x-e2e-bypass'))) {
     await supabaseAdmin
       .from('school_users')
       .update({ password_migrated_at: new Date().toISOString() })
