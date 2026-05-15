@@ -69,6 +69,11 @@ export async function enforceLoginRateLimit(params: {
   email: string;
   ip: string | null;
 }): Promise<RateLimitResult> {
+  // E2: fire-and-forget cleanup of expired api_rate_log rows (non-blocking)
+  void Promise.resolve(
+    supabaseAdmin.from('api_rate_log').delete().lt('expires_at', new Date().toISOString())
+  ).catch(() => {});
+
   const memEmail = memHit(`login:email:${params.email}`, LOGIN_EMAIL_LIMIT, LOGIN_WINDOW_MS);
   if (!memEmail.allowed) return memEmail;
   if (params.ip) {
