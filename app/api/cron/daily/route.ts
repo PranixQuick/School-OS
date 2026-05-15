@@ -1,47 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { runAllJobsForSchool } from '@/lib/cronEngine';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { env } from '@/lib/env';
 
 // Vercel calls this daily at 2am UTC via vercel.json crons config.
-// It processes ALL active schools sequentially.
-// Auth is delegated to verifyCronAuth which accepts the Vercel cron header
-// or a Bearer CRON_SECRET. See lib/cron-auth.ts for the contract.
+// Phase E: fan-out pattern — fires one non-awaited request per active school
+// so each school gets its own 300s Vercel budget. The orchestrator finishes in <5s.
+// Auth is delegated to verifyCronAuth.
 
 export async function GET(req: NextRequest) {
   if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
-  try {
-    // Get all active schools
-    const { data: schools, error } = await supabaseAdmin
-      .from('schools')
-      .select('id, name, plan')
-      .eq('is_active', true)
-      .order('created_at');
+  const { data: schools, error } = await supabaseAdmin
+    .from('schools')
+    .select('id, name, plan')
+    .eq('is_active', true);
 
-    if (error) throw new Error(error.message);
-    if (!schools || schools.length === 0) {
-      return NextResponse.json({ message: 'No active schools', processed: 0 });
-    }
-
-    const allResults = [];
-
-    for (const school of schools) {
-      const schoolResults = await runAllJobsForSchool(school, 'auto');
-      allResults.push({ school: school.name, school_id: school.id, jobs: schoolResults });
-    }
-
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      schools_processed: schools.length,
-      results: allResults,
-    });
-
-  } catch (err) {
-    console.error('[Cron Daily] Fatal error:', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const appUrl = env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+
+  // Fire-and-forget: one fetch per school, no await
+  for (const school of schools ?? []) {
+    void fetch(`${appUrl}/api/cron/run-school`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.CRON_SECRET ?? ''}`
+      },
+      body: JSON.stringify({
+        school_id: school.id,
+        school_name: school.name,
+        plan: school.plan,
+      }),
+    }).catch(err => console.error(`[Cron Daily] dispatch failed for ${school.id}:`, err));
+  }
+
+  return NextResponse.json({
+    dispatched: schools?.length ?? 0,
+    schools: schools?.map(s => s.name) ?? [],
+  });
 }
