@@ -129,6 +129,14 @@ export default function CRMPage() {
                     </select>
                   </td>
                   <td>
+                    {lead.status === 'admitted' && (
+                      <a
+                        href={`/admin/students/new?from_inquiry=${lead.id}&child_name=${encodeURIComponent(lead.child_name ?? '')}&target_class=${encodeURIComponent(lead.target_class)}`}
+                        style={{ height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid #D1FAE5', background: '#ECFDF5', color: '#065F46', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                      >
+                        Enroll →
+                      </a>
+                    )}
                     <button
                       onClick={() => setDeleteConfirm(lead)}
                       style={{ height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', color: '#B91C1C', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}

@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
       admin_name: string;
       board?: string;
       contact_phone?: string;
+      institution_type?: string;
+      ownership_type?: string;
     };
 
     const { school_name, admin_email, admin_name } = body;
@@ -79,7 +81,19 @@ export async function POST(req: NextRequest) {
     // DB trigger trg_provision_school (applied in edge_case_hardening migration).
     // No manual insert needed.
 
-    // Step 3: Seed a welcome event
+    // Step 3: Update institution_type + ownership_type if provided
+    if (body.institution_type || body.ownership_type) {
+      const { data: schoolRow } = await supabaseAdmin
+        .from('schools').select('institution_id').eq('id', school.id).maybeSingle();
+      if (schoolRow?.institution_id) {
+        await supabaseAdmin.from('institutions').update({
+          ...(body.institution_type ? { institution_type: body.institution_type } : {}),
+          ...(body.ownership_type ? { ownership_type: body.ownership_type } : {}),
+        }).eq('id', schoolRow.institution_id);
+      }
+    }
+
+    // Step 4: Seed a welcome event
     await supabaseAdmin.from('events').insert({
       school_id: school.id,
       title: 'Welcome to School OS!',

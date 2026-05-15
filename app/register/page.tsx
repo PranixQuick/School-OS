@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     school_name: '', admin_email: '', admin_name: '',
     contact_phone: '', board: 'CBSE',
+    institution_type: 'school_k10', ownership_type: 'private',
   });
   const [error, setError] = useState('');
   const [schoolName, setSchoolName] = useState('');

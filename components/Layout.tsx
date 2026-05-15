@@ -64,9 +64,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   const [session, setSession] = useState<SessionData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [waOk, setWaOk] = useState<boolean | null>(null);
+  const [institutionType, setInstitutionType] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/session').then(r => r.json()).then(d => { if (d.session) setSession(d.session); }).catch(() => {});
+    fetch('/api/admin/institution-config').then(r => r.json()).then(d => { if (d.institution_type) setInstitutionType(d.institution_type); }).catch(() => {});
   }, []);
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -94,7 +96,17 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   function canSee(item: NavItem) {
     if (!item.roles) return true;
-    return item.roles.includes(session?.userRole ?? 'viewer');
+    if (!item.roles.includes(session?.userRole ?? 'viewer')) return false;
+    // G5: institution_type gating
+    const t = institutionType;
+    if (t) {
+      if (item.label === 'RTE Admissions' && !['govt_school','govt_aided_school','welfare_school'].includes(t)) return false;
+      if (item.label === 'Meal Attendance' && !['govt_school','welfare_school'].includes(t)) return false;
+      if (item.label === 'Sanitary Inventory' && t === 'coaching') return false;
+      if (['Leads CRM','Call Analysis'].includes(item.label) && ['govt_school','govt_aided_school'].includes(t)) return false;
+      if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
+    }
+    return true;
   }
 
   const plan = session?.plan ?? 'free';
