@@ -57,4 +57,5 @@ jobs:
           TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
           TEST_PARENT_PHONE: '9515479595'
           TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
+          E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
