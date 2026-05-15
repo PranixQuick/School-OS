@@ -30,6 +30,22 @@ export default function HomeworkPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const [submitting, setSubmitting] = useState<string | null>(null);
+
+  async function handleSubmit(hwId: string) {
+    setSubmitting(hwId);
+    try {
+      await fetch('/api/student/homework/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homework_id: hwId, notes: '' }),
+      });
+      void load();
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   const cardStyle = { background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 10 };
 
   return (
@@ -77,6 +93,15 @@ export default function HomeworkPage() {
                 <div style={{ marginTop: 6, padding: '5px 8px', background: '#F0FDF4', borderRadius: 5, fontSize: 11, color: '#065F46' }}>
                   Teacher: {h.teacher_remarks}
                 </div>
+              )}
+              {(!h.submission_status || h.submission_status === 'pending') && (
+                <button
+                  onClick={() => handleSubmit(h.id)}
+                  disabled={submitting === h.id}
+                  style={{ marginTop: 8, padding: '5px 14px', borderRadius: 6, border: 'none', background: '#4F46E5', color: '#fff', fontSize: 11, fontWeight: 700, cursor: submitting === h.id ? 'wait' : 'pointer', opacity: submitting === h.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                >
+                  {submitting === h.id ? 'Submitting…' : 'Submit Homework'}
+                </button>
               )}
             </div>
           );
