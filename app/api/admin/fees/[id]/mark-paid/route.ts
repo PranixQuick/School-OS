@@ -26,7 +26,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 // TODO(item-15): migrate to supabaseForUser
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseForUser } from '@/lib/supabaseForUser';
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 
 export const runtime = 'nodejs';
@@ -73,6 +73,7 @@ export async function PATCH(
     throw e;
   }
   const { schoolId, staffId, userId } = ctx;
+  const db = supabaseForUser(schoolId);
 
   // Param validation
   const { id: feeId } = await params;
@@ -102,7 +103,7 @@ export async function PATCH(
   }
 
   // Fetch fee — must belong to this school
-  const { data: fee, error: lookupErr } = await supabaseAdmin
+  const { data: fee, error: lookupErr } = await db
     .from('fees')
     .select('id, status, amount, student_id')
     .eq('id', feeId)
@@ -139,7 +140,7 @@ export async function PATCH(
     if (!updatePayload.original_amount) updatePayload.original_amount = fee.amount;
   }
 
-  const { data, error: updateErr } = await supabaseAdmin
+  const { data, error: updateErr } = await db
     .from('fees')
     .update(updatePayload)
     .eq('id', feeId)
@@ -152,12 +153,12 @@ export async function PATCH(
   if (!isWaiver) {
     try {
       // Fetch student name for the message
-      const { data: studentRow } = await supabaseAdmin
+      const { data: studentRow } = await db
         .from('students').select('name')
         .eq('id', fee.student_id).eq('school_id', schoolId).maybeSingle();
       const studentName = studentRow?.name ?? 'student';
       const receiptRef = data.payment_reference ?? '—';
-      await writeNotification(supabaseAdmin, {
+      await writeNotification(db, {
         school_id: schoolId,
         type: 'fee_reminder',
         title: 'Fee payment confirmed',
