@@ -26,7 +26,8 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 // TODO(item-15): migrate to supabaseForUser
-import { supabaseForUser } from '@/lib/supabaseForUser';
+import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
+import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 
 export const runtime = 'nodejs';
@@ -73,7 +74,6 @@ export async function PATCH(
     throw e;
   }
   const { schoolId, staffId, userId } = ctx;
-  const db = supabaseForUser(schoolId);
 
   // Param validation
   const { id: feeId } = await params;
@@ -103,7 +103,7 @@ export async function PATCH(
   }
 
   // Fetch fee — must belong to this school
-  const { data: fee, error: lookupErr } = await db
+  const { data: fee, error: lookupErr } = await supabaseAdmin
     .from('fees')
     .select('id, status, amount, student_id')
     .eq('id', feeId)
@@ -140,7 +140,7 @@ export async function PATCH(
     if (!updatePayload.original_amount) updatePayload.original_amount = fee.amount;
   }
 
-  const { data, error: updateErr } = await db
+  const { data, error: updateErr } = await supabaseAdmin
     .from('fees')
     .update(updatePayload)
     .eq('id', feeId)
@@ -153,12 +153,12 @@ export async function PATCH(
   if (!isWaiver) {
     try {
       // Fetch student name for the message
-      const { data: studentRow } = await db
+      const { data: studentRow } = await supabaseAdmin
         .from('students').select('name')
         .eq('id', fee.student_id).eq('school_id', schoolId).maybeSingle();
       const studentName = studentRow?.name ?? 'student';
       const receiptRef = data.payment_reference ?? '—';
-      await writeNotification(db, {
+      await writeNotification(supabaseAdmin, {
         school_id: schoolId,
         type: 'fee_reminder',
         title: 'Fee payment confirmed',
