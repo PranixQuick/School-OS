@@ -54,5 +54,5 @@ export async function POST(req: NextRequest) {
       }
     }).eq('id', institutionId);
   }
-  return NextResponse.json({ success: true, step: 7, redirect: '/admin', message: 'School is now active.' });
+  return NextResponse.json({ success: true, step: 7, redirect: '/dashboard', message: 'School is now active.' });
 }

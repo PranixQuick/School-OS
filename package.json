@@ -26,6 +26,7 @@
     "@capacitor/splash-screen": "^6.0.0",
     "@capacitor/status-bar": "^6.0.0",
     "@supabase/supabase-js": "^2.45.4",
+    "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
     "jspdf": "^2.5.1",
     "jszip": "^3.10.1",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
     "@playwright/test": "^1.44.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jspdf": "^2.0.0",
     "@types/node": "^22",
     "@types/react": "^19",

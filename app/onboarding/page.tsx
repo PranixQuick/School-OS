@@ -126,7 +126,7 @@ export default function OnboardingWizard() {
           if (!acceptRes.ok) { setStepError(acceptRes.data?.error ?? 'Legal acceptance failed'); setSaving(false); return; }
         }
         result = await post('/api/admin/onboarding/7-activate', {});
-        if (result.ok) { router.push('/admin'); return; }
+        if (result.ok) { router.push('/dashboard'); return; }
       }
       if (!result?.ok) { setStepError(result?.data?.error ?? 'Save failed'); return; }
       setStepSuccess('Saved ✓');

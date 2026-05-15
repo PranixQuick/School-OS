@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
     schoolUser.role === 'principal' ? '/principal' :
     schoolUser.role === 'teacher'   ? '/teacher' :
     schoolUser.role === 'accountant' ? '/accounts' :
-    (schoolUser.role === 'admin_staff' || schoolUser.role === 'admin') ? '/admin' :
+    (schoolUser.role === 'admin_staff' || schoolUser.role === 'admin') ? '/dashboard' :
     '/dashboard';
 
   const response = NextResponse.json({
