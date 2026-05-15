@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { DEMO_BRIEFING } from '@/lib/demoData';
 import Link from 'next/link';
 
 interface Briefing {
@@ -28,12 +27,12 @@ export default function BriefingPage() {
         setBriefings(list);
         setSelected(list[0]);
       } else {
-        setBriefings([DEMO_BRIEFING as Briefing]);
-        setSelected(DEMO_BRIEFING as Briefing);
+        setBriefings([]);
+        setSelected(null);
       }
     } catch {
-      setBriefings([DEMO_BRIEFING as Briefing]);
-      setSelected(DEMO_BRIEFING as Briefing);
+      setBriefings([]);
+      setSelected(null);
     }
   }
 

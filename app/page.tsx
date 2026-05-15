@@ -110,7 +110,7 @@ export default function LandingPage() {
           <Link href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#4F46E5', color: '#fff', textDecoration: 'none', boxShadow: '0 4px 20px rgba(79,70,229,0.35)' }}>
             Start Free — No Credit Card →
           </Link>
-          <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#F9FAFB', color: '#374151', textDecoration: 'none', border: '1px solid #E5E7EB' }}>
+          <Link href="/login?demo=1" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#F9FAFB', color: '#374151', textDecoration: 'none', border: '1px solid #E5E7EB' }}>
             View Demo
           </Link>
         </div>

@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
   if (institutionId) {
     await supabaseAdmin.from('institutions').update({ onboarded_at: now }).eq('id', institutionId);
+    // F2: seed feature_flags from institution_type + ownership_type
+    const { data: inst } = await supabaseAdmin.from('institutions')
+      .select('institution_type, ownership_type').eq('id', institutionId).maybeSingle();
+    const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(inst?.institution_type ?? '');
+    const isPrivateOrFranchise = ['private','franchise'].includes(inst?.ownership_type ?? '');
+    const isAided = inst?.ownership_type === 'aided';
+    await supabaseAdmin.from('institutions').update({
+      feature_flags: {
+        fee_module_enabled: isPrivateOrFranchise || isAided,
+        meal_tracking_enabled: isGovt,
+        rte_mode_enabled: isGovt || isAided,
+        scholarship_tracking_enabled: isGovt || isAided,
+        online_payment_enabled: false,
+      }
+    }).eq('id', institutionId);
   }
   return NextResponse.json({ success: true, step: 7, redirect: '/admin', message: 'School is now active.' });
 }
