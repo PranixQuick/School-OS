@@ -14,7 +14,8 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 // TODO(item-15): migrate to supabaseForUser
-import { supabaseForUser } from '@/lib/supabaseForUser';
+import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
+import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,6 @@ export async function GET(req: NextRequest) {
     throw e;
   }
   const { schoolId } = ctx;
-  const db = supabaseForUser(schoolId);
 
   const feeEnabled = await isFeeModuleEnabled(schoolId);
   if (!feeEnabled) return NextResponse.json({ error: 'fee_module_disabled' }, { status: 403 });
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   const offset     = parseInt(searchParams.get('offset') ?? '0', 10);
 
   // Fetch fees with student info
-  let query = db
+  let query = supabaseAdmin
     .from('fees')
     .select(`id, student_id, amount, original_amount, due_date, paid_date, status, fee_type,
       description, fee_receipt_number, gst_rate, tax_amount, payment_method, payment_reference,
@@ -105,7 +105,6 @@ export async function POST(req: NextRequest) {
     throw e;
   }
   const { schoolId } = ctx;
-  const db = supabaseForUser(schoolId);
 
   const feeEnabled = await isFeeModuleEnabled(schoolId);
   if (!feeEnabled) return NextResponse.json({ error: 'fee_module_disabled' }, { status: 403 });
@@ -121,7 +120,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Verify student belongs to this school
-  const { data: student } = await db
+  const { data: student } = await supabaseAdmin
     .from('students')
     .select('id')
     .eq('id', body.student_id)
@@ -130,7 +129,7 @@ export async function POST(req: NextRequest) {
 
   if (!student) return NextResponse.json({ error: 'Student not found in this school' }, { status: 404 });
 
-  const { data, error } = await db
+  const { data, error } = await supabaseAdmin
     .from('fees')
     .insert({
       school_id: schoolId,
