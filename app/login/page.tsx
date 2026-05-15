@@ -1,19 +1,24 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
-  const router = useRouter();
+// F7: DemoPreFill reads ?demo=1 — must be in its own component for Suspense
+function DemoPreFill({ setEmail, setPassword }: { setEmail: (v: string) => void; setPassword: (v: string) => void }) {
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState('');
-  // F7: pre-fill demo credentials when ?demo=1
   useEffect(() => {
     if (searchParams.get('demo') === '1') {
       setEmail('admin@suchitracademy.edu.in');
       setPassword('schoolos0000');
     }
-  }, [searchParams]);
+  }, [searchParams, setEmail, setPassword]);
+  return null;
+}
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -89,6 +94,9 @@ export default function LoginPage() {
       padding: '24px',
     }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
+        <Suspense fallback={null}>
+          <DemoPreFill setEmail={setEmail} setPassword={setPassword} />
+        </Suspense>
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
