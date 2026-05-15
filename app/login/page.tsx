@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
+  // F7: pre-fill demo credentials when ?demo=1
+  useEffect(() => {
+    if (searchParams.get('demo') === '1') {
+      setEmail('admin@suchitracademy.edu.in');
+      setPassword('schoolos0000');
+    }
+  }, [searchParams]);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
