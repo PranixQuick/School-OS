@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseForUser } from '@/lib/supabaseForUser';
+import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
+import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 import { getSchoolId } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity } from '@/lib/logger';
@@ -13,13 +14,12 @@ function generatePin(): string {
 export async function GET(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const db = supabaseForUser(schoolId ?? '');
     const classFilter = req.nextUrl.searchParams.get('class');
     const section = req.nextUrl.searchParams.get('section');
     const search = req.nextUrl.searchParams.get('search');
     const includeInactive = req.nextUrl.searchParams.get('include_inactive') === 'true';
 
-    let query = db
+    let query = supabaseAdmin
       .from('students')
       .select('id, name, class, section, roll_number, admission_number, phone_parent, parent_name, date_of_birth, is_active, created_at')
       .eq('school_id', schoolId)
@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const db = supabaseForUser(schoolId ?? '');
     const body = await req.json() as {
       name: string; class: string; section?: string;
       roll_number?: string; admission_number?: string;
@@ -57,7 +56,8 @@ export async function POST(req: NextRequest) {
     // Phase 1 Task 1.4 — dual-write institution_id + academic_year_id alongside school_id.
     const instCtx = await getInstitutionForSchool(schoolId);
 
-    const { data: student, error } = await db\n      .from('students')
+    const { data: student, error } = await supabaseAdmin
+      .from('students')
       .insert({
         school_id: schoolId,
         institution_id: instCtx.institution_id,
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     let pin: string | null = null;
     if (body.phone_parent) {
       pin = generatePin();
-      await db.from('parents').upsert({
+      await supabaseAdmin.from('parents').upsert({
         school_id: schoolId,
         student_id: student.id,
         name: body.parent_name ?? 'Parent',
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       // Send PIN via WhatsApp (non-blocking)
       const normPhone = normalisePhone(body.phone_parent);
       if (normPhone) {
-        const { data: school } = await db.from('schools').select('name').eq('id', schoolId).single();
+        const { data: school } = await supabaseAdmin.from('schools').select('name').eq('id', schoolId).single();
         const schoolName = school?.name ?? 'School';
         void sendWhatsApp({
           to: normPhone,
@@ -121,7 +121,6 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const db = supabaseForUser(schoolId ?? '');
     const body = await req.json() as {
       id: string; name?: string; class?: string; section?: string;
       roll_number?: string; admission_number?: string;
@@ -131,7 +130,8 @@ export async function PATCH(req: NextRequest) {
 
     if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-    const { data, error } = await db\n      .from('students')
+    const { data, error } = await supabaseAdmin
+      .from('students')
       .update({
         ...(body.name !== undefined && { name: body.name }),
         ...(body.class !== undefined && { class: body.class }),
@@ -154,7 +154,7 @@ export async function PATCH(req: NextRequest) {
     if (body.phone_parent !== undefined) {
       const normPhone = normalisePhone(body.phone_parent);
       if (normPhone) {
-        await db.from('parents')
+        await supabaseAdmin.from('parents')
           .update({ phone: normPhone, ...(body.parent_name && { name: body.parent_name }) })
           .eq('student_id', body.id)
           .eq('school_id', schoolId)
@@ -171,11 +171,11 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const db = supabaseForUser(schoolId ?? '');
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-    const { error } = await db\n      .from('students')
+    const { error } = await supabaseAdmin
+      .from('students')
       .update({ is_active: false })
       .eq('id', id)
       .eq('school_id', schoolId);
