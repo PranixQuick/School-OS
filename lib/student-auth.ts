@@ -8,6 +8,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 import { env } from '@/lib/env';
 
 export const STUDENT_SESSION_COOKIE = 'student_session';
@@ -45,7 +46,7 @@ export async function verifyStudentPin(
 ): Promise<{ id: string; name: string; class: string; section: string; school_id: string } | null> {
   const { data, error } = await supabaseAdmin
     .from('students')
-    .select('id, name, class, section, school_id, access_pin, student_login_enabled, is_active')
+    .select('id, name, class, section, school_id, access_pin, access_pin_hashed, student_login_enabled, is_active')
     .eq('admission_number', admissionNumber)
     .eq('school_id', schoolId)
     .eq('is_active', true)
@@ -54,7 +55,20 @@ export async function verifyStudentPin(
 
   if (error || !data) return null;
   // Plain-text PIN compare — matches parent auth pattern
-  if (data.access_pin !== pin) return null;
+  // H2: bcrypt PIN upgrade-on-login
+  let pinValid = false;
+  if (data.access_pin_hashed) {
+    pinValid = await bcrypt.compare(pin, data.access_pin_hashed);
+  } else if (data.access_pin) {
+    pinValid = (data.access_pin === pin);
+    if (pinValid) {
+      const hashed = await bcrypt.hash(pin, 10);
+      await supabaseAdmin.from('students')
+        .update({ access_pin_hashed: hashed, access_pin: null })
+        .eq('id', data.id);
+    }
+  }
+  if (!pinValid) return null;
 
   // Stamp last login (non-fatal)
   await supabaseAdmin
