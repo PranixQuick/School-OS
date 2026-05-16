@@ -1,4 +1,4 @@
-const CACHE_NAME = 'school-os-v1';
+const CACHE_NAME = 'edprosys-v1';
 const OFFLINE_URLS = [
   '/',
   '/login',
@@ -52,7 +52,7 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
-  const title = data.title || 'School OS';
+  const title = data.title || 'EdProSys';
   const body = data.body || data.message || 'You have a new notification';
   event.waitUntil(
     self.registration.showNotification(title, {
