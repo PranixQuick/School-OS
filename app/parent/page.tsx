@@ -16,7 +16,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 
-type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm' | 'report_cards';
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm' | 'report_cards' | 'transport';
 
 interface ParentInfo {
   id: string;
@@ -169,6 +169,8 @@ export default function ParentPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>('homework');
+  const [transport, setTransport] = useState<{ route_name: string; current_lat: number; current_lng: number; bus_status: string; last_location_at: string } | null>(null);
+  const [transportLoading, setTransportLoading] = useState(false);
 
   // Data state per tab
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
@@ -302,8 +304,24 @@ export default function ParentPage() {
     if (activeTab === 'fees' && fees.length === 0 && !feesLoading) void loadFees(feeFilter);
     if (activeTab === 'ptm' && ptmSlots.length === 0 && !ptmLoading) void loadPtm();
     if (activeTab === 'report_cards' && rcData.length === 0 && !rcLoading) void loadRc();
+    if (activeTab === 'transport' && !transport && !transportLoading) void loadTransport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
+
+  // K6: Load bus transport location for parent
+  async function loadTransport() {
+    if (!parent) return;
+    setTransportLoading(true);
+    try {
+      const r = await fetch('/api/parent/transport', {
+        headers: { 'x-parent-id': parent.id, 'x-school-id': parent.school_id },
+      });
+      if (r.ok) {
+        const d = await r.json() as { transport: typeof transport };
+        setTransport(d.transport);
+      }
+    } finally { setTransportLoading(false); }
+  }
 
   // Item #2
   async function loadFees(statusFilter?: string) {
@@ -506,6 +524,7 @@ export default function ParentPage() {
           { key: 'fees' as Tab, label: '₹ Fees' },
           { key: 'ptm' as Tab, label: '🤝 PTM' },
           { key: 'report_cards' as Tab, label: '📊 Reports' },
+          { key: 'transport' as Tab, label: '🚌 Bus' },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
@@ -838,6 +857,47 @@ export default function ParentPage() {
             )}
           </>
         )}
+      {/* K6: Transport tab */}
+      {activeTab === 'transport' && (
+        <div style={{ padding: '16px' }}>
+          {transportLoading && <div style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: 24 }}>Loading bus location...</div>}
+          {!transportLoading && !transport && (
+            <div style={{ textAlign: 'center', padding: 32, color: '#9CA3AF', fontSize: 13 }}>
+              🚌 No active bus location available right now.
+            </div>
+          )}
+          {transport && (
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{transport.route_name}</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, marginBottom: 12,
+                background: transport.bus_status === 'arriving' ? '#D1FAE5' : transport.bus_status === 'en_route' ? '#DBEAFE' : '#F3F4F6',
+                color: transport.bus_status === 'arriving' ? '#065F46' : transport.bus_status === 'en_route' ? '#1E40AF' : '#6B7280',
+                fontSize: 12, fontWeight: 600 }}>
+                {transport.bus_status === 'arriving' ? '🟢 Arriving' : transport.bus_status === 'en_route' ? '🔵 En Route' : '⚫ Status Unknown'}
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <iframe
+                  title='Bus Location'
+                  width='100%'
+                  height='240'
+                  style={{ borderRadius: 8, border: 'none' }}
+                  src={`https://maps.google.com/maps?q=${transport.current_lat},${transport.current_lng}&z=15&output=embed`}
+                  allowFullScreen
+                />
+              </div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                Last updated: {transport.last_location_at ? new Date(transport.last_location_at).toLocaleTimeString() : '—'}
+              </div>
+              <button
+                onClick={() => { setTransport(null); void loadTransport(); }}
+                style={{ marginTop: 12, padding: '8px 16px', background: '#F9FAFB', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );
