@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClassRow { grade: string; sections: string }
+interface BatchRow { label: string; entry_year: string; capacity: string }
 interface StaffRow { name: string; role: string; email: string; phone: string }
 interface FeeDefault { fee_type: string; amount: string; due_date: string; class: string }
 interface StudentRow { student_name: string; class: string; section: string; parent_name: string; parent_phone: string; parent_email: string }
@@ -59,6 +60,7 @@ export default function OnboardingWizard() {
 
   // Step 2: Classes
   const [classes, setClasses] = useState<ClassRow[]>([{ grade: '', sections: 'A' }]);
+  const [batches, setBatches] = useState<BatchRow[]>([{ label: '', entry_year: String(new Date().getFullYear() + 1), capacity: '60' }]);
 
   // Step 3: Staff
   const [staffList, setStaffList] = useState<StaffRow[]>([{ name: '', role: 'teacher', email: '', phone: '' }]);
@@ -114,8 +116,14 @@ export default function OnboardingWizard() {
       if (step === 1) {
         result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl });
       } else if (step === 2) {
-        const parsed = classes.filter(c => c.grade.trim()).map(c => ({ grade: c.grade.trim(), sections: c.sections.split(',').map(s => s.trim()).filter(Boolean) }));
-        result = await post('/api/admin/onboarding/2-classes', { classes: parsed });
+        // K2: coaching uses 2-batches, others use 2-classes
+        if (isCoaching(instType)) {
+          const batchList = batches.filter(b => b.label.trim()).map(b => ({ label: b.label.trim(), entry_year: parseInt(b.entry_year) || new Date().getFullYear() + 1, capacity: parseInt(b.capacity) || null }));
+          result = await post('/api/admin/onboarding/2-batches', { batches: batchList });
+        } else {
+          const parsed = classes.filter(c => c.grade.trim()).map(c => ({ grade: c.grade.trim(), sections: c.sections.split(',').map(s => s.trim()).filter(Boolean) }));
+          result = await post('/api/admin/onboarding/2-classes', { classes: parsed });
+        }
       } else if (step === 3) {
         const staff = staffCsvText.trim() ? parseCSV(staffCsvText).map(r => ({ name: r.name??'', role: r.role??'teacher', email: r.email??'', phone: r.phone??'' })) : staffList.filter(s => s.name.trim());
         result = await post('/api/admin/onboarding/3-staff', { staff });
@@ -196,9 +204,38 @@ export default function OnboardingWizard() {
       <div>
         <div style={{ fontSize:13, fontWeight:600, color:'#374151', marginBottom:8 }}>Add Batches</div>
         <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Add batches (e.g. JEE 2027 Morning, NEET 2027 Evening). You can add more after setup.</div>
-        <div style={{ padding:'12px 14px', background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:8, fontSize:13 }}>
-          Batch creation coming in the next update. For now, continue to the next step — you can add batches after activation from the admin dashboard.
-        </div>
+        {batches.map((b, i) => (
+          <div key={i} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:8, marginBottom:8, alignItems:'center' }}>
+            <input
+              placeholder='Batch name (e.g. JEE 2027 Morning)'
+              style={inputStyle}
+              value={b.label}
+              onChange={e => setBatches(prev => prev.map((x,j) => j===i ? {...x, label: e.target.value} : x))}
+            />
+            <input
+              type='number'
+              placeholder='Year'
+              style={inputStyle}
+              value={b.entry_year}
+              onChange={e => setBatches(prev => prev.map((x,j) => j===i ? {...x, entry_year: e.target.value} : x))}
+            />
+            <input
+              type='number'
+              placeholder='Capacity'
+              style={inputStyle}
+              value={b.capacity}
+              onChange={e => setBatches(prev => prev.map((x,j) => j===i ? {...x, capacity: e.target.value} : x))}
+            />
+            <button
+              onClick={() => setBatches(prev => prev.filter((_,j) => j !== i))}
+              style={{ padding:'8px 12px', background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:6, color:'#B91C1C', cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}
+            >×</button>
+          </div>
+        ))}
+        <button
+          onClick={() => setBatches(prev => [...prev, { label: '', entry_year: String(new Date().getFullYear() + 1), capacity: '60' }])}
+          style={{ padding:'8px 16px', background:'#F9FAFB', border:'1px solid #D1D5DB', borderRadius:6, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
+        >+ Add Batch</button>
       </div>
     );
 
