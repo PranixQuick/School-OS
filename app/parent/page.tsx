@@ -18,7 +18,7 @@ import { L, Lang } from '@/lib/i18n-parent';
 
 import { useState, useEffect, FormEvent } from 'react';
 
-type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm' | 'report_cards' | 'transport';
+type Tab = 'homework' | 'announcements' | 'attendance' | 'lesson_plans' | 'fees' | 'ptm' | 'report_cards' | 'transport' | 'complaints';
 
 interface ParentInfo {
   id: string;
@@ -176,6 +176,15 @@ export default function ParentPage() {
   const [transport, setTransport] = useState<{ route_name: string; current_lat: number; current_lng: number; bus_status: string; last_location_at: string } | null>(null);
   const [transportLoading, setTransportLoading] = useState(false);
 
+  // PR-2: Complaints state
+  interface ComplaintRow { id: string; complaint_type: string; subject: string; description: string; status: string; resolution: string | null; resolved_at: string | null; closed_at: string | null; created_at: string }
+  const [complaints, setComplaints] = useState<ComplaintRow[]>([]);
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
+  const [complaintForm, setComplaintForm] = useState({ complaint_type: 'general', subject: '', description: '' });
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+  const [complaintMessage, setComplaintMessage] = useState('');
+  const [complaintError, setComplaintError] = useState('');
+
   // Data state per tab
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
   const [hwSummary, setHwSummary] = useState({ pending: 0, submitted: 0, late: 0, graded: 0, missed: 0 });
@@ -309,6 +318,7 @@ export default function ParentPage() {
     if (activeTab === 'ptm' && ptmSlots.length === 0 && !ptmLoading) void loadPtm();
     if (activeTab === 'report_cards' && rcData.length === 0 && !rcLoading) void loadRc();
     if (activeTab === 'transport' && !transport && !transportLoading) void loadTransport();
+    if (activeTab === 'complaints' && complaints.length === 0 && !complaintsLoading) void loadComplaints();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
 
@@ -325,6 +335,60 @@ export default function ParentPage() {
         setTransport(d.transport);
       }
     } finally { setTransportLoading(false); }
+  }
+
+  // PR-2: Load complaint history for this parent
+  async function loadComplaints() {
+    setComplaintsLoading(true);
+    setComplaintMessage('');
+    setComplaintError('');
+    try {
+      const r = await fetch('/api/parent/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin, action: 'list', limit: 50 }),
+      });
+      const d = await r.json();
+      if (r.ok) setComplaints(d.complaints ?? []);
+      else setComplaintError(d.error ?? 'Failed to load complaints');
+    } catch (e) { setComplaintError(String(e)); }
+    finally { setComplaintsLoading(false); }
+  }
+
+  // PR-2: Submit a new complaint
+  async function submitComplaint() {
+    if (!complaintForm.subject.trim() || !complaintForm.description.trim()) {
+      setComplaintError('Subject and description are required.');
+      return;
+    }
+    setComplaintSubmitting(true);
+    setComplaintMessage('');
+    setComplaintError('');
+    try {
+      const r = await fetch('/api/parent/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone, pin, action: 'create',
+          complaint_type: complaintForm.complaint_type,
+          subject: complaintForm.subject.trim(),
+          description: complaintForm.description.trim(),
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setComplaintMessage(d.auto_escalated
+          ? 'Complaint filed and escalated to school leadership for immediate attention.'
+          : 'Complaint filed. The school will respond shortly.');
+        setComplaintForm({ complaint_type: 'general', subject: '', description: '' });
+        // Reload history
+        setComplaints([]);
+        void loadComplaints();
+      } else {
+        setComplaintError(d.error ?? 'Failed to file complaint');
+      }
+    } catch (e) { setComplaintError(String(e)); }
+    finally { setComplaintSubmitting(false); }
   }
 
   // Item #2
@@ -529,6 +593,7 @@ export default function ParentPage() {
           { key: 'ptm' as Tab, label: `🤝 ${L('ptm', lang)}` },
           { key: 'report_cards' as Tab, label: `📊 ${L('reports', lang)}` },
           { key: 'transport' as Tab, label: `🚌 ${L('transport', lang)}` },
+          { key: 'complaints' as Tab, label: `📣 ${L('complaints', lang)}` },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
@@ -900,6 +965,97 @@ export default function ParentPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* PR-2: Complaints tab */}
+      {activeTab === 'complaints' && (
+        <div style={{ padding: '0 16px 24px' }}>
+          {/* New complaint form */}
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 10 }}>File a new complaint</div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 4 }}>Category</label>
+              <select value={complaintForm.complaint_type}
+                onChange={e => setComplaintForm(f => ({ ...f, complaint_type: e.target.value }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13 }}>
+                <option value="general">General</option>
+                <option value="academic">Academic</option>
+                <option value="teacher_conduct">Teacher Conduct</option>
+                <option value="bullying">Bullying</option>
+                <option value="safety">Safety</option>
+                <option value="infrastructure">Infrastructure</option>
+                <option value="fee">Fee</option>
+                <option value="transport">Transport</option>
+                <option value="food">Food</option>
+                <option value="vendor">Vendor / External Service</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 4 }}>Subject</label>
+              <input value={complaintForm.subject}
+                onChange={e => setComplaintForm(f => ({ ...f, subject: e.target.value.slice(0, 200) }))}
+                placeholder="Brief summary"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 4 }}>Description</label>
+              <textarea value={complaintForm.description}
+                onChange={e => setComplaintForm(f => ({ ...f, description: e.target.value.slice(0, 4000) }))}
+                rows={5}
+                placeholder="Describe the issue in detail."
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{complaintForm.description.length}/4000</div>
+            </div>
+            {complaintError && <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '8px 12px', borderRadius: 6, marginBottom: 8, fontSize: 12 }}>{complaintError}</div>}
+            {complaintMessage && <div style={{ background: '#D1FAE5', color: '#065F46', padding: '8px 12px', borderRadius: 6, marginBottom: 8, fontSize: 12 }}>{complaintMessage}</div>}
+            <button onClick={() => void submitComplaint()} disabled={complaintSubmitting}
+              style={{ width: '100%', padding: '10px', background: complaintSubmitting ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: complaintSubmitting ? 'wait' : 'pointer' }}>
+              {complaintSubmitting ? 'Filing…' : 'File Complaint'}
+            </button>
+          </div>
+
+          {/* Complaint history */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 10 }}>Your complaint history</div>
+          {complaintsLoading && <div style={{ color: '#6B7280', fontSize: 13, padding: 12 }}>Loading…</div>}
+          {!complaintsLoading && complaints.length === 0 && (
+            <div style={{ padding: 24, textAlign: 'center', color: '#9CA3AF', fontSize: 13, background: '#F9FAFB', borderRadius: 10 }}>
+              No complaints filed yet.
+            </div>
+          )}
+          {complaints.map(c => {
+            const statusColor: Record<string, [string, string]> = {
+              open:         ['#F3F4F6', '#374151'],
+              under_review: ['#DBEAFE', '#1E40AF'],
+              escalated:    ['#FEE2E2', '#991B1B'],
+              resolved:     ['#D1FAE5', '#065F46'],
+              closed:       ['#E5E7EB', '#4B5563'],
+            };
+            const [bg, fg] = statusColor[c.status] ?? ['#F3F4F6', '#374151'];
+            return (
+              <div key={c.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>{c.complaint_type.replace(/_/g, ' ')}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{c.subject}</div>
+                  </div>
+                  <span style={{ background: bg, color: fg, padding: '3px 9px', borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {c.status.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{c.description}</div>
+                <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                  Filed {fmtDateTime(c.created_at)}
+                  {c.resolved_at && ` · Resolved ${fmtDateTime(c.resolved_at)}`}
+                </div>
+                {c.resolution && (
+                  <div style={{ marginTop: 8, padding: '8px 10px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 7, fontSize: 12, color: '#065F46' }}>
+                    <strong>Resolution:</strong> {c.resolution}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       </div>

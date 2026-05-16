@@ -59,6 +59,42 @@ export default function OnboardingWizard() {
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
 
+  // PR-2: GPS geofence for K6 bus arrival detection.
+  // Stored as schools.lat / schools.lng (decimal degrees, WGS84).
+  // Both required together OR both empty. Existing school_geofences polygon
+  // table is left as an advanced-override path for power users.
+  const [schoolLat, setSchoolLat] = useState('');
+  const [schoolLng, setSchoolLng] = useState('');
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  // Note: not a React hook — regular handler. Avoids react-hooks/rules-of-hooks false positive.
+  function fetchCurrentLocation() {
+    setGeoError(null);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError('Geolocation is not supported by this browser. Please enter lat/lng manually or use Google Maps.');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setSchoolLat(pos.coords.latitude.toFixed(6));
+        setSchoolLng(pos.coords.longitude.toFixed(6));
+        setGeoLoading(false);
+      },
+      err => {
+        setGeoError(
+          err.code === 1 ? 'Location permission denied. Please grant access or enter manually.' :
+          err.code === 2 ? 'Location unavailable. Try moving outdoors or enter manually.' :
+          err.code === 3 ? 'Location request timed out. Try again or enter manually.' :
+          'Could not get current location.'
+        );
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
   // Step 2: Classes
   const [classes, setClasses] = useState<ClassRow[]>([{ grade: '', sections: 'A' }]);
   const [batches, setBatches] = useState<BatchRow[]>([{ label: '', entry_year: String(new Date().getFullYear() + 1), capacity: '60' }]);
@@ -116,7 +152,7 @@ export default function OnboardingWizard() {
     try {
       let result;
       if (step === 1) {
-        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl });
+        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl, lat: schoolLat || null, lng: schoolLng || null });
       } else if (step === 2) {
         // K2: coaching uses 2-batches, others use 2-classes
         if (isCoaching(instType)) {
@@ -201,6 +237,41 @@ export default function OnboardingWizard() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <div><label style={labelStyle}>Phone</label><input style={inputStyle} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" /></div>
           <div><label style={labelStyle}>Logo URL</label><input style={inputStyle} value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} placeholder="https://..." /></div>
+        </div>
+        {/* PR-2: School location for GPS geofence (optional, can be set later in Settings) */}
+        <div style={{ marginTop: 6, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#065F46', marginBottom: 4 }}>📍 School Location (for Bus GPS)</div>
+          <div style={{ fontSize: 11, color: '#374151', marginBottom: 10, lineHeight: 1.5 }}>
+            Used to detect when school buses are arriving. Optional — you can set this later in Settings.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={labelStyle}>Latitude</label>
+              <input style={inputStyle} value={schoolLat}
+                onChange={e => { setSchoolLat(e.target.value); setGeoError(null); }}
+                placeholder="17.385044" inputMode="decimal" />
+            </div>
+            <div>
+              <label style={labelStyle}>Longitude</label>
+              <input style={inputStyle} value={schoolLng}
+                onChange={e => { setSchoolLng(e.target.value); setGeoError(null); }}
+                placeholder="78.486671" inputMode="decimal" />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => fetchCurrentLocation()} disabled={geoLoading}
+              style={{ flex: '1 1 auto', padding: '8px 12px', background: geoLoading ? '#9CA3AF' : '#065F46', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: geoLoading ? 'wait' : 'pointer' }}>
+              {geoLoading ? 'Getting location…' : '📍 Use Current Location'}
+            </button>
+            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer"
+              style={{ flex: '1 1 auto', padding: '8px 12px', background: '#fff', color: '#065F46', border: '1px solid #065F46', borderRadius: 6, fontSize: 11, fontWeight: 600, textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>
+              🗺️ Open Google Maps
+            </a>
+          </div>
+          {geoError && <div style={{ marginTop: 8, padding: '6px 10px', background: '#FEE2E2', color: '#991B1B', borderRadius: 5, fontSize: 11 }}>{geoError}</div>}
+          <div style={{ marginTop: 8, fontSize: 10, color: '#6B7280', lineHeight: 1.5 }}>
+            <strong>Tip:</strong> On Google Maps, right-click your school&apos;s exact location → click the coordinates that appear (e.g. <code>17.385044, 78.486671</code>) to copy → paste into the fields above.
+          </div>
         </div>
       </div>
     );

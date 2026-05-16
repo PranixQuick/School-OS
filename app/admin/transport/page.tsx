@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import Link from 'next/link';
 
 type Tab = 'routes' | 'students' | 'trips';
 
@@ -160,7 +161,11 @@ export default function TransportPage() {
   const labelStyle = { fontSize: 11, fontWeight: 700, color: '#6B7280' } as const;
 
   return (
-    <Layout title="Transport" subtitle="Bus routes, stops, and trip tracking">
+    <Layout title="Transport" subtitle="Bus routes, stops, and trip tracking" actions={
+      <Link href="/admin/transport/devices" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: 7, fontWeight: 600 }}>
+        📡 GPS Devices
+      </Link>
+    }>
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
         {(['routes','students','trips'] as Tab[]).map(t => (
