@@ -58,11 +58,41 @@ export default function OnboardingWizard() {
   const [ownerType, setOwnerType] = useState('private');
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  // PR-2: school geofence — lat/lng for K6 bus GPS arriving trigger
-  const [lat, setLat] = useState<string>('');
-  const [lng, setLng] = useState<string>('');
-  const [geoBusy, setGeoBusy] = useState(false);
-  const [geoMsg, setGeoMsg] = useState<string>('');
+
+  // PR-2: GPS geofence for K6 bus arrival detection.
+  // Stored as schools.lat / schools.lng (decimal degrees, WGS84).
+  // Both required together OR both empty. Existing school_geofences polygon
+  // table is left as an advanced-override path for power users.
+  const [schoolLat, setSchoolLat] = useState('');
+  const [schoolLng, setSchoolLng] = useState('');
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  function useCurrentLocation() {
+    setGeoError(null);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError('Geolocation is not supported by this browser. Please enter lat/lng manually or use Google Maps.');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setSchoolLat(pos.coords.latitude.toFixed(6));
+        setSchoolLng(pos.coords.longitude.toFixed(6));
+        setGeoLoading(false);
+      },
+      err => {
+        setGeoError(
+          err.code === 1 ? 'Location permission denied. Please grant access or enter manually.' :
+          err.code === 2 ? 'Location unavailable. Try moving outdoors or enter manually.' :
+          err.code === 3 ? 'Location request timed out. Try again or enter manually.' :
+          'Could not get current location.'
+        );
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
 
   // Step 2: Classes
   const [classes, setClasses] = useState<ClassRow[]>([{ grade: '', sections: 'A' }]);
@@ -121,12 +151,7 @@ export default function OnboardingWizard() {
     try {
       let result;
       if (step === 1) {
-        result = await post('/api/admin/onboarding/1-profile', {
-          name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl,
-          // PR-2: include lat/lng only if user filled them — server treats absent vs '' specially
-          ...(lat !== '' ? { lat } : {}),
-          ...(lng !== '' ? { lng } : {}),
-        });
+        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl, lat: schoolLat || null, lng: schoolLng || null });
       } else if (step === 2) {
         // K2: coaching uses 2-batches, others use 2-classes
         if (isCoaching(instType)) {
@@ -212,46 +237,40 @@ export default function OnboardingWizard() {
           <div><label style={labelStyle}>Phone</label><input style={inputStyle} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" /></div>
           <div><label style={labelStyle}>Logo URL</label><input style={inputStyle} value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} placeholder="https://..." /></div>
         </div>
-
-        {/* PR-2: School location (geofence for bus GPS arriving trigger) */}
-        <div style={{ marginTop: 14, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>📍 School Location <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional)</span></div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 10 }}>Used by the GPS bus tracker to detect when buses arrive at school. You can fill this in later from Settings.</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom: 8 }}>
-            <div><label style={labelStyle}>Latitude</label><input style={inputStyle} type="number" step="0.000001" value={lat} onChange={e=>setLat(e.target.value)} placeholder="e.g. 17.385044" /></div>
-            <div><label style={labelStyle}>Longitude</label><input style={inputStyle} type="number" step="0.000001" value={lng} onChange={e=>setLng(e.target.value)} placeholder="e.g. 78.486671" /></div>
+        {/* PR-2: School location for GPS geofence (optional, can be set later in Settings) */}
+        <div style={{ marginTop: 6, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#065F46', marginBottom: 4 }}>📍 School Location (for Bus GPS)</div>
+          <div style={{ fontSize: 11, color: '#374151', marginBottom: 10, lineHeight: 1.5 }}>
+            Used to detect when school buses are arriving. Optional — you can set this later in Settings.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={labelStyle}>Latitude</label>
+              <input style={inputStyle} value={schoolLat}
+                onChange={e => { setSchoolLat(e.target.value); setGeoError(null); }}
+                placeholder="17.385044" inputMode="decimal" />
+            </div>
+            <div>
+              <label style={labelStyle}>Longitude</label>
+              <input style={inputStyle} value={schoolLng}
+                onChange={e => { setSchoolLng(e.target.value); setGeoError(null); }}
+                placeholder="78.486671" inputMode="decimal" />
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" disabled={geoBusy}
-              onClick={() => {
-                setGeoMsg(''); setGeoBusy(true);
-                if (!navigator.geolocation) {
-                  setGeoMsg('Geolocation not supported in this browser.'); setGeoBusy(false); return;
-                }
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    setLat(pos.coords.latitude.toFixed(6));
-                    setLng(pos.coords.longitude.toFixed(6));
-                    setGeoMsg('Location captured.'); setGeoBusy(false);
-                  },
-                  (err) => {
-                    setGeoMsg('Could not capture location: ' + err.message); setGeoBusy(false);
-                  },
-                  { enableHighAccuracy: true, timeout: 10000 }
-                );
-              }}
-              style={{ padding: '6px 12px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: geoBusy ? 'wait' : 'pointer', opacity: geoBusy ? 0.6 : 1 }}>
-              {geoBusy ? 'Capturing...' : '📍 Use Current Location'}
+            <button type="button" onClick={() => useCurrentLocation()} disabled={geoLoading}
+              style={{ flex: '1 1 auto', padding: '8px 12px', background: geoLoading ? '#9CA3AF' : '#065F46', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: geoLoading ? 'wait' : 'pointer' }}>
+              {geoLoading ? 'Getting location…' : '📍 Use Current Location'}
             </button>
-            <a href="https://maps.google.com/" target="_blank" rel="noopener noreferrer"
-              style={{ padding: '6px 12px', background: '#fff', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              🗺 Open Google Maps ↗
+            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer"
+              style={{ flex: '1 1 auto', padding: '8px 12px', background: '#fff', color: '#065F46', border: '1px solid #065F46', borderRadius: 6, fontSize: 11, fontWeight: 600, textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>
+              🗺️ Open Google Maps
             </a>
           </div>
-          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
-            Tip: in Google Maps, right-click your school location → click the lat,lng pair to copy → paste into the fields above.
+          {geoError && <div style={{ marginTop: 8, padding: '6px 10px', background: '#FEE2E2', color: '#991B1B', borderRadius: 5, fontSize: 11 }}>{geoError}</div>}
+          <div style={{ marginTop: 8, fontSize: 10, color: '#6B7280', lineHeight: 1.5 }}>
+            <strong>Tip:</strong> On Google Maps, right-click your school&apos;s exact location → click the coordinates that appear (e.g. <code>17.385044, 78.486671</code>) to copy → paste into the fields above.
           </div>
-          {geoMsg && <div style={{ fontSize: 11, color: geoMsg.startsWith('Could') ? '#991B1B' : '#065F46', marginTop: 6 }}>{geoMsg}</div>}
         </div>
       </div>
     );
