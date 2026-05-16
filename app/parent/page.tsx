@@ -585,7 +585,7 @@ export default function ParentPage() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 64, zIndex: 9, overflowX: 'auto' }}>
-        (() => {
+        {(() => {
           // PR-3: filter tabs by institution_type. Falls back to school_k10 (all tabs).
           const instType = student?.institution_type ?? 'school_k10';
           const isCoachingInst = instType === 'coaching';
