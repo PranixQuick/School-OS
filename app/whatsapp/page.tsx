@@ -183,7 +183,7 @@ export default function WhatsAppPage() {
                     )}
                     {s.step === '03' && (
                       <div style={{ background: '#0F172A', borderRadius: 6, padding: '8px 10px', marginTop: 6, fontFamily: 'monospace', fontSize: 11, color: '#86EFAC' }}>
-                        https://your-school-os.vercel.app/api/whatsapp/webhook
+                        https://www.edprosys.com/api/whatsapp/webhook
                       </div>
                     )}
                   </div>
