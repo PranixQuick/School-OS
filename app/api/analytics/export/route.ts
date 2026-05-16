@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
     const response = NextResponse.json(data);
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET');
-    response.headers.set('Content-Disposition', `attachment; filename="school-os-${dataset}-${new Date().toISOString().split('T')[0]}.json"`);
+    response.headers.set('Content-Disposition', `attachment; filename="edprosys-${dataset}-${new Date().toISOString().split('T')[0]}.json"`);
     return response;
 
   } catch (err) {
