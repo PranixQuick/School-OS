@@ -11,6 +11,20 @@ interface PTMSlot { id: string; session_id: string; slot_time: string; status: s
 const STATUS_BADGE: Record<string, string> = { available: 'badge-gray', booked: 'badge-indigo', completed: 'badge-done', missed: 'badge-low' };
 
 export default function PTMPage() {
+  // PR-3: institution-type gating — PTM not applicable for coaching + some colleges
+  const [instType, setInstType] = useState<string>('school_k10');
+  const [instLoading, setInstLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/institution-config')
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { institution_type?: string } | null) => {
+        if (d?.institution_type) setInstType(d.institution_type);
+      })
+      .catch(() => {})
+      .finally(() => setInstLoading(false));
+  }, []);
+
   const [sessions, setSessions] = useState<PTMSession[]>([]);
   const [slots, setSlots] = useState<PTMSlot[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +52,17 @@ export default function PTMPage() {
   async function updateSlot(slotId: string, status: string) {
     await fetch('/api/ptm', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slotId, status }) });
     fetchData();
+  }
+
+  // PR-3: early-return for institution types where PTM doesn't apply
+  if (!instLoading && (instType === 'coaching' || ['degree_college','engineering','mba'].includes(instType))) {
+    return (
+      <Layout title="PTM Automation" subtitle="Parent-Teacher Meeting management">
+        <div style={{ padding: 32, color: '#6B7280', textAlign: 'center', background: '#F9FAFB', borderRadius: 10 }}>
+          PTM is not applicable for this institution type.
+        </div>
+      </Layout>
+    );
   }
 
   const sessionSlots = slots.filter(s => s.session_id === selectedSession?.id);
