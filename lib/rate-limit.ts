@@ -65,13 +65,14 @@ export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 // Enforce login rate limits per-email and per-IP within a 15 minute sliding window.
 // Counts only FAILURES (login_failure, rate_limited) so a successful login doesn't
 // consume the allowance.
-// Demo/seed email domains that must never be rate-limited (CI E2E accounts)
+// Known demo/seed email domains that must never be rate-limited (CI E2E accounts)
 const DEMO_EMAIL_DOMAINS = ['.local', 'suchitracademy.edu.in', 'dpsnadergul.com'];
 
 export async function enforceLoginRateLimit(params: {
   email: string;
   ip: string | null;
 }): Promise<RateLimitResult> {
+  // Skip rate limiting for demo/seed accounts so CI E2E tests always work
   if (DEMO_EMAIL_DOMAINS.some(d => params.email.endsWith(d))) {
     return { allowed: true, count: 0, remaining: 5, retryAfterSec: 0, source: 'none' };
   }
