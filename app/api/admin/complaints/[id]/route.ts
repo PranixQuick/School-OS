@@ -2,28 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
-// PR-2 Task A: Admin complaint update endpoint.
-// PATCH /api/admin/complaints/[id]
-//   { status?, assigned_to?, resolution? }
+// PR-2 Task A: Admin complaint PATCH.
+// Updates: status, assigned_to (staff_id), resolution
+// Auto-stamps resolved_at / closed_at when transitioning to those states.
 //
-// Status transition rules (enforced server-side):
-//   open          -> under_review | escalated | resolved | closed
-//   under_review  -> escalated | resolved | closed
-//   escalated     -> under_review | resolved | closed
-//   resolved      -> closed   (no regression — cannot reopen via PATCH)
-//   closed        -> (no transitions)
-//
-// Marking status=resolved requires resolution text and stamps resolved_at.
-// Marking status=closed stamps closed_at.
+// Tenant guard: complaint must belong to caller's school.
 
 export const runtime = 'nodejs';
 
+const ALLOWED_STATUSES = new Set([
+  'open', 'under_review', 'escalated', 'resolved', 'closed',
+]);
+
+// Allowed forward transitions. escalated can come from any open state; closed
+// is terminal. We deliberately don't allow resolved/closed → open to avoid
+// status regression.
 const ALLOWED_TRANSITIONS: Record<string, Set<string>> = {
-  open:         new Set(['under_review','escalated','resolved','closed']),
-  under_review: new Set(['escalated','resolved','closed']),
-  escalated:    new Set(['under_review','resolved','closed']),
-  resolved:     new Set(['closed']),
-  closed:       new Set([]),
+  open:          new Set(['under_review', 'escalated', 'resolved', 'closed']),
+  under_review:  new Set(['escalated', 'resolved', 'closed']),
+  escalated:     new Set(['under_review', 'resolved', 'closed']),
+  resolved:      new Set(['closed']),
+  closed:        new Set([]),
 };
 
 interface PatchBody {
@@ -37,110 +36,123 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   let ctx;
-  try { ctx = await requireAdminSession(req); }
-  catch (e) {
-    if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
+  try {
+    ctx = await requireAdminSession(req);
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     throw e;
   }
-
+  const { schoolId } = ctx;
   const { id } = await params;
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: 'complaint id required' }, { status: 400 });
+  }
 
   let body: PatchBody;
-  try { body = await req.json() as PatchBody; }
-  catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
-  // Load current row to validate transition + tenant boundary
-  const { data: current, error: loadErr } = await supabaseAdmin
+  // Fetch existing complaint to check tenant + current status for transition rules
+  const { data: existing, error: fetchErr } = await supabaseAdmin
     .from('parent_complaints')
-    .select('id, school_id, status')
+    .select('id, school_id, status, resolved_at, closed_at')
     .eq('id', id)
     .maybeSingle();
 
-  if (loadErr) {
-    console.error('Admin complaint load error:', loadErr);
+  if (fetchErr) {
+    console.error('Complaint fetch error:', fetchErr);
     return NextResponse.json({ error: 'Failed to load complaint' }, { status: 500 });
   }
-  if (!current) return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
-  if (current.school_id !== ctx.schoolId) {
-    // 404 (not 403) to avoid cross-tenant existence leak
+  if (!existing) {
     return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
+  }
+  if (existing.school_id !== schoolId) {
+    return NextResponse.json({ error: 'Complaint does not belong to your school' }, { status: 403 });
   }
 
   const updates: Record<string, unknown> = {};
   const now = new Date().toISOString();
 
-  // ── status transition ────────────────────────────────────────────────────
+  // Status transition
   if (body.status !== undefined) {
-    const transitions = ALLOWED_TRANSITIONS[current.status];
-    if (!transitions) {
-      return NextResponse.json({ error: `Unknown current status: ${current.status}` }, { status: 500 });
-    }
-    if (body.status !== current.status && !transitions.has(body.status)) {
+    if (!ALLOWED_STATUSES.has(body.status)) {
       return NextResponse.json({
-        error: `Cannot transition from ${current.status} to ${body.status}`,
+        error: 'status must be one of: open, under_review, escalated, resolved, closed',
       }, { status: 400 });
     }
-    updates.status = body.status;
-
-    if (body.status === 'resolved') {
-      const resolutionText = (body.resolution ?? '').trim();
-      if (!resolutionText) {
-        return NextResponse.json({ error: 'resolution text is required when marking resolved' }, { status: 400 });
+    if (body.status !== existing.status) {
+      const allowedNext = ALLOWED_TRANSITIONS[existing.status];
+      if (!allowedNext || !allowedNext.has(body.status)) {
+        return NextResponse.json({
+          error: `Cannot transition from ${existing.status} to ${body.status}`,
+        }, { status: 400 });
       }
-      if (resolutionText.length > 4000) {
-        return NextResponse.json({ error: 'resolution must be 4000 characters or fewer' }, { status: 400 });
+      updates.status = body.status;
+      if (body.status === 'resolved' && !existing.resolved_at) {
+        updates.resolved_at = now;
       }
-      updates.resolution = resolutionText;
-      updates.resolved_at = now;
-    }
-    if (body.status === 'closed') {
-      updates.closed_at = now;
+      if (body.status === 'closed') {
+        updates.closed_at = now;
+        // If closing without an explicit resolved_at, stamp it now too
+        if (!existing.resolved_at) updates.resolved_at = now;
+      }
     }
   }
 
-  // ── assignment ───────────────────────────────────────────────────────────
+  // Staff assignment
   if (body.assigned_to !== undefined) {
     if (body.assigned_to === null || body.assigned_to === '') {
       updates.assigned_to = null;
     } else {
-      // Validate the staff member belongs to this school
+      // Verify the staff belongs to the same school
       const { data: staff } = await supabaseAdmin
         .from('staff')
         .select('id, school_id')
         .eq('id', body.assigned_to)
+        .eq('school_id', schoolId)
         .maybeSingle();
-      if (!staff || staff.school_id !== ctx.schoolId) {
-        return NextResponse.json({ error: 'assigned_to staff member not found in this school' }, { status: 400 });
+      if (!staff) {
+        return NextResponse.json({ error: 'Staff not found in this school' }, { status: 400 });
       }
-      updates.assigned_to = body.assigned_to;
+      updates.assigned_to = staff.id;
     }
   }
 
-  // ── resolution update without status change (allowed for any non-closed state) ──
-  if (body.resolution !== undefined && updates.resolution === undefined && body.status === undefined) {
-    const r = (body.resolution ?? '').trim();
-    if (r.length > 4000) {
-      return NextResponse.json({ error: 'resolution must be 4000 characters or fewer' }, { status: 400 });
+  // Resolution text
+  if (body.resolution !== undefined) {
+    if (typeof body.resolution !== 'string') {
+      return NextResponse.json({ error: 'resolution must be a string' }, { status: 400 });
     }
-    updates.resolution = r === '' ? null : r;
+    if (body.resolution.length > 4000) {
+      return NextResponse.json({ error: 'resolution must be 4000 chars or less' }, { status: 400 });
+    }
+    updates.resolution = body.resolution.trim() || null;
   }
+
+  // If status transitions to resolved/closed, resolution is recommended but not required.
+  // We allow resolution to be set without status change too (e.g., draft notes).
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'no updates supplied' }, { status: 400 });
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   }
 
-  const { data: updated, error: updErr } = await supabaseAdmin
+  const { data: updated, error: updateErr } = await supabaseAdmin
     .from('parent_complaints')
     .update(updates)
     .eq('id', id)
-    .eq('school_id', ctx.schoolId)  // double-guard
-    .select('id, complaint_type, subject, status, resolution, assigned_to, updated_at, resolved_at, closed_at')
+    .eq('school_id', schoolId)
+    .select('id, complaint_type, subject, description, status, assigned_to, resolution, resolved_at, closed_at, created_at, updated_at, parent_phone, student_id')
     .single();
 
-  if (updErr || !updated) {
-    console.error('Admin complaint update error:', updErr);
-    return NextResponse.json({ error: updErr?.message ?? 'Update failed' }, { status: 500 });
+  if (updateErr || !updated) {
+    console.error('Complaint update error:', updateErr);
+    return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, complaint: updated });
