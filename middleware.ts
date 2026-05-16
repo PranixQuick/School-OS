@@ -28,6 +28,13 @@ const PUBLIC_PATHS = [
   '/api/transport',      // K6: Bus GPS device pings — device token auth (no session cookie)
   '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
   '/api/webhooks',      // Item #13: Razorpay webhook — must be public (raw body verification)
+  '/sitemap.xml',       // PR-5: SEO crawlers must reach sitemap without auth redirect
+  '/robots.txt',        // PR-5: SEO crawlers
+  '/manifest.json',     // PR-5: PWA manifest
+  '/api/og',            // PR-5: OG image generation for social previews
+  '/sw.js',             // PR-5: Service worker registration
+  '/offline.html',      // PR-5: PWA offline fallback
+  '/icons',             // PR-5: PWA icon assets directory
 ];
 
 // Super admin only paths
@@ -83,5 +90,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|sw.js|offline.html|icons/).*)'],
 };
