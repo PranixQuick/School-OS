@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const { schoolId } = ctx;
 
   const body = await req.json() as {
-    batches: { label: string; entry_year?: number; capacity?: number | null }[];
+    batches: { label: string; entry_year?: number; capacity?: number | null; group_code?: string }[];
   };
 
   if (!body.batches || !Array.isArray(body.batches)) {
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       label: b.label.trim(),
       entry_year: b.entry_year ?? new Date().getFullYear() + 1,
       capacity: b.capacity ?? null,
+      ...(b.group_code ? { group_code: b.group_code } : {}), // K5: jr college groups
     }));
 
   if (rows.length === 0) {
