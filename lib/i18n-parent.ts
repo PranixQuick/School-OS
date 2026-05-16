@@ -1,8 +1,6 @@
 // lib/i18n-parent.ts — G13: Minimal multilingual parent portal labels
 // Scope: parent/page.tsx only. Admin/teacher dashboards stay English.
 // Full sentence-level translation is Phase J.
-//
-// PR-2: added 'complaints' label key.
 export type Lang = 'en' | 'hi' | 'te' | 'ta' | 'kn';
 
 export const PARENT_LABELS: Record<string, Record<Lang, string>> = {
@@ -13,7 +11,7 @@ export const PARENT_LABELS: Record<string, Record<Lang, string>> = {
   ptm:           { en: 'PTM',           hi: 'पालक-शिक्षक', te: 'PTM',    ta: 'PTM',       kn: 'PTM' },
   transport:     { en: 'Transport',     hi: 'परिवहन',   te: 'రవాణా',    ta: 'போக்குவரத்து', kn: 'ಸಾರಿಗೆ' },
   announcements: { en: 'Announcements', hi: 'सूचनाएं',  te: 'ప్రకటనలు', ta: 'அறிவிப்புகள்', kn: 'ಪ್ರಕಟಣೆಗಳು' },
-  complaints:    { en: 'Complaints',    hi: 'शिकायतें',  te: 'ఫిర్యాదులు', ta: 'புகார்கள்',  kn: 'ದೂರುಗಳು' },
+  complaints:    { en: 'Complaints',    hi: 'शिकायतें',  te: 'ఫిర్యాదులు', ta: 'புகார்கள்',   kn: 'ದೂರುಗಳು' },
 };
 
 export function L(key: string, lang: Lang): string {
