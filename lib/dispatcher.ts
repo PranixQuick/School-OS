@@ -2,8 +2,23 @@ import { supabaseAdmin } from './supabaseClient';
 import { sendWhatsApp, normalisePhone } from './whatsapp';
 import { sendEmail, buildEmailHtml } from './email';
 import { logError } from './logger';
+import { getWaMsg, type Lang } from './wa-templates';
 
 const MAX_ATTEMPTS = 3;
+
+// Phase X: notification.type → wa-templates key map.
+// Keys that exist in lib/wa-templates.ts WA dict: fee_reminder, attendance_low, homework_due.
+// Any type not in this map falls back to notification.message (English/legacy behaviour).
+const WA_TEMPLATE_KEY: Record<string, string> = {
+  fee_reminder: 'fee_reminder',
+  attendance_alert: 'attendance_low',
+  attendance_low: 'attendance_low',
+  homework_due: 'homework_due',
+};
+
+function isLang(x: string | null | undefined): x is Lang {
+  return x === 'en' || x === 'hi' || x === 'te' || x === 'ta' || x === 'kn';
+}
 
 interface NotificationRow {
   id: string;
@@ -13,6 +28,7 @@ interface NotificationRow {
   message: string;
   channel: string;
   attempts: number;
+  template_vars: Record<string, string> | null;
 }
 
 interface SchoolInfo {
@@ -21,32 +37,40 @@ interface SchoolInfo {
   contact_email: string | null;
 }
 
+interface PhoneRecipient {
+  phone: string;
+  language_pref: Lang;
+}
+
 // ─── Determine recipients for a notification ─────────────────────────────────
 
 async function getRecipients(notification: NotificationRow): Promise<{
-  phones: string[];
+  phones: PhoneRecipient[];
   emails: string[];
 }> {
-  const phones: string[] = [];
+  const phones: PhoneRecipient[] = [];
   const emails: string[] = [];
 
   // For fee reminders and PTM — target parents from the parents table
   if (notification.type === 'fee_reminder' || notification.type === 'ptm') {
     const { data } = await supabaseAdmin
       .from('parents')
-      .select('phone, email')
+      .select('phone, email, language_pref')
       .eq('school_id', notification.school_id)
       .limit(50); // safety cap
 
     for (const parent of data ?? []) {
       const phone = normalisePhone(parent.phone);
-      if (phone) phones.push(phone);
+      if (phone) {
+        const lp = isLang(parent.language_pref) ? parent.language_pref : 'en';
+        phones.push({ phone, language_pref: lp });
+      }
       if (parent.email) emails.push(parent.email);
     }
     return { phones, emails };
   }
 
-  // For risk/alert/system — target school admin users
+  // For risk/alert/system — target school admin users (email only)
   if (notification.type === 'risk' || notification.type === 'alert' || notification.type === 'system') {
     const { data } = await supabaseAdmin
       .from('school_users')
@@ -61,20 +85,33 @@ async function getRecipients(notification: NotificationRow): Promise<{
     return { phones: [], emails };
   }
 
-  // For broadcast — target all parents
+  // For broadcast / homework_due / attendance_alert etc — target all parents
   const { data } = await supabaseAdmin
     .from('parents')
-    .select('phone, email')
+    .select('phone, email, language_pref')
     .eq('school_id', notification.school_id)
     .limit(200);
 
   for (const parent of data ?? []) {
     const phone = normalisePhone(parent.phone);
-    if (phone) phones.push(phone);
+    if (phone) {
+      const lp = isLang(parent.language_pref) ? parent.language_pref : 'en';
+      phones.push({ phone, language_pref: lp });
+    }
     if (parent.email) emails.push(parent.email);
   }
 
   return { phones, emails };
+}
+
+// Phase X: resolve the WhatsApp body for a recipient. Uses wa-templates if both
+// (a) the notification.type maps to a template key, and (b) template_vars is present.
+// Otherwise falls back to notification.message verbatim — preserving legacy behaviour.
+function resolveWaBody(notification: NotificationRow, lang: Lang): string {
+  const tplKey = WA_TEMPLATE_KEY[notification.type];
+  if (!tplKey || !notification.template_vars) return notification.message;
+  const rendered = getWaMsg(tplKey, lang, notification.template_vars);
+  return rendered || notification.message;
 }
 
 // ─── Dispatch a single notification ──────────────────────────────────────────
@@ -92,13 +129,14 @@ export async function dispatchNotification(
   const sendViaWhatsApp = channel === 'whatsapp' || channel === 'both';
   const sendViaEmail = channel === 'email' || channel === 'both';
 
-  // Dispatch via WhatsApp
+  // Dispatch via WhatsApp — per-recipient localisation
   if (sendViaWhatsApp && phones.length > 0) {
-    for (const phone of phones) {
+    for (const r of phones) {
       try {
+        const body = resolveWaBody(notification, r.language_pref);
         const result = await sendWhatsApp({
-          to: phone,
-          body: notification.message,
+          to: r.phone,
+          body,
           schoolName: school.name,
         });
 
@@ -106,7 +144,7 @@ export async function dispatchNotification(
           notification_id: notification.id,
           school_id: notification.school_id,
           channel: 'whatsapp',
-          recipient: phone,
+          recipient: r.phone,
           status: result.success ? 'sent' : 'failed',
           provider: result.provider,
           provider_message_id: result.messageId ?? null,
@@ -121,7 +159,7 @@ export async function dispatchNotification(
     }
   }
 
-  // Dispatch via Email
+  // Dispatch via Email — uses notification.message (templates are WhatsApp-only for now)
   if (sendViaEmail && emails.length > 0) {
     const htmlBody = buildEmailHtml({
       schoolName: school.name,
@@ -207,9 +245,10 @@ export async function processPendingNotifications(
   if (!school) return { processed: 0, dispatched: 0, failed: 0, skipped: 0 };
 
   // Fetch pending notifications (include failed ones with retries remaining)
+  // Phase X: also fetch template_vars for per-recipient localisation
   const { data: notifications } = await supabaseAdmin
     .from('notifications')
-    .select('id, school_id, type, title, message, channel, attempts')
+    .select('id, school_id, type, title, message, channel, attempts, template_vars')
     .eq('school_id', schoolId)
     .in('status', ['pending', 'failed'])
     .lt('attempts', MAX_ATTEMPTS)
@@ -225,7 +264,7 @@ export async function processPendingNotifications(
   let skipped = 0;
 
   for (const notif of notifications) {
-    const result = await dispatchNotification(notif, school);
+    const result = await dispatchNotification(notif as NotificationRow, school);
     totalDispatched += result.dispatched;
     totalFailed += result.failed;
     if (result.dispatched === 0 && result.failed === 0) skipped++;

@@ -119,7 +119,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
     return (
       <>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">S</div>
+          <div className="sidebar-logo-icon" style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.5px' }}>E</div>
           <div>
             <div className="sidebar-logo-text">EdProSys</div>
             <div className="sidebar-logo-sub">{session?.schoolName ?? 'Loading...'}</div>
