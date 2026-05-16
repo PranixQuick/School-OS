@@ -127,7 +127,7 @@ export async function dispatchNotification(
       schoolName: school.name,
       title: notification.title,
       body: notification.message,
-      footer: `${school.name} · This is an automated message from School OS`,
+      footer: `${school.name} · This is an automated message from EdProSys`,
     });
 
     for (const email of emails) {
