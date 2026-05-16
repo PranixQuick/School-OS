@@ -1,11 +1,11 @@
 {
   "name": "EdProSys",
   "short_name": "EdProSys",
-  "description": "Complete institution management platform by Pranix AI Labs",
+  "description": "EdProSys — Powering Institutions. Empowering Futures.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1e40af",
-  "theme_color": "#1e40af",
+  "background_color": "#0F172A",
+  "theme_color": "#6366F1",
   "orientation": "portrait",
   "icons": [
     {
