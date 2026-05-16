@@ -1,39 +1,32 @@
 'use client';
-
-// PR-2 Task A: Admin complaints management page.
-// Filter by status + type, view details, update status / assign / resolve.
+// PATH: app/admin/complaints/page.tsx
+// PR-2 Task A: Admin / Principal complaint management.
+// Status pill row at top, list view below, slide-in drawer for edits.
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 
-type Status = 'open' | 'under_review' | 'escalated' | 'resolved' | 'closed';
-
-interface StudentMini {
-  id: string;
-  name: string;
-  class: string | null;
-  section: string | null;
-}
-
+interface StudentRef { id: string; name: string; class: string | null; section: string | null }
 interface Complaint {
   id: string;
   complaint_type: string;
   subject: string;
   description: string;
-  status: Status;
-  parent_phone: string;
-  assigned_to: string | null;
+  status: string;
   resolution: string | null;
-  resolved_at: string | null;
-  closed_at: string | null;
+  parent_phone: string;
+  student_id: string;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
-  student: StudentMini | StudentMini[] | null;
+  resolved_at: string | null;
+  closed_at: string | null;
+  student: StudentRef | null;
 }
 
-interface StaffMini { id: string; name: string; role: string | null; }
+interface StaffOption { id: string; name: string; role: string }
 
-const STATUS_COLORS: Record<Status, { bg: string; fg: string; label: string }> = {
+const STATUS_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   open:         { bg: '#FEF3C7', fg: '#92400E', label: 'Open' },
   under_review: { bg: '#DBEAFE', fg: '#1E40AF', label: 'Under Review' },
   escalated:    { bg: '#FEE2E2', fg: '#991B1B', label: 'Escalated' },
@@ -54,178 +47,238 @@ const TYPE_LABELS: Record<string, string> = {
   general: 'General',
 };
 
-function firstStudent(s: StudentMini | StudentMini[] | null): StudentMini | null {
-  if (!s) return null;
-  return Array.isArray(s) ? (s[0] ?? null) : s;
-}
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  open:         ['under_review','escalated','resolved','closed'],
+  under_review: ['escalated','resolved','closed'],
+  escalated:    ['under_review','resolved','closed'],
+  resolved:     ['closed'],
+  closed:       [],
+};
 
-function fmtDateTime(s: string): string {
+function fmtDateTime(s: string | null): string {
+  if (!s) return '—';
   return new Date(s).toLocaleString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
   });
 }
 
-export default function ComplaintsPage() {
+export default function AdminComplaintsPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [stats, setStats] = useState<Record<string, number>>({});
+  const [stats, setStats] = useState<Record<string, number>>({
+    open: 0, under_review: 0, escalated: 0, resolved: 0, closed: 0,
+  });
   const [loading, setLoading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('');
-  const [selected, setSelected] = useState<Complaint | null>(null);
-  const [staff, setStaff] = useState<StaffMini[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
 
-  // Drawer state
-  const [editStatus, setEditStatus] = useState<Status>('open');
-  const [editAssignedTo, setEditAssignedTo] = useState<string>('');
-  const [editResolution, setEditResolution] = useState<string>('');
+  // Edit drawer
+  const [editing, setEditing] = useState<Complaint | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editAssigned, setEditAssigned] = useState('');
+  const [editResolution, setEditResolution] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (filterStatus) params.set('status', filterStatus);
-    if (filterType) params.set('type', filterType);
-    const url = '/api/admin/complaints' + (params.toString() ? '?' + params.toString() : '');
+    const qs = new URLSearchParams();
+    if (statusFilter) qs.set('status', statusFilter);
+    if (typeFilter) qs.set('type', typeFilter);
+    qs.set('limit', '200');
     try {
-      const res = await fetch(url);
-      const d = await res.json() as { complaints?: Complaint[]; stats?: Record<string, number> };
+      const res = await fetch(`/api/admin/complaints?${qs.toString()}`);
+      const d = await res.json() as {
+        complaints?: Complaint[];
+        stats?: { by_status: Record<string, number> };
+      };
       setComplaints(d.complaints ?? []);
-      setStats(d.stats ?? {});
+      if (d.stats?.by_status) setStats(d.stats.by_status);
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.error('Load complaints failed:', e);
     }
-  }, [filterStatus, filterType]);
+    setLoading(false);
+  }, [statusFilter, typeFilter]);
 
   useEffect(() => { void load(); }, [load]);
 
+  // Lazy-load staff options when drawer opens
   useEffect(() => {
-    // Lazy load staff list when drawer opens
-    if (selected && staff.length === 0) {
-      void fetch('/api/admin/staff?limit=200')
-        .then(r => r.ok ? r.json() : null)
-        .then((d: { staff?: StaffMini[] } | null) => {
-          if (d?.staff) setStaff(d.staff);
-        })
-        .catch(() => {});
+    if (editing && staffOptions.length === 0) {
+      fetch('/api/admin/staff?limit=500').then(async r => {
+        if (!r.ok) return;
+        const d = await r.json() as { staff?: { id: string; name: string; role: string }[] };
+        setStaffOptions(d.staff ?? []);
+      }).catch(() => {});
     }
-  }, [selected, staff.length]);
+  }, [editing, staffOptions.length]);
 
   function openDrawer(c: Complaint) {
-    setSelected(c);
+    setEditing(c);
     setEditStatus(c.status);
-    setEditAssignedTo(c.assigned_to ?? '');
+    setEditAssigned(c.assigned_to ?? '');
     setEditResolution(c.resolution ?? '');
+    setEditError('');
   }
 
-  function closeDrawer() {
-    setSelected(null);
-    setToast('');
-  }
-
-  async function save() {
-    if (!selected) return;
+  async function saveDrawer() {
+    if (!editing) return;
     setSaving(true);
-    setToast('');
+    setEditError('');
+
+    const updates: Record<string, unknown> = {};
+    if (editStatus !== editing.status) updates.status = editStatus;
+    if (editAssigned !== (editing.assigned_to ?? '')) updates.assigned_to = editAssigned || null;
+    if (editStatus === 'resolved' || (editResolution !== (editing.resolution ?? '') && editStatus === editing.status)) {
+      updates.resolution = editResolution;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setEditError('No changes to save');
+      setSaving(false);
+      return;
+    }
+
     try {
-      const body: Record<string, unknown> = {};
-      if (editStatus !== selected.status) body.status = editStatus;
-      if ((editAssignedTo || null) !== selected.assigned_to) {
-        body.assigned_to = editAssignedTo || null;
-      }
-      if ((editResolution || null) !== selected.resolution) {
-        body.resolution = editResolution || null;
-      }
-      if (Object.keys(body).length === 0) {
-        setToast('No changes to save');
+      const res = await fetch(`/api/admin/complaints/${editing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const d = await res.json() as { error?: string };
+      if (!res.ok) {
+        setEditError(d.error ?? 'Update failed');
         setSaving(false);
         return;
       }
-      const res = await fetch('/api/admin/complaints/' + selected.id, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const d = await res.json();
-      if (!res.ok) {
-        setToast('Save failed: ' + (d.error ?? res.statusText));
-      } else {
-        setToast('Saved');
-        await load();
-        // Re-find the updated complaint in the fresh list
-        setSelected(null);
-      }
+      setEditing(null);
+      await load();
     } catch (e) {
-      setToast('Save failed: ' + String(e));
+      setEditError(String(e));
     } finally {
       setSaving(false);
     }
   }
 
-  const labelStyle = { fontSize: 11, fontWeight: 700 as const, color: '#6B7280', marginBottom: 4, display: 'block' as const };
-  const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' as const };
+  const allowedNextStatuses = editing
+    ? [editing.status, ...ALLOWED_TRANSITIONS[editing.status]]
+    : [];
 
   return (
-    <Layout title="Parent Complaints" subtitle="Grievance lifecycle: open → under review → resolved → closed">
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {(['open','under_review','escalated','resolved','closed'] as Status[]).map(s => {
-          const col = STATUS_COLORS[s];
-          const count = stats[s] ?? 0;
+    <Layout title="Parent Complaints" subtitle="View, triage, and resolve complaints filed by parents">
+      {/* Stats pill row */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+        {(['open','under_review','escalated','resolved','closed'] as const).map(s => {
+          const b = STATUS_BADGE[s];
+          const active = statusFilter === s;
           return (
-            <div key={s} style={{ background: col.bg, color: col.fg, padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-              {col.label}: {count}
-            </div>
+            <button
+              key={s}
+              onClick={() => setStatusFilter(active ? '' : s)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                border: active ? `1px solid ${b.fg}` : '1px solid #E5E7EB',
+                background: active ? b.bg : '#fff',
+                color: active ? b.fg : '#374151',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {b.label}
+              <span style={{
+                background: active ? '#fff' : b.bg,
+                color: b.fg,
+                padding: '1px 7px',
+                borderRadius: 10,
+                fontSize: 11,
+                fontWeight: 800,
+              }}>{stats[s] ?? 0}</span>
+            </button>
           );
         })}
+        {(statusFilter || typeFilter) && (
+          <button
+            onClick={() => { setStatusFilter(''); setTypeFilter(''); }}
+            style={{
+              padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
+              background: '#F9FAFB', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>Clear filters</button>
+        )}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #E5E7EB', fontSize: 12 }}>
-          <option value="">All statuses</option>
-          {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{STATUS_COLORS[s as Status].label}</option>)}
-        </select>
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #E5E7EB', fontSize: 12 }}>
+      {/* Type filter */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</span>
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #D1D5DB', fontSize: 12 }}
+        >
           <option value="">All types</option>
-          {Object.keys(TYPE_LABELS).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+          {Object.entries(TYPE_LABELS).map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
         </select>
-        <button onClick={() => void load()} style={{ padding: '6px 14px', background: '#F3F4F6', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        <button
+          onClick={() => void load()}
+          style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+        >🔄 Refresh</button>
       </div>
 
       {/* List */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>Loading...</div>
+        <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 13 }}>Loading complaints…</div>
       ) : complaints.length === 0 ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#6B7280', background: '#F9FAFB', borderRadius: 10 }}>
-          No complaints match these filters.
+        <div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 13, background: '#F9FAFB', borderRadius: 8 }}>
+          No complaints match the current filters.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {complaints.map(c => {
-            const col = STATUS_COLORS[c.status];
-            const stu = firstStudent(c.student);
+            const b = STATUS_BADGE[c.status] ?? STATUS_BADGE.open;
             return (
-              <div key={c.id} onClick={() => openDrawer(c)}
-                   style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ background: col.bg, color: col.fg, padding: '3px 9px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>{col.label}</span>
-                    <span style={{ background: '#F3F4F6', color: '#374151', padding: '3px 9px', borderRadius: 12, fontSize: 10, fontWeight: 600 }}>{TYPE_LABELS[c.complaint_type] ?? c.complaint_type}</span>
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{fmtDateTime(c.created_at)}</span>
+              <div
+                key={c.id}
+                onClick={() => openDrawer(c)}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 10,
+                  padding: 14,
+                  cursor: 'pointer',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr auto',
+                  gap: 12,
+                  alignItems: 'start',
+                }}
+              >
+                <span style={{
+                  background: b.bg, color: b.fg, padding: '3px 9px',
+                  borderRadius: 12, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                }}>{b.label}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>
+                    {c.subject}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <span>{TYPE_LABELS[c.complaint_type] ?? c.complaint_type}</span>
+                    <span>·</span>
+                    <span>{c.student?.name ?? '(student?)'}{c.student?.class ? ` — ${c.student.class}${c.student.section ?? ''}` : ''}</span>
+                    <span>·</span>
+                    <span>{c.parent_phone}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#374151', marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.description}
                   </div>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{c.subject}</div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  Student: <strong>{stu?.name ?? '—'}</strong>
-                  {stu?.class ? ' · Class ' + stu.class : ''}
-                  {stu?.section ? '-' + stu.section : ''}
-                  {' · Parent: ' + c.parent_phone}
+                <div style={{ fontSize: 11, color: '#9CA3AF', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                  {fmtDateTime(c.created_at)}
                 </div>
               </div>
             );
@@ -233,68 +286,122 @@ export default function ComplaintsPage() {
         </div>
       )}
 
-      {/* Drawer (modal) */}
-      {selected && (
-        <div onClick={closeDrawer} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', justifyContent: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', background: '#fff', height: '100vh', overflowY: 'auto', padding: 20, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 16 }}>Complaint details</div>
-              <button onClick={closeDrawer} style={{ background: '#F3F4F6', border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>✕ Close</button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>{selected.subject}</div>
-              <div style={{ fontSize: 12, color: '#6B7280' }}>
-                {TYPE_LABELS[selected.complaint_type] ?? selected.complaint_type} · filed {fmtDateTime(selected.created_at)}
+      {/* Edit drawer */}
+      {editing && (
+        <div
+          onClick={() => setEditing(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+            zIndex: 200, display: 'flex', justifyContent: 'flex-end',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(520px, 100%)',
+              height: '100%',
+              background: '#fff',
+              padding: 24,
+              overflowY: 'auto',
+              boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  {TYPE_LABELS[editing.complaint_type] ?? editing.complaint_type}
+                </div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '4px 0 0', letterSpacing: '-0.3px' }}>
+                  {editing.subject}
+                </h2>
               </div>
+              <button onClick={() => setEditing(null)} style={{ background: 'transparent', border: 'none', fontSize: 22, color: '#9CA3AF', cursor: 'pointer' }}>×</button>
             </div>
 
-            <div style={{ background: '#F9FAFB', borderRadius: 8, padding: 12, marginBottom: 16, whiteSpace: 'pre-wrap', fontSize: 13, color: '#374151' }}>
-              {selected.description}
+            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 14 }}>
+              From <strong style={{ color: '#374151' }}>{editing.parent_phone}</strong>
+              {editing.student?.name && <> · about <strong style={{ color: '#374151' }}>{editing.student.name}</strong>{editing.student.class ? ` (${editing.student.class}${editing.student.section ?? ''})` : ''}</>}
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Status</label>
-              <select value={editStatus} onChange={e => setEditStatus(e.target.value as Status)} style={inputStyle}>
-                {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{STATUS_COLORS[s as Status].label}</option>)}
+            <div style={{ background: '#F9FAFB', borderRadius: 8, padding: 12, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', marginBottom: 18, lineHeight: 1.55 }}>
+              {editing.description}
+            </div>
+
+            {/* Status */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Status</label>
+              <select
+                value={editStatus}
+                onChange={e => setEditStatus(e.target.value)}
+                disabled={editing.status === 'closed'}
+                style={{ width: '100%', padding: '9px 11px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13 }}
+              >
+                {allowedNextStatuses.map(s => (
+                  <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>
+                ))}
+              </select>
+              {editing.status === 'closed' && (
+                <div style={{ fontSize: 11, color: '#92400E', marginTop: 4 }}>Closed complaints cannot be modified.</div>
+              )}
+            </div>
+
+            {/* Assignment */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Assigned to</label>
+              <select
+                value={editAssigned}
+                onChange={e => setEditAssigned(e.target.value)}
+                disabled={editing.status === 'closed'}
+                style={{ width: '100%', padding: '9px 11px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13 }}
+              >
+                <option value="">(unassigned)</option>
+                {staffOptions.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} — {s.role}</option>
+                ))}
               </select>
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Assign to staff (optional)</label>
-              <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={inputStyle}>
-                <option value="">— Unassigned —</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name}{s.role ? ' (' + s.role + ')' : ''}</option>)}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Resolution notes {editStatus === 'resolved' ? '(required)' : '(optional)'}</label>
+            {/* Resolution */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>
+                Resolution {editStatus === 'resolved' && <span style={{ color: '#991B1B' }}>*</span>}
+              </label>
               <textarea
                 value={editResolution}
                 onChange={e => setEditResolution(e.target.value)}
-                rows={4}
-                placeholder="What action was taken to resolve this complaint?"
-                style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
+                disabled={editing.status === 'closed'}
+                placeholder="Describe what was done to resolve this complaint…"
+                maxLength={4000}
+                rows={5}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
               />
             </div>
 
-            {toast && <div style={{ marginBottom: 12, padding: 10, background: toast.startsWith('Saved') ? '#D1FAE5' : '#FEF3C7', borderRadius: 7, fontSize: 12, color: '#0F172A' }}>{toast}</div>}
+            {editError && (
+              <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '8px 12px', borderRadius: 6, fontSize: 12, marginBottom: 12 }}>
+                {editError}
+              </div>
+            )}
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={closeDrawer} style={{ flex: 1, padding: '10px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => void save()} disabled={saving} style={{ flex: 1, padding: '10px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Saving...' : 'Save changes'}
-              </button>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setEditing(null)}
+                style={{ padding: '9px 16px', borderRadius: 7, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >Cancel</button>
+              {editing.status !== 'closed' && (
+                <button
+                  onClick={() => void saveDrawer()}
+                  disabled={saving}
+                  style={{ padding: '9px 18px', borderRadius: 7, border: 'none', background: '#4F46E5', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+                >{saving ? 'Saving…' : 'Save Changes'}</button>
+              )}
             </div>
 
-            {/* Audit metadata */}
-            <div style={{ marginTop: 24, fontSize: 11, color: '#9CA3AF', lineHeight: 1.7 }}>
-              <div><strong>ID:</strong> {selected.id}</div>
-              <div><strong>Parent phone:</strong> {selected.parent_phone}</div>
-              {selected.resolved_at && <div><strong>Resolved:</strong> {fmtDateTime(selected.resolved_at)}</div>}
-              {selected.closed_at && <div><strong>Closed:</strong> {fmtDateTime(selected.closed_at)}</div>}
-              <div><strong>Last updated:</strong> {fmtDateTime(selected.updated_at)}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 24, borderTop: '1px solid #F3F4F6', paddingTop: 12 }}>
+              Filed {fmtDateTime(editing.created_at)}
+              {editing.resolved_at && <> · Resolved {fmtDateTime(editing.resolved_at)}</>}
+              {editing.closed_at && <> · Closed {fmtDateTime(editing.closed_at)}</>}
+              <br />Last updated {fmtDateTime(editing.updated_at)}
             </div>
           </div>
         </div>
