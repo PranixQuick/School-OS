@@ -1,4 +1,6 @@
 'use client';
+// G13: multilingual parent portal
+import { L, Lang } from '@/lib/i18n-parent';
 
 // PATH: app/parent/page.tsx
 //
@@ -169,6 +171,8 @@ export default function ParentPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>('homework');
+  // G13: language preference
+  const lang = ((parent?.language_pref ?? 'en') as Lang);
   const [transport, setTransport] = useState<{ route_name: string; current_lat: number; current_lng: number; bus_status: string; last_location_at: string } | null>(null);
   const [transportLoading, setTransportLoading] = useState(false);
 
@@ -517,14 +521,14 @@ export default function ParentPage() {
       {/* Tab bar */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 64, zIndex: 9, overflowX: 'auto' }}>
         {([
-          { key: 'homework' as Tab, label: '📚 Homework' },
-          { key: 'announcements' as Tab, label: '📢 News' },
-          { key: 'attendance' as Tab, label: '✓ Attendance' },
+          { key: 'homework' as Tab, label: `📚 ${L('homework', lang)}` },
+          { key: 'announcements' as Tab, label: `📢 ${L('announcements', lang)}` },
+          { key: 'attendance' as Tab, label: `✓ ${L('attendance', lang)}` },
           { key: 'lesson_plans' as Tab, label: '📅 Plans' },
-          { key: 'fees' as Tab, label: '₹ Fees' },
-          { key: 'ptm' as Tab, label: '🤝 PTM' },
-          { key: 'report_cards' as Tab, label: '📊 Reports' },
-          { key: 'transport' as Tab, label: '🚌 Bus' },
+          { key: 'fees' as Tab, label: `₹ ${L('fees', lang)}` },
+          { key: 'ptm' as Tab, label: `🤝 ${L('ptm', lang)}` },
+          { key: 'report_cards' as Tab, label: `📊 ${L('reports', lang)}` },
+          { key: 'transport' as Tab, label: `🚌 ${L('transport', lang)}` },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
