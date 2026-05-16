@@ -133,8 +133,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Legacy demo password check. Kept until per-user migration completes.
-  const expectedPassword = `schoolos${schoolUser.school_id.slice(0, 4)}`;
-  if (password !== expectedPassword) {
+  // G6: Support both edprosys (new) + schoolos (legacy) prefix during brand transition
+  const expectedPassword = `edprosys${schoolUser.school_id.slice(0, 4)}`;
+  const legacyExpected = `schoolos${schoolUser.school_id.slice(0, 4)}`;
+  if (password !== expectedPassword && password !== legacyExpected) {
     await logAuthEvent({
       eventType: 'login_failure',
       schoolId: schoolUser.school_id,
