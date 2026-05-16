@@ -34,6 +34,7 @@ interface StudentInfo {
   class: string | null;
   section: string | null;
   is_active: boolean;
+  institution_type?: string | null;
 }
 
 interface HomeworkRow {
@@ -584,17 +585,24 @@ export default function ParentPage() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 64, zIndex: 9, overflowX: 'auto' }}>
-        {([
-          { key: 'homework' as Tab, label: `📚 ${L('homework', lang)}` },
-          { key: 'announcements' as Tab, label: `📢 ${L('announcements', lang)}` },
-          { key: 'attendance' as Tab, label: `✓ ${L('attendance', lang)}` },
-          { key: 'lesson_plans' as Tab, label: '📅 Plans' },
-          { key: 'fees' as Tab, label: `₹ ${L('fees', lang)}` },
-          { key: 'ptm' as Tab, label: `🤝 ${L('ptm', lang)}` },
-          { key: 'report_cards' as Tab, label: `📊 ${L('reports', lang)}` },
-          { key: 'transport' as Tab, label: `🚌 ${L('transport', lang)}` },
-          { key: 'complaints' as Tab, label: `📣 ${L('complaints', lang)}` },
-        ]).map(t => (
+        {(() => {
+          // PR-3: filter tabs by institution_type. Falls back to school_k10 (all tabs).
+          const instType = student?.institution_type ?? 'school_k10';
+          const isCoachingInst = instType === 'coaching';
+          const isCollegeInst = ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(instType);
+          const tabs: Array<{ key: Tab; label: string } | false> = [
+            { key: 'homework' as Tab, label: `📚 ${L('homework', lang)}` },
+            { key: 'announcements' as Tab, label: `📢 ${L('announcements', lang)}` },
+            { key: 'attendance' as Tab, label: `✓ ${L('attendance', lang)}` },
+            !isCoachingInst && { key: 'lesson_plans' as Tab, label: '📅 Plans' },
+            { key: 'fees' as Tab, label: `₹ ${L('fees', lang)}` },
+            (!isCoachingInst && !isCollegeInst) && { key: 'ptm' as Tab, label: `🤝 ${L('ptm', lang)}` },
+            (!isCoachingInst && !isCollegeInst) && { key: 'report_cards' as Tab, label: `📊 ${L('reports', lang)}` },
+            { key: 'transport' as Tab, label: `🚌 ${L('transport', lang)}` },
+            { key: 'complaints' as Tab, label: `📣 ${L('complaints', lang)}` },
+          ];
+          return tabs.filter((x): x is { key: Tab; label: string } => Boolean(x));
+        })().map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
             style={{

@@ -68,6 +68,20 @@ export async function POST(req: NextRequest) {
         .limit(3),
     ]);
 
+    // PR-3: institution_type lookup for parent portal tab gating
+    let institutionType: string | null = null;
+    {
+      const { data: schoolRow } = await supabaseAdmin
+        .from('schools')
+        .select('institution_id, institutions(institution_type)')
+        .eq('id', schoolId)
+        .maybeSingle();
+      if (schoolRow?.institutions) {
+        const inst = Array.isArray(schoolRow.institutions) ? schoolRow.institutions[0] : schoolRow.institutions;
+        institutionType = (inst as { institution_type?: string } | null)?.institution_type ?? null;
+      }
+    }
+
     const attendance = attendanceRes.data ?? [];
     const presentDays = attendance.filter(a => a.status === 'present').length;
     const attendancePct = attendance.length > 0
@@ -77,7 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       parent: { name: parent.name },
-      student: studentRes.data,
+      student: studentRes.data ? { ...studentRes.data, institution_type: institutionType } : null,
       attendance: {
         records: attendance.slice(0, 10),
         summary: {

@@ -45,6 +45,19 @@ const STATUS_BADGE: Record<string, { bg: string; fg: string; label: string }> = 
 };
 
 export default function AdminFeesPage() {
+  // PR-3: feature-flag gating — fees module can be disabled per institution
+  const [feeModuleEnabled, setFeeModuleEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/institution-config')
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { feature_flags?: { fee_module_enabled?: boolean } } | null) => {
+        // Default true if flag missing (preserves existing behaviour for schools that never explicitly enabled)
+        setFeeModuleEnabled(d?.feature_flags?.fee_module_enabled !== false);
+      })
+      .catch(() => setFeeModuleEnabled(true));
+  }, []);
+
   const [fees, setFees] = useState<FeeRow[]>([]);
   // Batch 8: refund + GST state
   const [refundModal, setRefundModal] = useState<{feeId:string;amount:number;feeType:string} | null>(null);
@@ -219,6 +232,17 @@ export default function AdminFeesPage() {
   }
 
   const statusFilters = ['', 'pending', 'overdue', 'pending_verification', 'paid', 'waived', 'partial'];
+
+  // PR-3: graceful gate — fee module disabled for this institution
+  if (feeModuleEnabled === false) {
+    return (
+      <Layout title="Fee Management" subtitle="Module disabled">
+        <div style={{ padding: 32, color: '#6B7280', textAlign: 'center', background: '#F9FAFB', borderRadius: 10 }}>
+          Fee module is not enabled for this institution. Go to Settings → Institution Config to enable it.
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Fee Management" subtitle={`${fees.length} records`}>

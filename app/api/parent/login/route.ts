@@ -115,6 +115,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // PR-3: Resolve institution_type for the parent's school (for parent portal tab gating)
+    let institutionType: string | null = null;
+    {
+      const { data: schoolRow } = await supabaseAdmin
+        .from('schools')
+        .select('institution_id, institutions(institution_type)')
+        .eq('id', parent.school_id)
+        .maybeSingle();
+      if (schoolRow?.institutions) {
+        const inst = Array.isArray(schoolRow.institutions) ? schoolRow.institutions[0] : schoolRow.institutions;
+        institutionType = (inst as { institution_type?: string } | null)?.institution_type ?? null;
+      }
+    }
+
     // Best-effort: stamp last_access. parents has the column but no throttling RPC,
     // so we just write it directly. Failure is non-fatal.
     const { error: updErr } = await supabaseAdmin
@@ -140,6 +154,7 @@ export async function POST(req: NextRequest) {
         class: student.class,
         section: student.section,
         is_active: student.is_active,
+        institution_type: institutionType,
       },
       // class_id may be null if classes table doesn't have a matching row yet.
       // Frontend should still render but homework/lesson_plans tabs will show empty.
