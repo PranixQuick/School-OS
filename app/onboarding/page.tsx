@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClassRow { grade: string; sections: string }
 interface BatchRow { label: string; entry_year: string; capacity: string }
+interface GroupRow { code: string; name: string }
 interface StaffRow { name: string; role: string; email: string; phone: string }
 interface FeeDefault { fee_type: string; amount: string; due_date: string; class: string }
 interface StudentRow { student_name: string; class: string; section: string; parent_name: string; parent_phone: string; parent_email: string }
@@ -61,6 +62,7 @@ export default function OnboardingWizard() {
   // Step 2: Classes
   const [classes, setClasses] = useState<ClassRow[]>([{ grade: '', sections: 'A' }]);
   const [batches, setBatches] = useState<BatchRow[]>([{ label: '', entry_year: String(new Date().getFullYear() + 1), capacity: '60' }]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(['MPC', 'BiPC']);
 
   // Step 3: Staff
   const [staffList, setStaffList] = useState<StaffRow[]>([{ name: '', role: 'teacher', email: '', phone: '' }]);
@@ -120,6 +122,10 @@ export default function OnboardingWizard() {
         if (isCoaching(instType)) {
           const batchList = batches.filter(b => b.label.trim()).map(b => ({ label: b.label.trim(), entry_year: parseInt(b.entry_year) || new Date().getFullYear() + 1, capacity: parseInt(b.capacity) || null }));
           result = await post('/api/admin/onboarding/2-batches', { batches: batchList });
+        } else if (isCollege(instType)) {
+          // K5: create group batches for junior college
+          const groupBatches = selectedGroups.map(code => ({ label: code, entry_year: new Date().getFullYear() + 1, group_code: code }));
+          result = await post('/api/admin/onboarding/2-batches', { batches: groupBatches });
         } else {
           const parsed = classes.filter(c => c.grade.trim()).map(c => ({ grade: c.grade.trim(), sections: c.sections.split(',').map(s => s.trim()).filter(Boolean) }));
           result = await post('/api/admin/onboarding/2-classes', { classes: parsed });
@@ -241,11 +247,16 @@ export default function OnboardingWizard() {
 
     if (step === 2 && isCollege(instType)) return (
       <div>
-        <div style={{ fontSize:13, fontWeight:600, color:'#374151', marginBottom:8 }}>Add Departments</div>
-        <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Add your college departments (e.g. Computer Science, Mechanical, MBA). You can add more after setup.</div>
-        <div style={{ padding:'12px 14px', background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:8, fontSize:13 }}>
-          Department setup coming in the next update. Continue to set up staff, fees, and students.
-        </div>
+        <div style={{ fontSize:13, fontWeight:600, color:'#374151', marginBottom:8 }}>Add Groups</div>
+        <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Select the groups offered at your institution. Each group creates a batch students can be enrolled into.</div>
+        {[['MPC','Maths, Physics, Chemistry'],['BiPC','Biology, Physics, Chemistry'],['CEC','Commerce, Economics, Civics'],['MEC','Maths, Economics, Commerce'],['HEC','History, Economics, Civics']].map(([code,label]) => (
+          <label key={code} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', marginBottom:6, background: selectedGroups.includes(code) ? '#EEF2FF' : '#F9FAFB', border:`1px solid ${selectedGroups.includes(code) ? '#A5B4FC' : '#E5E7EB'}`, borderRadius:8, cursor:'pointer' }}>
+            <input type='checkbox' checked={selectedGroups.includes(code)}
+              onChange={e => setSelectedGroups(prev => e.target.checked ? [...prev, code] : prev.filter(g => g !== code))}
+              style={{ width:16, height:16, cursor:'pointer' }} />
+            <div><div style={{ fontWeight:700, fontSize:13 }}>{code}</div><div style={{ fontSize:11, color:'#6B7280' }}>{label}</div></div>
+          </label>
+        ))}
       </div>
     );
 
