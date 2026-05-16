@@ -31,9 +31,15 @@ export async function POST(req: NextRequest) {
   await supabaseAdmin.from('cron_runs').delete().eq('school_id', SUCHITRA_SCHOOL_ID);
   await supabaseAdmin.from('error_logs').delete().eq('school_id', SUCHITRA_SCHOOL_ID);
 
+  // Reset password_migrated_at for demo accounts so password login keeps working
+  await supabaseAdmin
+    .from('school_users')
+    .update({ password_migrated_at: null })
+    .eq('school_id', SUCHITRA_SCHOOL_ID);
+
   return NextResponse.json({
     reset: true,
     school: school.name,
-    cleared: ['homework_submissions', 'attendance', 'cron_runs', 'error_logs'],
+    cleared: ['homework_submissions', 'attendance', 'cron_runs', 'error_logs', 'password_migrated_at'],
   });
 }
