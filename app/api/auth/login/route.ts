@@ -235,17 +235,8 @@ export async function POST(req: NextRequest) {
     metadata: { path: 'legacy_password', variant: 'legacy', ttlSec: LEGACY_SESSION_MAX_AGE_SEC },
   });
 
-  // E3: stamp password_migrated_at on first legacy success
-  // Skip for: E2E/CI bypass header, .local test emails, and known demo school domains
-  const isDemoEmail = email.endsWith('.local') ||
-    ['suchitracademy.edu.in', 'dpsnadergul.com'].some(d => email.endsWith(d));
-  if (!isE2EBypass(req.headers.get('x-e2e-bypass')) && !isDemoEmail) {
-    await supabaseAdmin
-      .from('school_users')
-      .update({ password_migrated_at: new Date().toISOString() })
-      .eq('id', schoolUser.id)
-      .is('password_migrated_at', null);
-  }
+  // E3: password_migrated_at stamp removed — migration tracking no longer needed
+  // post-EdProSys brand. Users move to magic link naturally.
 
   return response;
 }
