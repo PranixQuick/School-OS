@@ -75,7 +75,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #F3F4F6', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>S</div>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>E</div>
           <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px' }}>EdProSys</span>
           <span style={{ fontSize: 11, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: 20, marginLeft: 4 }}>BETA</span>
         </div>
@@ -162,7 +162,7 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               { step: '01', title: 'Create your school', desc: 'Enter school name and email. Your account is ready instantly with demo data pre-loaded.' },
-              { step: '02', title: 'Import your students', desc: 'Upload a CSV with student names, class, and parent phone numbers. That\'s all we need.' },
+              { step: '02', title: 'Import your students', desc: 'Upload a CSV with student names, class, and parent phone numbers. That is all we need.' },
               { step: '03', title: 'Let AI do the work', desc: 'Reports, reminders, briefings, and risk alerts run automatically every day from 2am.' },
             ].map((s, i) => (
               <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '28px 24px', border: '1px solid #E5E7EB', textAlign: 'left' }}>
@@ -231,7 +231,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ background: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: '#475569' }}>
-          © 2026 EdProSys by Pranix AI Labs · Built for Indian schools
+          © 2026 EdProSys · Pranix AI Labs Pvt Ltd · CIN: U62011TS2026PTC209631
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
           <Link href="/login" style={{ color: '#64748B', textDecoration: 'none' }}>Login</Link>
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
