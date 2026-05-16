@@ -162,7 +162,9 @@ export default function TransportPage() {
 
   return (
     <Layout title="Transport" subtitle="Bus routes, stops, and trip tracking" actions={
-      <Link href="/admin/transport/devices" style={{ padding: '6px 14px', background: '#4F46E5', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>📡 GPS Devices</Link>
+      <Link href="/admin/transport/devices" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: 7, fontWeight: 600 }}>
+        📡 GPS Devices
+      </Link>
     }>
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
