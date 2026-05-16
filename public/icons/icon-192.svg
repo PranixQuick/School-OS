@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <circle cx="96" cy="96" r="96" fill="#1e40af"/>
-  <text x="96" y="130" font-family="system-ui, -apple-system, sans-serif"
-    font-size="108" font-weight="800" fill="#ffffff"
-    text-anchor="middle">S</text>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' width='192' height='192'>
+  <rect width='192' height='192' rx='36' fill='#0F172A'/>
+  <polygon points='96,33 151,65 151,129 96,161 41,129 41,65' fill='#6366F1'/>
+  <circle cx='96' cy='97' r='17' fill='#F97316'/>
 </svg>
