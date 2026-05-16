@@ -30,10 +30,12 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testMatch: '**/01-admin-login.spec.ts', // I6: cross-browser on login smoke only
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testMatch: '**/01-admin-login.spec.ts', // I6: cross-browser on login smoke only
     },
   ],
 });
