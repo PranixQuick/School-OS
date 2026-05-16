@@ -42,6 +42,7 @@ function calcGrade(obt: number, max: number): string {
 export default function TeacherMarksPage() {
   const [gradeLevel, setGradeLevel] = useState('5');
   const [section, setSection] = useState('A');
+  const [streamGroup, setStreamGroup] = useState('all'); // K5: jr college group filter
   const [subject, setSubject] = useState('');
   const [term, setTerm] = useState('term_1');
   const [subjects, setSubjects] = useState<{ name: string }[]>([]);
@@ -60,11 +61,13 @@ export default function TeacherMarksPage() {
     }).catch(() => {});
   }, []);
 
+  // K5: streamGroup filter for junior college
   const loadRoster = useCallback(async () => {
     if (!subject || !term) return;
     setLoading(true); setRoster([]);
     try {
-      const r = await fetch(`/api/teacher/marks?grade_level=${encodeURIComponent(gradeLevel)}&section=${encodeURIComponent(section)}&subject=${encodeURIComponent(subject)}&term=${term}`);
+      const groupParam = streamGroup && streamGroup !== 'all' ? `&stream_group=${encodeURIComponent(streamGroup)}` : '';
+      const r = await fetch(`/api/teacher/marks?grade_level=${encodeURIComponent(gradeLevel)}&section=${encodeURIComponent(section)}&subject=${encodeURIComponent(subject)}&term=${term}${groupParam}`);
       if (!r.ok) { setLoading(false); return; }
       const d = await r.json();
       const rows: StudentRow[] = (d.roster ?? []).map((s: {
@@ -84,7 +87,7 @@ export default function TeacherMarksPage() {
     setLoading(false);
   }, [gradeLevel, section, subject, term]);
 
-  useEffect(() => { if (subject) void loadRoster(); }, [gradeLevel, section, subject, term, loadRoster]);
+  useEffect(() => { if (subject) void loadRoster(); }, [gradeLevel, section, subject, term, streamGroup, loadRoster]);
 
   function updateRow(idx: number, field: 'marks_obtained' | 'max_marks', val: string) {
     setRoster(prev => prev.map((r, i) => {
@@ -167,6 +170,7 @@ export default function TeacherMarksPage() {
           { label: 'Grade', value: gradeLevel, setter: setGradeLevel, options: GRADE_LEVELS.map(g => ({ value: g, label: `Grade ${g}` })) },
           { label: 'Section', value: section, setter: setSection, options: SECTIONS.map(s => ({ value: s, label: s })) },
           { label: 'Term', value: term, setter: setTerm, options: TERMS },
+          // K5: group filter injected separately below
         ].map(({ label, value, setter, options }) => (
           <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <label style={{ fontSize: 10, fontWeight: 700, color: '#6B7280' }}>{label.toUpperCase()}</label>
