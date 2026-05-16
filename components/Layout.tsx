@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
   { href: '/admissions/crm',             label: 'Leads CRM',            icon: '◎',  roles: ['owner','admin'] },
   { href: '/admissions/call-analysis',   label: 'Call Analysis',        icon: '📞', roles: ['owner','admin'] },
   { href: '/report-cards',               label: 'Report Cards',         icon: '◷',  roles: ['owner','admin','principal','teacher'] },
+  { href: '/admin/coaching-tests',        label: 'Tests & Ranks',          icon: '📊', roles: ['owner','admin','teacher'] },
   { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕',  roles: ['owner','admin','principal'] },
   { href: '/automation',                 label: 'Automation',           icon: '⚡', roles: ['owner','admin'] },
   { href: '/automation/cron',            label: 'Automation Schedule',  icon: '🤖', roles: ['owner','admin'] },
@@ -104,6 +105,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
       if (item.label === 'Meal Attendance' && !['govt_school','welfare_school'].includes(t)) return false;
       if (item.label === 'Sanitary Inventory' && t === 'coaching') return false;
       if (['Leads CRM','Call Analysis'].includes(item.label) && ['govt_school','govt_aided_school'].includes(t)) return false;
+      if (item.label === 'Tests & Ranks' && t !== 'coaching') return false;
       if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
     }
     return true;
