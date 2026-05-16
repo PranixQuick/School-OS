@@ -68,7 +68,8 @@ export default function OnboardingWizard() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
 
-  function useCurrentLocation() {
+  // Note: not a React hook — regular handler. Avoids react-hooks/rules-of-hooks false positive.
+  function fetchCurrentLocation() {
     setGeoError(null);
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setGeoError('Geolocation is not supported by this browser. Please enter lat/lng manually or use Google Maps.');
@@ -258,7 +259,7 @@ export default function OnboardingWizard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => useCurrentLocation()} disabled={geoLoading}
+            <button type="button" onClick={() => fetchCurrentLocation()} disabled={geoLoading}
               style={{ flex: '1 1 auto', padding: '8px 12px', background: geoLoading ? '#9CA3AF' : '#065F46', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: geoLoading ? 'wait' : 'pointer' }}>
               {geoLoading ? 'Getting location…' : '📍 Use Current Location'}
             </button>
