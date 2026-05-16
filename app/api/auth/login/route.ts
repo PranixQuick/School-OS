@@ -133,8 +133,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Legacy demo password check. Kept until per-user migration completes.
-  const expectedPassword = `schoolos${schoolUser.school_id.slice(0, 4)}`;
-  if (password !== expectedPassword) {
+  // G6: Support both edprosys (new) + schoolos (legacy) prefix during brand transition
+  const expectedPassword = `edprosys${schoolUser.school_id.slice(0, 4)}`;
+  const legacyExpected = `schoolos${schoolUser.school_id.slice(0, 4)}`;
+  if (password !== expectedPassword && password !== legacyExpected) {
     await logAuthEvent({
       eventType: 'login_failure',
       schoolId: schoolUser.school_id,
@@ -233,7 +235,8 @@ export async function POST(req: NextRequest) {
     metadata: { path: 'legacy_password', variant: 'legacy', ttlSec: LEGACY_SESSION_MAX_AGE_SEC },
   });
 
-  // E3: stamp removed — password_migrated_at set only via magic link callback
+  // E3: password_migrated_at stamp removed — migration tracking no longer needed
+  // post-EdProSys brand. Users move to magic link naturally.
 
   return response;
 }
