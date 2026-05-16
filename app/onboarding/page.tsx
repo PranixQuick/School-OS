@@ -58,6 +58,11 @@ export default function OnboardingWizard() {
   const [ownerType, setOwnerType] = useState('private');
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  // PR-2: school geofence — lat/lng for K6 bus GPS arriving trigger
+  const [lat, setLat] = useState<string>('');
+  const [lng, setLng] = useState<string>('');
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoMsg, setGeoMsg] = useState<string>('');
 
   // Step 2: Classes
   const [classes, setClasses] = useState<ClassRow[]>([{ grade: '', sections: 'A' }]);
@@ -116,7 +121,12 @@ export default function OnboardingWizard() {
     try {
       let result;
       if (step === 1) {
-        result = await post('/api/admin/onboarding/1-profile', { name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl });
+        result = await post('/api/admin/onboarding/1-profile', {
+          name, address, board, institution_type: instType, ownership_type: ownerType, phone, logo_url: logoUrl,
+          // PR-2: include lat/lng only if user filled them — server treats absent vs '' specially
+          ...(lat !== '' ? { lat } : {}),
+          ...(lng !== '' ? { lng } : {}),
+        });
       } else if (step === 2) {
         // K2: coaching uses 2-batches, others use 2-classes
         if (isCoaching(instType)) {
@@ -201,6 +211,47 @@ export default function OnboardingWizard() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <div><label style={labelStyle}>Phone</label><input style={inputStyle} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" /></div>
           <div><label style={labelStyle}>Logo URL</label><input style={inputStyle} value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} placeholder="https://..." /></div>
+        </div>
+
+        {/* PR-2: School location (geofence for bus GPS arriving trigger) */}
+        <div style={{ marginTop: 14, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>📍 School Location <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional)</span></div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 10 }}>Used by the GPS bus tracker to detect when buses arrive at school. You can fill this in later from Settings.</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom: 8 }}>
+            <div><label style={labelStyle}>Latitude</label><input style={inputStyle} type="number" step="0.000001" value={lat} onChange={e=>setLat(e.target.value)} placeholder="e.g. 17.385044" /></div>
+            <div><label style={labelStyle}>Longitude</label><input style={inputStyle} type="number" step="0.000001" value={lng} onChange={e=>setLng(e.target.value)} placeholder="e.g. 78.486671" /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" disabled={geoBusy}
+              onClick={() => {
+                setGeoMsg(''); setGeoBusy(true);
+                if (!navigator.geolocation) {
+                  setGeoMsg('Geolocation not supported in this browser.'); setGeoBusy(false); return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    setLat(pos.coords.latitude.toFixed(6));
+                    setLng(pos.coords.longitude.toFixed(6));
+                    setGeoMsg('Location captured.'); setGeoBusy(false);
+                  },
+                  (err) => {
+                    setGeoMsg('Could not capture location: ' + err.message); setGeoBusy(false);
+                  },
+                  { enableHighAccuracy: true, timeout: 10000 }
+                );
+              }}
+              style={{ padding: '6px 12px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: geoBusy ? 'wait' : 'pointer', opacity: geoBusy ? 0.6 : 1 }}>
+              {geoBusy ? 'Capturing...' : '📍 Use Current Location'}
+            </button>
+            <a href="https://maps.google.com/" target="_blank" rel="noopener noreferrer"
+              style={{ padding: '6px 12px', background: '#fff', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              🗺 Open Google Maps ↗
+            </a>
+          </div>
+          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8 }}>
+            Tip: in Google Maps, right-click your school location → click the lat,lng pair to copy → paste into the fields above.
+          </div>
+          {geoMsg && <div style={{ fontSize: 11, color: geoMsg.startsWith('Could') ? '#991B1B' : '#065F46', marginTop: 6 }}>{geoMsg}</div>}
         </div>
       </div>
     );
