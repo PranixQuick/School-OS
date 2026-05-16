@@ -2,83 +2,92 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
-// PR-2 Task A: Admin complaint list endpoint.
-// Returns complaints for the caller's school, with optional status/type filters.
-// Tenant boundary enforced via session.schoolId (NOT request body).
+// PR-2 Task A: Admin complaint list.
+// Auth: middleware session (x-school-id, x-user-role headers).
+// Roles: owner | principal | admin_staff | admin | accountant (via requireAdminSession).
 //
-// GET /api/admin/complaints?status=open&type=safety&limit=100
-//   status: optional, one of open|under_review|escalated|resolved|closed
-//   type:   optional, one of the 10 complaint_types
-//   limit:  optional, 1..200 (default 100)
+// GET query params:
+//   - status: optional, filter by status (open|under_review|escalated|resolved|closed)
+//   - type: optional, filter by complaint_type
+//   - limit: default 50, max 200
+//   - offset: default 0
+//
+// Returns complaints joined with student name + class for the calling admin's school only.
 
 export const runtime = 'nodejs';
 
-const ALLOWED_STATUSES = new Set(['open','under_review','escalated','resolved','closed']);
+const ALLOWED_STATUSES = new Set([
+  'open', 'under_review', 'escalated', 'resolved', 'closed',
+]);
+
 const ALLOWED_TYPES = new Set([
-  'academic','teacher_conduct','bullying','safety',
-  'infrastructure','fee','transport','food','vendor','general',
+  'academic', 'teacher_conduct', 'bullying', 'safety',
+  'infrastructure', 'fee', 'transport', 'food', 'vendor', 'general',
 ]);
 
 export async function GET(req: NextRequest) {
   let ctx;
-  try { ctx = await requireAdminSession(req); }
-  catch (e) {
-    if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
+  try {
+    ctx = await requireAdminSession(req);
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     throw e;
   }
+  const { schoolId } = ctx;
 
-  const url = new URL(req.url);
-  const statusFilter = url.searchParams.get('status');
-  const typeFilter = url.searchParams.get('type');
-  const limitParam = url.searchParams.get('limit');
-  const limit = Math.min(Math.max(parseInt(limitParam ?? '100', 10) || 100, 1), 200);
+  const { searchParams } = new URL(req.url);
+  const statusFilter = searchParams.get('status');
+  const typeFilter = searchParams.get('type');
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') ?? '50', 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(searchParams.get('offset') ?? '0', 10) || 0, 0);
 
-  if (statusFilter && !ALLOWED_STATUSES.has(statusFilter)) {
-    return NextResponse.json({ error: 'Invalid status filter' }, { status: 400 });
-  }
-  if (typeFilter && !ALLOWED_TYPES.has(typeFilter)) {
-    return NextResponse.json({ error: 'Invalid type filter' }, { status: 400 });
-  }
-
-  let query = supabaseAdmin
+  // Build query — tenant boundary via .eq('school_id') on the calling admin's school
+  let q = supabaseAdmin
     .from('parent_complaints')
     .select(`
-      id, complaint_type, subject, description, status, resolution,
-      parent_phone, student_id, assigned_to,
-      created_at, updated_at, resolved_at, closed_at,
-      student:students(id, name, class, section)
-    `)
-    .eq('school_id', ctx.schoolId)
+      id, complaint_type, subject, description, status, assigned_to,
+      resolution, resolved_at, closed_at, created_at, updated_at,
+      parent_phone, student_id,
+      students:students!parent_complaints_student_id_fkey ( id, name, class, section )
+    `, { count: 'exact' })
+    .eq('school_id', schoolId)
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
-  if (statusFilter) query = query.eq('status', statusFilter);
-  if (typeFilter) query = query.eq('complaint_type', typeFilter);
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Admin complaints list error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (statusFilter && ALLOWED_STATUSES.has(statusFilter)) {
+    q = q.eq('status', statusFilter);
+  }
+  if (typeFilter && ALLOWED_TYPES.has(typeFilter)) {
+    q = q.eq('complaint_type', typeFilter);
   }
 
-  // Counts by status for the dashboard pill row.
+  const { data, error, count } = await q;
+
+  if (error) {
+    console.error('Admin complaint list error:', error);
+    return NextResponse.json({ error: 'Failed to load complaints' }, { status: 500 });
+  }
+
+  // Compute status counts for the admin dashboard
   const { data: counts } = await supabaseAdmin
     .from('parent_complaints')
     .select('status')
-    .eq('school_id', ctx.schoolId);
+    .eq('school_id', schoolId);
 
-  const byStatus: Record<string, number> = {
-    open: 0, under_review: 0, escalated: 0, resolved: 0, closed: 0,
-  };
+  const stats = { open: 0, under_review: 0, escalated: 0, resolved: 0, closed: 0 };
   for (const row of counts ?? []) {
-    if (row.status in byStatus) byStatus[row.status]++;
+    const s = row.status as keyof typeof stats;
+    if (s in stats) stats[s]++;
   }
 
   return NextResponse.json({
     success: true,
-    total: data?.length ?? 0,
+    total: count ?? 0,
+    limit,
+    offset,
+    stats,
     complaints: data ?? [],
-    stats: { by_status: byStatus },
   });
 }
