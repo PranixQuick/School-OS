@@ -135,6 +135,35 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
+                {/* PR-6: institution type + ownership — defaults preserved (school_k10 / private) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+                  <div>
+                    <label style={labelStyle}>INSTITUTION TYPE *</label>
+                    <select style={inputStyle} value={form.institution_type} onChange={e => set('institution_type', e.target.value)}>
+                      <option value="school_k10">K-10 School</option>
+                      <option value="school_k12">K-12 School</option>
+                      <option value="govt_school">Government School</option>
+                      <option value="govt_aided_school">Govt-Aided School</option>
+                      <option value="welfare_school">Welfare / Residential School</option>
+                      <option value="anganwadi">Anganwadi</option>
+                      <option value="junior_college">Junior College</option>
+                      <option value="degree_college">Degree College</option>
+                      <option value="coaching">Coaching Institute</option>
+                      <option value="engineering">Engineering College</option>
+                      <option value="mba">MBA / Business School</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>OWNERSHIP *</label>
+                    <select style={inputStyle} value={form.ownership_type} onChange={e => set('ownership_type', e.target.value)}>
+                      <option value="private">Private</option>
+                      <option value="government">Government</option>
+                      <option value="aided">Aided</option>
+                      <option value="franchise">Franchise</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>ADMIN EMAIL *</label>
                   <input required type="email" style={inputStyle} value={form.admin_email} onChange={e => set('admin_email', e.target.value)} placeholder="you@yourschool.edu.in" />
