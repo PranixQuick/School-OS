@@ -7,12 +7,12 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 
 const PLAN_PRICES: Record<string, { amount: number; name: string; currency: string }> = {
-  starter: { amount: 499900,  name: 'School OS Starter',  currency: 'INR' }, // ₹4,999
-  growth:  { amount: 1299900, name: 'School OS Growth',   currency: 'INR' }, // ₹12,999
-  campus:  { amount: 2499900, name: 'School OS Campus',   currency: 'INR' }, // ₹24,999
+  starter: { amount: 499900,  name: 'EdProSys Starter',  currency: 'INR' }, // ₹4,999
+  growth:  { amount: 1299900, name: 'EdProSys Growth',   currency: 'INR' }, // ₹12,999
+  campus:  { amount: 2499900, name: 'EdProSys Campus',   currency: 'INR' }, // ₹24,999
   // Keep backward compat with old plan names
-  pro:     { amount: 299900,  name: 'School OS Pro',      currency: 'INR' }, // ₹2,999 (legacy)
-  enterprise: { amount: 799900, name: 'School OS Enterprise', currency: 'INR' }, // ₹7,999 (legacy)
+  pro:     { amount: 299900,  name: 'EdProSys Pro',      currency: 'INR' }, // ₹2,999 (legacy)
+  enterprise: { amount: 799900, name: 'EdProSys Enterprise', currency: 'INR' }, // ₹7,999 (legacy)
 };
 
 export async function POST(req: NextRequest) {
