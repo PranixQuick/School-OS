@@ -9,7 +9,7 @@ function DemoPreFill({ setEmail, setPassword }: { setEmail: (v: string) => void;
   useEffect(() => {
     if (searchParams.get('demo') === '1') {
       setEmail('admin@suchitracademy.edu.in');
-      setPassword('schoolos0000');
+      setPassword('edprosys0000');
     }
   }, [searchParams, setEmail, setPassword]);
   return null;
@@ -105,7 +105,7 @@ export default function LoginPage() {
             margin: '0 auto 14px', fontSize: 24, fontWeight: 800, color: '#fff',
           }}>S</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
-            School OS
+            EdProSys
           </div>
           <div style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
             AI-first school management platform
@@ -249,7 +249,7 @@ export default function LoginPage() {
           <div style={{ marginTop: 24, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
             <strong style={{ color: '#374151' }}>Demo credentials:</strong><br />
             Email: your-email@school.edu.in<br />
-            Password: schoolos&lt;first-4-of-school-id&gt;
+            Password: edprosys&lt;first-4-of-school-id&gt;
           </div>
         </div>
 
