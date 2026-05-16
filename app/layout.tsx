@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.www.edprosys.com'),
+  metadataBase: new URL('https://www.edprosys.com'),
   title: {
-    default: 'School OS — AI School Management for Indian Schools',
+    default: 'EdProSys — The Operating System for Indian Education',
     template: '%s | EdProSys',
   },
   description: 'AI-first school operating system for Indian K-12 schools. WhatsApp parent bot, AI report cards, teacher evaluation, and automated principal briefings.',
@@ -24,20 +24,20 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     siteName: 'EdProSys',
-    title: 'School OS — AI-First School Management for Indian Schools',
+    title: 'EdProSys — Powering Institutions. Empowering Futures.',
     description: 'WhatsApp parent bot, AI report cards, teacher evaluation — all automated. Built for Indian K-12 schools.',
     images: [
       {
         url: '/api/og',
         width: 1200,
         height: 630,
-        alt: 'School OS — AI School Management',
+        alt: 'EdProSys — Education Infrastructure Platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'School OS — AI School Management',
+    title: 'EdProSys — The Operating System for Indian Education',
     description: 'AI school management for Indian K-12 schools. WhatsApp bot, report cards, teacher eval — automated.',
     images: ['/api/og'],
   },
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#1e40af" />
+        <meta name="theme-color" content="#6366F1" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>{children}<ServiceWorkerRegistration /></body>
