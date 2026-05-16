@@ -57,7 +57,7 @@ export default function AdminPanel() {
       <div style={{ background: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>P</div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Pranix Super Admin</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>EdProSys Admin</span>
           <span style={{ fontSize: 11, fontWeight: 700, background: '#B91C1C', color: '#fff', padding: '2px 8px', borderRadius: 10 }}>INTERNAL</span>
         </div>
         <Link href="/dashboard" style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'none', fontWeight: 600 }}>← Back to App</Link>

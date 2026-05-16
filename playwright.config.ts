@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Playwright E2E config for School OS.
+// Playwright E2E config for EdProSys.
 // Tests run against the preview deployment URL (set via PLAYWRIGHT_BASE_URL env)
 // or localhost:3000 for local runs.
 // CI: tests triggered by GitHub Actions on every PR.
@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: false, // School OS has shared demo data — run sequentially
+  fullyParallel: false, // EdProSys has shared demo data — run sequentially
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1, // Sequential to avoid demo-data contention

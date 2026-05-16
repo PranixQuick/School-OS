@@ -143,6 +143,10 @@ export async function POST(
   doc.text('Authorized Signatory', pw - 15, y, { align: 'right' });
   doc.setFont('helvetica', 'normal').text(schoolName, pw - 15, y + 5, { align: 'right' });
 
+  const epw = doc.internal.pageSize.getWidth();
+  const eph = doc.internal.pageSize.getHeight();
+  doc.setFontSize(7).setTextColor(150,150,150);
+  doc.text('EdProSys · Powering Institutions. Empowering Futures. · edprosys.com · Pranix AI Labs Pvt Ltd', epw/2, eph-5, { align: 'center', maxWidth: epw-20 });
   const pdfBase64 = doc.output('datauristring').split(',')[1];
   return NextResponse.json({ pdf_base64: pdfBase64, invoice_number: invoiceNo, total_amount: feeAmount });
 }

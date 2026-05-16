@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     // Step 4: Seed a welcome event
     await supabaseAdmin.from('events').insert({
       school_id: school.id,
-      title: 'Welcome to School OS!',
+      title: 'Welcome to EdProSys!',
       description: 'Your school is now onboarded. Start by adding students and staff.',
       event_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       is_holiday: false,

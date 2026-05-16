@@ -28,11 +28,11 @@ function renderDigest(alerts: AlertRow[]): { subject: string; body: string } {
   const today = new Date().toISOString().slice(0, 10);
   const count = alerts.length;
   const subject = count === 0
-    ? `[School OS] All clear — 0 critical alerts in last 24h (${today})`
-    : `[School OS] ${count} unacknowledged critical alert${count === 1 ? '' : 's'} (${today})`;
+    ? `[EdProSys] All clear — 0 critical alerts in last 24h (${today})`
+    : `[EdProSys] ${count} unacknowledged critical alert${count === 1 ? '' : 's'} (${today})`;
 
   const lines: string[] = [];
-  lines.push(`School OS — daily abuse digest`);
+  lines.push(`EdProSys — daily operations digest`);
   lines.push(`Date: ${today}`);
   lines.push(`Unacknowledged critical alerts (last 24h): ${count}`);
   lines.push('');

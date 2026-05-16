@@ -1,6 +1,6 @@
 {
-  "name": "School OS",
-  "short_name": "School OS",
+  "name": "EdProSys",
+  "short_name": "EdProSys",
   "description": "Complete institution management platform by Pranix AI Labs",
   "start_url": "/",
   "display": "standalone",

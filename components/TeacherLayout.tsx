@@ -71,7 +71,7 @@ export default function TeacherLayout({ children, title, subtitle, actions }: Te
           <div className="sidebar-logo-icon">T</div>
           <div>
             <div className="sidebar-logo-text">Teacher</div>
-            <div className="sidebar-logo-sub">{session?.schoolName ?? 'School OS'}</div>
+            <div className="sidebar-logo-sub">{session?.schoolName ?? 'EdProSys'}</div>
           </div>
         </div>
 

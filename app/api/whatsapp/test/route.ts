@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     // Fetch school name
     const { data: school } = await supabaseAdmin
       .from('schools').select('name').eq('id', schoolId).single();
-    const schoolName = school?.name ?? 'School OS';
+    const schoolName = school?.name ?? 'EdProSys';
 
     // Get student name
     let studentName = null;

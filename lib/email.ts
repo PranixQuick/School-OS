@@ -26,7 +26,7 @@ async function sendViaResend(msg: EmailMessage): Promise<EmailResult> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: msg.from ?? 'School OS <noreply@schoolos.app>',
+      from: msg.from ?? 'EdProSys <noreply@edprosys.com>',
       to: [msg.to],
       subject: msg.subject,
       text: msg.body,
@@ -83,6 +83,13 @@ export function buildEmailHtml(params: {
       <p style="color:#374151;font-size:14px;line-height:1.7;white-space:pre-wrap;">${params.body}</p>
     </div>
     ${params.footer ? `<div style="padding:16px 24px;background:#F9FAFB;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF;">${params.footer}</div>` : ''}
+  </div>
+  <div style="padding:12px 24px;background:#0F172A;text-align:center;font-size:11px;color:#94A3B8;margin-top:24px;">
+    EdProSys &middot; Powering Institutions. Empowering Futures.
+    <span style="margin:0 8px;opacity:0.4">&middot;</span>
+    edprosys.com
+    <span style="margin:0 8px;opacity:0.4">&middot;</span>
+    Pranix AI Labs Pvt Ltd
   </div>
 </body>
 </html>`;

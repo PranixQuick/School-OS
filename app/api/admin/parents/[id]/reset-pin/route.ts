@@ -53,7 +53,7 @@ export async function PATCH(
       student_id: parent.student_id,
       type: 'broadcast',
       module: 'admin',
-      title: 'Your new School OS PIN',
+      title: 'Your new EdProSys PIN',
       message: `Your new login PIN is: ${newPin}. Use this with your phone number (${parent.phone}) to login at the parent portal. This PIN is for ${studentName}.`,
       status: 'pending',
     });

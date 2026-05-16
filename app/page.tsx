@@ -76,7 +76,7 @@ export default function LandingPage() {
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #F3F4F6', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>S</div>
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px' }}>School OS</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px' }}>EdProSys</span>
           <span style={{ fontSize: 11, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: 20, marginLeft: 4 }}>BETA</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -100,7 +100,7 @@ export default function LandingPage() {
         <h1 style={{ fontSize: 56, fontWeight: 900, color: '#0F172A', letterSpacing: '-1.5px', lineHeight: 1.1, marginBottom: 20, maxWidth: 780, margin: '0 auto 20px' }}>
           The AI Operating System<br />
           <span style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            for Indian Schools
+            for Indian Education
           </span>
         </h1>
         <p style={{ fontSize: 19, color: '#6B7280', maxWidth: 580, margin: '0 auto 36px', lineHeight: 1.65 }}>
@@ -124,6 +124,15 @@ export default function LandingPage() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818CF8', display: 'inline-block' }} />
             Beta · Now onboarding schools across Hyderabad
           </span>
+        </div>
+      </section>
+
+      {/* Institution type pills */}
+      <section style={{ padding: '0 24px 36px', maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {['For Schools', 'For Coaching Institutes', 'For Junior Colleges', 'For Government Institutions'].map(l => (
+            <span key={l} style={{ fontSize: 12, color: '#6B7280', padding: '5px 14px', border: '1px solid #E5E7EB', borderRadius: 20, fontWeight: 500 }}>{l}</span>
+          ))}
         </div>
       </section>
 
@@ -210,7 +219,7 @@ export default function LandingPage() {
             Ready to modernise your school?
           </h2>
           <p style={{ fontSize: 17, color: '#94A3B8', marginBottom: 32, lineHeight: 1.6 }}>
-            Join schools across Hyderabad using AI to save time, improve outcomes, and impress parents.
+            Join institutions across India building on EdProSys using AI to save time, improve outcomes, and impress parents.
           </p>
           <Link href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', borderRadius: 12, fontSize: 17, fontWeight: 700, background: '#4F46E5', color: '#fff', textDecoration: 'none', boxShadow: '0 4px 24px rgba(79,70,229,0.4)' }}>
             Create Free Account →
@@ -222,7 +231,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ background: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: '#475569' }}>
-          © 2025 School OS by Pranix AI Labs · Built for Indian schools
+          © 2026 EdProSys by Pranix AI Labs · Built for Indian schools
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>
           <Link href="/login" style={{ color: '#64748B', textDecoration: 'none' }}>Login</Link>
           <span style={{ margin: '0 10px', opacity: 0.3 }}>·</span>

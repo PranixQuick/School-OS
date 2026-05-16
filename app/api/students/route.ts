@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         const schoolName = school?.name ?? 'School';
         void sendWhatsApp({
           to: normPhone,
-          body: `Welcome to ${schoolName}!\n\nDear ${body.parent_name ?? 'Parent'},\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nUse your phone number + this PIN to access the parent portal.\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://school-os-rh47.vercel.app'}/parent\n\nReply STOP to unsubscribe.`,
+          body: `Welcome to ${schoolName}!\n\nDear ${body.parent_name ?? 'Parent'},\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nUse your phone number + this PIN to access the parent portal.\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.edprosys.com'}/parent\n\nReply STOP to unsubscribe.`,
           schoolName,
         }).catch(() => {}); // fire and forget — Promise<WhatsAppResult>.catch() is valid
       }

@@ -97,7 +97,7 @@ export default function BillingPage() {
         key: order.key_id,
         amount: order.amount,
         currency: order.currency ?? 'INR',
-        name: 'School OS',
+        name: 'EdProSys',
         description: order.plan_name,
         order_id: order.order_id,
         prefill: { name: order.prefill?.name ?? school?.name ?? '', email: school?.billing_email ?? '' },

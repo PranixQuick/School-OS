@@ -121,7 +121,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">S</div>
           <div>
-            <div className="sidebar-logo-text">School OS</div>
+            <div className="sidebar-logo-text">EdProSys</div>
             <div className="sidebar-logo-sub">{session?.schoolName ?? 'Loading...'}</div>
           </div>
         </div>
