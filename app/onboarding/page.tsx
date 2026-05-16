@@ -15,7 +15,18 @@ interface StudentRow { student_name: string; class: string; section: string; par
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STEP_LABELS = ['Profile','Classes','Staff','Fees','Razorpay','Students','Activate'];
+// K1: Dynamic step 2 label based on institution type
+function getStep2Label(t: string): string {
+  if (isCoaching(t)) return 'Batches';
+  if (isCollege(t)) return 'Departments';
+  return 'Classes';
+}
 const ROLES = ['teacher','admin','principal','counsellor'];
+
+// K1: Institution type helpers for wizard branching
+function isCoaching(t: string) { return t === 'coaching'; }
+function isCollege(t: string) { return ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t); }
+function isGovt(t: string) { return ['govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t); }
 
 async function post(path: string, body: unknown) {
   const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -112,6 +123,10 @@ export default function OnboardingWizard() {
         const fees = feeDefaults.filter(f => f.fee_type && f.amount && f.due_date).map(f => ({ fee_type: f.fee_type, amount: parseFloat(f.amount), due_date: f.due_date, ...(f.class ? { class: f.class } : {}) }));
         result = await post('/api/admin/onboarding/4-fee-defaults', { fee_defaults: fees });
       } else if (step === 5) {
+        // K1: Skip Razorpay for govt schools
+        if (isGovt(instType)) {
+          setStep(s => s + 1); setSaving(false); return;
+        }
         result = await post('/api/admin/onboarding/5-razorpay', { razorpay_key_id: rzpKeyId, razorpay_key_secret: rzpKeySecret, online_payment_enabled: onlinePayment });
       } else if (step === 6) {
         const students = studentCsvText.trim()
@@ -176,6 +191,27 @@ export default function OnboardingWizard() {
       </div>
     );
 
+    // K1: Branch step 2 by institution type
+    if (step === 2 && isCoaching(instType)) return (
+      <div>
+        <div style={{ fontSize:13, fontWeight:600, color:'#374151', marginBottom:8 }}>Add Batches</div>
+        <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Add batches (e.g. JEE 2027 Morning, NEET 2027 Evening). You can add more after setup.</div>
+        <div style={{ padding:'12px 14px', background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:8, fontSize:13 }}>
+          Batch creation coming in the next update. For now, continue to the next step — you can add batches after activation from the admin dashboard.
+        </div>
+      </div>
+    );
+
+    if (step === 2 && isCollege(instType)) return (
+      <div>
+        <div style={{ fontSize:13, fontWeight:600, color:'#374151', marginBottom:8 }}>Add Departments</div>
+        <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Add your college departments (e.g. Computer Science, Mechanical, MBA). You can add more after setup.</div>
+        <div style={{ padding:'12px 14px', background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:8, fontSize:13 }}>
+          Department setup coming in the next update. Continue to set up staff, fees, and students.
+        </div>
+      </div>
+    );
+
     if (step === 2) return (
       <div>
         <div style={{ fontSize:12, color:'#6B7280', marginBottom:12 }}>Add each grade and its sections (comma-separated). E.g. Grade 5 with sections A,B,C.</div>
@@ -234,7 +270,12 @@ export default function OnboardingWizard() {
 
     if (step === 5) return (
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-        <div style={{ background:'#EFF6FF', borderRadius:8, padding:'10px 14px', fontSize:12, color:'#1E40AF' }}>Razorpay credentials are stored securely in your institution settings. Leave blank to skip online payments.</div>
+        {isGovt(instType) && (
+          <div style={{ background:'#ECFDF5', border:'1px solid #BBF7D0', borderRadius:8, padding:'12px 14px', fontSize:13 }}>
+            <strong>Government school:</strong> Online payments and Razorpay are not applicable. Click <strong>Next</strong> to continue.
+          </div>
+        )}
+        {!isGovt(instType) && <div style={{ background:'#EFF6FF', borderRadius:8, padding:'10px 14px', fontSize:12, color:'#1E40AF' }}>Razorpay credentials are stored securely in your institution settings. Leave blank to skip online payments.</div>}
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid #F3F4F6' }}>
           <span style={{ fontWeight:600, fontSize:13 }}>Enable Online Payments</span>
           <button onClick={()=>setOnlinePayment(v=>!v)}
@@ -343,7 +384,7 @@ export default function OnboardingWizard() {
 
         {/* Step card */}
         <div style={cardStyle}>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>Step {step}: {STEP_LABELS[step-1]}</div>
+          <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>Step {step}: {step === 2 ? getStep2Label(instType) : STEP_LABELS[step-1]}</div>
           {step===4&&<div style={{ fontSize:11, color:'#92400E', marginBottom:10 }}>Optional — you can skip this step</div>}
           {step===5&&<div style={{ fontSize:11, color:'#92400E', marginBottom:10 }}>Optional — you can skip this step</div>}
           <div style={{ marginTop:14 }}>{renderStep()}</div>
