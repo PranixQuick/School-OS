@@ -109,10 +109,10 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
       if (item.label === 'Tests & Ranks' && t !== 'coaching') return false;
       if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
     }
-    // PR-3: Full institution type gating
+    // PR-3: Full institution type gating — all comparisons use (t ?? '') to satisfy strict TS string[].includes
     const isSchool = !t ||
-      ['school_k10','school_k12','govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t);
-    const isCollege = ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t);
+      ['school_k10','school_k12','govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t ?? '');
+    const isCollege = ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t ?? '');
     const isCoaching = t === 'coaching';
     const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(t ?? '');
 
