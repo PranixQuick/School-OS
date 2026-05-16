@@ -120,7 +120,7 @@ export function NLOpsBar() {
           value={instruction}
           onChange={e => setInstruction(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') void execute(); }}
-          placeholder='Tell School OS what to do… e.g. "Send PTM reminder to Class 5 parents"'
+          placeholder='Tell EdProSys what to do… e.g. "Send PTM reminder to Class 5 parents"'
           style={{ flex: 1, padding: '8px 12px', border: '1px solid #BAE6FD', borderRadius: 7, fontSize: 13, background: '#fff', outline: 'none' }}
           disabled={loading}
         />
