@@ -1,142 +1,162 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
-// PR-2 Task B: GPS device token registration API.
-// Tokens are consumed by the existing K6 endpoint /api/transport/location
-// (which is unauthenticated by session — bus device sends its token in the body).
+// PR-2 Task B: Device token registration for K6 Bus GPS.
+// Devices (Android GPS apps installed on buses) authenticate to the K6
+// /api/transport/location endpoint using a per-device token. This route lets
+// admin/principal create, list, and revoke those tokens.
 //
-// GET    /api/admin/transport/devices             → list tokens for school
-// POST   /api/admin/transport/devices             → issue new token
-//          body: { device_name: string, route_id?: string }
-// DELETE /api/admin/transport/devices?token=...   → revoke a token
+// Token format: uuid v4. 36 chars, opaque. Stored in plain text in device_tokens.token.
+// (Sensitivity: token grants ability to post a bus location for one route. If
+// compromised, admin revokes via DELETE. Tokens are scoped per-route per-school.)
 
 export const runtime = 'nodejs';
 
+interface PostBody {
+  device_name?: string;
+  route_id?: string;
+}
+
+// ─── GET: list devices for caller's school ────────────────────────────────────
+
 export async function GET(req: NextRequest) {
   let ctx;
-  try { ctx = await requireAdminSession(req); }
-  catch (e) {
-    if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
+  try {
+    ctx = await requireAdminSession(req);
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     throw e;
   }
+  const { schoolId } = ctx;
 
   const { data, error } = await supabaseAdmin
     .from('device_tokens')
     .select(`
-      id, token, device_name, last_seen, created_at, route_id,
-      route:transport_routes(id, route_name, route_number)
+      id, device_name, token, route_id, last_seen, created_at,
+      route:transport_routes!device_tokens_route_id_fkey ( id, route_name, route_number )
     `)
-    .eq('school_id', ctx.schoolId)
+    .eq('school_id', schoolId)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Device tokens list error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Device list error:', error);
+    return NextResponse.json({ error: 'Failed to load devices' }, { status: 500 });
   }
 
-  // Mask tokens in list view — full token shown only on issuance
+  // Mask token in response — return only first 8 chars + last 4 for identification
   const devices = (data ?? []).map(d => ({
     id: d.id,
     device_name: d.device_name,
-    last_seen: d.last_seen,
-    created_at: d.created_at,
+    token_masked: d.token ? `${d.token.slice(0, 8)}…${d.token.slice(-4)}` : null,
     route_id: d.route_id,
     route: d.route,
-    token_preview: d.token ? `${d.token.slice(0, 8)}…${d.token.slice(-4)}` : null,
+    last_seen: d.last_seen,
+    created_at: d.created_at,
   }));
 
-  return NextResponse.json({ success: true, total: devices.length, devices });
+  return NextResponse.json({ success: true, devices });
 }
 
-interface CreateBody {
-  device_name?: string;
-  route_id?: string | null;
-}
+// ─── POST: issue new device token ─────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let ctx;
-  try { ctx = await requireAdminSession(req); }
-  catch (e) {
-    if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
+  try {
+    ctx = await requireAdminSession(req);
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     throw e;
   }
+  const { schoolId } = ctx;
 
-  let body: CreateBody;
-  try { body = await req.json() as CreateBody; }
-  catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  let body: PostBody;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
-  const deviceName = (body.device_name ?? '').trim();
-  if (!deviceName) return NextResponse.json({ error: 'device_name is required' }, { status: 400 });
-  if (deviceName.length > 100) return NextResponse.json({ error: 'device_name must be 100 characters or fewer' }, { status: 400 });
+  const deviceName = body.device_name?.trim();
+  const routeId = body.route_id?.trim() || null;
 
-  // Optional route_id — must belong to the same school
-  let routeId: string | null = null;
-  if (body.route_id) {
+  if (!deviceName || deviceName.length < 1 || deviceName.length > 100) {
+    return NextResponse.json({ error: 'device_name required (1-100 characters)' }, { status: 400 });
+  }
+
+  // If a route is supplied, verify it belongs to this school
+  if (routeId) {
     const { data: route } = await supabaseAdmin
       .from('transport_routes')
       .select('id, school_id')
-      .eq('id', body.route_id)
+      .eq('id', routeId)
+      .eq('school_id', schoolId)
       .maybeSingle();
-    if (!route || route.school_id !== ctx.schoolId) {
-      return NextResponse.json({ error: 'route_id not found in this school' }, { status: 400 });
+    if (!route) {
+      return NextResponse.json({ error: 'route_id does not belong to this school' }, { status: 403 });
     }
-    routeId = route.id;
   }
 
-  // UUID v4 — 36 chars, sufficient entropy for a long-lived bus device secret.
   const token = randomUUID();
 
-  const { data: inserted, error: insErr } = await supabaseAdmin
+  const { data: inserted, error: insertErr } = await supabaseAdmin
     .from('device_tokens')
     .insert({
-      school_id: ctx.schoolId,
+      school_id: schoolId,
+      device_name: deviceName,
       route_id: routeId,
       token,
-      device_name: deviceName,
     })
-    .select('id, token, device_name, route_id, created_at')
+    .select('id, device_name, token, route_id, created_at')
     .single();
 
-  if (insErr || !inserted) {
-    console.error('Device token insert error:', insErr);
-    return NextResponse.json({ error: insErr?.message ?? 'Failed to issue token' }, { status: 500 });
+  if (insertErr || !inserted) {
+    console.error('Device insert error:', insertErr);
+    return NextResponse.json({ error: 'Failed to register device' }, { status: 500 });
   }
 
-  // Return the full token ONCE on creation. UI must capture it now.
+  // Return full token ONCE — caller must copy it now.
   return NextResponse.json({
     success: true,
     device: inserted,
-    note: 'Full token shown ONCE. Copy it into the bus GPS device now — it will be masked in future listings.',
+    note: 'Copy the token now. For security, the token will be masked on subsequent reads.',
   });
 }
 
+// ─── DELETE: revoke device token ──────────────────────────────────────────────
+
 export async function DELETE(req: NextRequest) {
   let ctx;
-  try { ctx = await requireAdminSession(req); }
-  catch (e) {
-    if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
+  try {
+    ctx = await requireAdminSession(req);
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
     throw e;
   }
+  const { schoolId } = ctx;
 
-  const url = new URL(req.url);
-  const token = url.searchParams.get('token');
-  const id = url.searchParams.get('id');
-
-  if (!token && !id) {
-    return NextResponse.json({ error: 'token or id query param required' }, { status: 400 });
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: 'id query param required' }, { status: 400 });
   }
 
-  let query = supabaseAdmin.from('device_tokens').delete().eq('school_id', ctx.schoolId);
-  if (id) query = query.eq('id', id);
-  else if (token) query = query.eq('token', token);
-
-  const { error } = await query;
+  const { error } = await supabaseAdmin
+    .from('device_tokens')
+    .delete()
+    .eq('id', id)
+    .eq('school_id', schoolId);
 
   if (error) {
-    console.error('Device token delete error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Device delete error:', error);
+    return NextResponse.json({ error: 'Failed to revoke device' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
