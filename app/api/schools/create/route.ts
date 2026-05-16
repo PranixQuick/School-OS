@@ -102,7 +102,10 @@ export async function POST(req: NextRequest) {
       is_holiday: false,
     });
 
-    const initialPassword = `schoolos${school.id.slice(0, 4)}`;
+    // Phase X: new-school password prefix updated to edprosys.
+    // Legacy schoolos prefix is still accepted by /api/auth/login for back-compat
+    // with demo accounts (admin@suchitracademy.edu.in, sushruth@dpsnadergul.com, etc).
+    const initialPassword = `edprosys${school.id.slice(0, 4)}`;
     return NextResponse.json({
       success: true,
       school: { id: school.id, name: school.name, slug: school.slug, plan: school.plan },
