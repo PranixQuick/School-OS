@@ -175,27 +175,15 @@ export default function ParentPage() {
   const lang = ((parent?.language_pref ?? 'en') as Lang);
   const [transport, setTransport] = useState<{ route_name: string; current_lat: number; current_lng: number; bus_status: string; last_location_at: string } | null>(null);
   const [transportLoading, setTransportLoading] = useState(false);
-  // PR-2: parent complaints state
-  interface ComplaintRow {
-    id: string;
-    complaint_type: string;
-    subject: string;
-    description: string;
-    status: 'open' | 'under_review' | 'escalated' | 'resolved' | 'closed';
-    resolution: string | null;
-    resolved_at: string | null;
-    closed_at: string | null;
-    created_at: string;
-    updated_at: string;
-  }
+
+  // PR-2: Complaints state
+  interface ComplaintRow { id: string; complaint_type: string; subject: string; description: string; status: string; resolution: string | null; resolved_at: string | null; closed_at: string | null; created_at: string }
   const [complaints, setComplaints] = useState<ComplaintRow[]>([]);
   const [complaintsLoading, setComplaintsLoading] = useState(false);
-  const [showComplaintForm, setShowComplaintForm] = useState(false);
-  const [cType, setCType] = useState<string>('general');
-  const [cSubject, setCSubject] = useState('');
-  const [cDescription, setCDescription] = useState('');
-  const [cSubmitting, setCSubmitting] = useState(false);
-  const [cMessage, setCMessage] = useState('');
+  const [complaintForm, setComplaintForm] = useState({ complaint_type: 'general', subject: '', description: '' });
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+  const [complaintMessage, setComplaintMessage] = useState('');
+  const [complaintError, setComplaintError] = useState('');
 
   // Data state per tab
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
@@ -333,61 +321,6 @@ export default function ParentPage() {
     if (activeTab === 'complaints' && complaints.length === 0 && !complaintsLoading) void loadComplaints();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, parent]);
-
-  // PR-2: Load parent's complaint history
-  async function loadComplaints() {
-    if (!parent) return;
-    setComplaintsLoading(true);
-    try {
-      const params = new URLSearchParams({ phone, pin });
-      const res = await fetch('/api/parent/complaints?' + params.toString());
-      const d = await res.json();
-      if (res.ok && d.complaints) setComplaints(d.complaints);
-    } catch (e) {
-      console.error('loadComplaints', e);
-    } finally {
-      setComplaintsLoading(false);
-    }
-  }
-
-  async function submitComplaint() {
-    setCMessage('');
-    if (!cSubject.trim() || !cDescription.trim()) {
-      setCMessage('Please fill in subject and description');
-      return;
-    }
-    setCSubmitting(true);
-    try {
-      const res = await fetch('/api/parent/complaints', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone, pin,
-          complaint_type: cType,
-          subject: cSubject.trim(),
-          description: cDescription.trim(),
-        }),
-      });
-      const d = await res.json();
-      if (!res.ok) {
-        setCMessage('Failed to file: ' + (d.error ?? res.statusText));
-        return;
-      }
-      // Reset form
-      setCType('general');
-      setCSubject('');
-      setCDescription('');
-      setShowComplaintForm(false);
-      setCMessage(d.escalated ? 'Complaint filed and escalated for urgent review.' : 'Complaint filed successfully.');
-      // Reload history
-      setComplaints([]);
-      await loadComplaints();
-    } catch (e) {
-      setCMessage('Failed: ' + String(e));
-    } finally {
-      setCSubmitting(false);
-    }
-  }
 
   // K6: Load bus transport location for parent
   async function loadTransport() {
@@ -606,7 +539,6 @@ export default function ParentPage() {
           { key: 'ptm' as Tab, label: `🤝 ${L('ptm', lang)}` },
           { key: 'report_cards' as Tab, label: `📊 ${L('reports', lang)}` },
           { key: 'transport' as Tab, label: `🚌 ${L('transport', lang)}` },
-          { key: 'complaints' as Tab, label: '📣 ' + L('complaints', lang) },
         ]).map(t => (
           <button
             key={t.key} onClick={() => setActiveTab(t.key)}
@@ -939,109 +871,6 @@ export default function ParentPage() {
             )}
           </>
         )}
-      {/* PR-2: Parent Complaints tab */}
-      {activeTab === 'complaints' && (
-        <div style={{ padding: '16px' }}>
-          {/* Header + new complaint button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Your Complaint History</div>
-            <button
-              onClick={() => { setShowComplaintForm(true); setCMessage(''); }}
-              style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              + New Complaint
-            </button>
-          </div>
-
-          {cMessage && (
-            <div style={{ marginBottom: 12, padding: 10, background: cMessage.startsWith('Failed') ? '#FEE2E2' : '#D1FAE5', color: '#0F172A', borderRadius: 7, fontSize: 12 }}>
-              {cMessage}
-            </div>
-          )}
-
-          {/* Inline form */}
-          {showComplaintForm && (
-            <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 14, marginBottom: 14 }}>
-              <div style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 4 }}>Category</label>
-                <select value={cType} onChange={e => setCType(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13 }}>
-                  <option value="academic">Academic</option>
-                  <option value="teacher_conduct">Teacher Conduct</option>
-                  <option value="bullying">Bullying</option>
-                  <option value="safety">Safety</option>
-                  <option value="infrastructure">Infrastructure</option>
-                  <option value="fee">Fee</option>
-                  <option value="transport">Transport</option>
-                  <option value="food">Food</option>
-                  <option value="vendor">Vendor</option>
-                  <option value="general">General</option>
-                </select>
-              </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 4 }}>Subject</label>
-                <input value={cSubject} onChange={e => setCSubject(e.target.value)}
-                  maxLength={200} placeholder="Brief subject (max 200 chars)"
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 4 }}>Description</label>
-                <textarea value={cDescription} onChange={e => setCDescription(e.target.value)}
-                  maxLength={4000} rows={5} placeholder="Describe the issue in detail (max 4000 chars)"
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #D1D5DB', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => { setShowComplaintForm(false); setCMessage(''); }}
-                  style={{ flex: 1, padding: '9px', background: '#F3F4F6', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                  Cancel
-                </button>
-                <button onClick={() => void submitComplaint()} disabled={cSubmitting || !cSubject.trim() || !cDescription.trim()}
-                  style={{ flex: 1, padding: '9px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: cSubmitting ? 'wait' : 'pointer', opacity: (cSubmitting || !cSubject.trim() || !cDescription.trim()) ? 0.5 : 1 }}>
-                  {cSubmitting ? 'Filing...' : 'Submit Complaint'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* History list */}
-          {complaintsLoading ? (
-            <div style={{ textAlign: 'center', padding: 24, color: '#9CA3AF', fontSize: 13 }}>Loading...</div>
-          ) : complaints.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 24, color: '#9CA3AF', fontSize: 13, background: '#F9FAFB', borderRadius: 10 }}>
-              No complaints filed yet. Click "+ New Complaint" to file one.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {complaints.map(c => {
-                const statusColors: Record<string, { bg: string; fg: string; label: string }> = {
-                  open:         { bg: '#FEF3C7', fg: '#92400E', label: 'Open' },
-                  under_review: { bg: '#DBEAFE', fg: '#1E40AF', label: 'Under Review' },
-                  escalated:    { bg: '#FEE2E2', fg: '#991B1B', label: 'Escalated' },
-                  resolved:     { bg: '#D1FAE5', fg: '#065F46', label: 'Resolved' },
-                  closed:       { bg: '#F3F4F6', fg: '#4B5563', label: 'Closed' },
-                };
-                const col = statusColors[c.status] ?? statusColors.open;
-                return (
-                  <div key={c.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: 12 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
-                      <span style={{ background: col.bg, color: col.fg, padding: '3px 9px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>{col.label}</span>
-                      <span style={{ background: '#F3F4F6', color: '#374151', padding: '3px 9px', borderRadius: 12, fontSize: 10, fontWeight: 600 }}>{c.complaint_type}</span>
-                      <span style={{ fontSize: 10, color: '#9CA3AF' }}>{new Date(c.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{c.subject}</div>
-                    <div style={{ fontSize: 12, color: '#374151', whiteSpace: 'pre-wrap', marginBottom: c.resolution ? 8 : 0 }}>{c.description}</div>
-                    {c.resolution && (
-                      <div style={{ marginTop: 8, padding: 8, background: '#F0FDF4', borderRadius: 6, fontSize: 11, color: '#065F46' }}>
-                        <strong>Resolution:</strong> {c.resolution}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* K6: Transport tab */}
       {activeTab === 'transport' && (
         <div style={{ padding: '16px' }}>
