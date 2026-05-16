@@ -26,7 +26,8 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 // TODO(item-15): migrate to supabaseForUser
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
+import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 
 export const runtime = 'nodejs';

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
+import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 import { getSchoolId } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity } from '@/lib/logger';
