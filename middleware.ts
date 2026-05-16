@@ -25,6 +25,7 @@ const PUBLIC_PATHS = [
   // '/teacher' and '/api/teacher' removed in Item #1 Track C — now session-protected
   '/student',
   '/api/student',       // Batch 4D: student_session self-managed, not school_session
+  '/api/transport',      // K6: Bus GPS device pings — device token auth (no session cookie)
   '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
   '/api/webhooks',      // Item #13: Razorpay webhook — must be public (raw body verification)
 ];
