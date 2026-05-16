@@ -73,3 +73,33 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }
+
+// ─── DELETE: remove timetable entry by id ─────────────────────────────────────
+export async function DELETE(req: NextRequest) {
+  let ctx; try { ctx = await requireAdminSession(req); }
+  catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+  const { schoolId } = ctx;
+
+  const id = req.nextUrl.searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id query param required' }, { status: 400 });
+  if (!isUuid(id)) return NextResponse.json({ error: 'id must be a valid uuid' }, { status: 400 });
+
+  // Tenant guard: ensure the row belongs to this school before deleting
+  const { data: existing, error: fetchErr } = await supabaseAdmin
+    .from('timetable')
+    .select('id, school_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (!existing) return NextResponse.json({ error: 'Timetable entry not found' }, { status: 404 });
+  if (existing.school_id !== schoolId) return NextResponse.json({ error: 'Timetable entry does not belong to your school' }, { status: 403 });
+
+  const { error } = await supabaseAdmin
+    .from('timetable')
+    .delete()
+    .eq('id', id)
+    .eq('school_id', schoolId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}
