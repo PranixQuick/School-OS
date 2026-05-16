@@ -136,7 +136,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */
+      {/* Features */}
       <section style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Everything You Need</div>
