@@ -1,94 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
-// PR-2 Task A: Parent complaint lifecycle endpoint.
+// PR-2 Task A: Parent complaint create + history.
+// Auth pattern: phone+PIN re-auth per request (matches /api/parent/announcements,
+// /api/parent/student). No session cookie.
 //
-// Auth model: phone + PIN re-auth per request — same pattern as other
-// /api/parent/* routes (see app/api/parent/announcements/route.ts).
-// Parents are not session-based; every request validates against parents table.
+// POST body: { phone, pin, complaint_type, subject, description, student_id? }
+//   - complaint_type must be one of the 10 enum values
+//   - subject 1-200 chars, description 1-4000 chars
+//   - student_id optional: defaults to parent.student_id
+//   - auto-escalation: bullying / safety / teacher_conduct → status='escalated' on insert
 //
-// POST { phone, pin, action: 'create' | 'list', ... }
-//   action='create': create a new complaint. Auto-escalation for sensitive categories.
-//   action='list':   return all complaints filed by this parent (full history).
-//
-// We expose both via POST (not GET) to keep phone+PIN out of URLs/logs.
+// GET (via POST with action='list'): { phone, pin, limit?, status? }
+//   - returns parent's own complaint history, ordered by created_at DESC
+//   - limit defaults 20, max 100
+//   - optional status filter
 
 export const runtime = 'nodejs';
 
-const COMPLAINT_TYPES = [
-  'academic','teacher_conduct','bullying','safety',
-  'infrastructure','fee','transport','food','vendor','general',
-] as const;
-type ComplaintType = typeof COMPLAINT_TYPES[number];
-
-// Categories that auto-start at status='escalated' (skip 'open').
-const AUTO_ESCALATE: ReadonlySet<ComplaintType> = new Set([
-  'bullying', 'safety', 'teacher_conduct',
+const ALLOWED_TYPES = new Set([
+  'academic', 'teacher_conduct', 'bullying', 'safety',
+  'infrastructure', 'fee', 'transport', 'food', 'vendor', 'general',
 ]);
 
+const ALLOWED_STATUSES = new Set([
+  'open', 'under_review', 'escalated', 'resolved', 'closed',
+]);
+
+const AUTO_ESCALATE_TYPES = new Set(['bullying', 'safety', 'teacher_conduct']);
+
 interface CreateBody {
-  phone: string;
-  pin: string;
-  action: 'create';
-  complaint_type: string;
-  subject: string;
-  description: string;
+  phone?: string;
+  pin?: string;
+  action?: 'create' | 'list';
+  complaint_type?: string;
+  subject?: string;
+  description?: string;
+  student_id?: string;
+  limit?: number;
+  status?: string;
 }
 
-interface ListBody {
-  phone: string;
-  pin: string;
-  action: 'list';
-}
-
-type Body = CreateBody | ListBody | { phone: string; pin: string; action?: undefined };
-
-async function authParent(phone: string, pin: string) {
+// Verify parent identity by phone+PIN match. Returns parent row or throws.
+async function verifyParent(phone: string, pin: string) {
   const { data: parents, error } = await supabaseAdmin
     .from('parents')
     .select('id, school_id, student_id, name, phone')
     .eq('phone', phone)
     .eq('access_pin', pin);
-
-  if (error) return { ok: false, status: 500, error: 'Failed to verify credentials' } as const;
-  if (!parents || parents.length === 0) {
-    return { ok: false, status: 401, error: 'Invalid phone number or PIN' } as const;
-  }
-  if (parents.length > 1) {
-    return { ok: false, status: 409, error: 'Multiple accounts match this phone. Please contact your school admin.' } as const;
-  }
-  return { ok: true as const, parent: parents[0] };
+  if (error) throw new Error(`Parent lookup failed: ${error.message}`);
+  if (!parents || parents.length === 0) return null;
+  if (parents.length > 1) throw new Error('Multiple accounts match this phone');
+  return parents[0];
 }
 
 export async function POST(req: NextRequest) {
-  let body: Body;
-  try { body = await req.json() as Body; } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  let body: CreateBody;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   if (!body.phone || !body.pin) {
     return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
   }
 
-  const auth = await authParent(body.phone, body.pin);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { parent } = auth;
+  let parent;
+  try {
+    parent = await verifyParent(body.phone, body.pin);
+  } catch (e) {
+    if (String(e).includes('Multiple accounts')) {
+      return NextResponse.json({ error: String(e) }, { status: 409 });
+    }
+    return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
+  }
+  if (!parent) {
+    return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+  }
 
-  // Default action is 'list' if not specified (parents reloading the tab).
-  const action = body.action ?? 'list';
+  const action = body.action ?? 'create';
 
-  // ─── LIST: return this parent's full complaint history ─────────────────────
+  // ─── GET history ───────────────────────────────────────────────────────────
   if (action === 'list') {
-    const { data, error } = await supabaseAdmin
+    const limit = Math.min(Math.max(body.limit ?? 20, 1), 100);
+
+    let q = supabaseAdmin
       .from('parent_complaints')
-      .select('id, complaint_type, subject, description, status, resolution, created_at, updated_at, resolved_at, closed_at')
+      .select('id, complaint_type, subject, description, status, assigned_to, resolution, resolved_at, closed_at, created_at, updated_at, student_id')
       .eq('school_id', parent.school_id)
       .eq('parent_phone', parent.phone)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(limit);
 
+    if (body.status && ALLOWED_STATUSES.has(body.status)) {
+      q = q.eq('status', body.status);
+    }
+
+    const { data, error } = await q;
     if (error) {
-      console.error('Parent complaints list error:', error);
+      console.error('Complaint list error:', error);
       return NextResponse.json({ error: 'Failed to load complaints' }, { status: 500 });
     }
 
@@ -99,66 +110,82 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ─── CREATE: insert new complaint with auto-escalation ─────────────────────
-  if (action === 'create') {
-    const c = body as CreateBody;
+  // ─── POST create ───────────────────────────────────────────────────────────
 
-    if (!c.complaint_type || !COMPLAINT_TYPES.includes(c.complaint_type as ComplaintType)) {
-      return NextResponse.json({
-        error: `complaint_type must be one of: ${COMPLAINT_TYPES.join(', ')}`,
-      }, { status: 400 });
-    }
-    const subject = (c.subject ?? '').trim();
-    const description = (c.description ?? '').trim();
-    if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 });
-    if (subject.length > 200) return NextResponse.json({ error: 'subject must be 200 characters or fewer' }, { status: 400 });
-    if (!description) return NextResponse.json({ error: 'description is required' }, { status: 400 });
-    if (description.length > 4000) return NextResponse.json({ error: 'description must be 4000 characters or fewer' }, { status: 400 });
+  const complaintType = body.complaint_type?.trim();
+  const subject = body.subject?.trim();
+  const description = body.description?.trim();
 
-    const ctype = c.complaint_type as ComplaintType;
-    const initialStatus = AUTO_ESCALATE.has(ctype) ? 'escalated' : 'open';
-
-    const { data: inserted, error: insErr } = await supabaseAdmin
-      .from('parent_complaints')
-      .insert({
-        school_id: parent.school_id,
-        student_id: parent.student_id,
-        parent_phone: parent.phone,
-        complaint_type: ctype,
-        subject,
-        description,
-        status: initialStatus,
-      })
-      .select('id, complaint_type, subject, description, status, created_at')
-      .single();
-
-    if (insErr || !inserted) {
-      console.error('Parent complaint insert error:', insErr);
-      return NextResponse.json({ error: 'Failed to file complaint' }, { status: 500 });
-    }
-
-    // Notify admins if auto-escalated. Best-effort — don't fail the request.
-    if (initialStatus === 'escalated') {
-      try {
-        await supabaseAdmin.from('notifications').insert({
-          school_id: parent.school_id,
-          type: 'alert',
-          title: `Escalated complaint filed: ${ctype}`,
-          message: `Parent ${parent.name} filed a ${ctype} complaint: "${subject}". Auto-escalated due to sensitive category.`,
-          channel: 'email',
-          status: 'pending',
-        });
-      } catch (notifyErr) {
-        console.warn('Complaint escalation notification queue failed:', notifyErr);
-      }
-    }
-
+  if (!complaintType || !ALLOWED_TYPES.has(complaintType)) {
     return NextResponse.json({
-      success: true,
-      complaint: inserted,
-      auto_escalated: initialStatus === 'escalated',
-    });
+      error: 'complaint_type must be one of: academic, teacher_conduct, bullying, safety, infrastructure, fee, transport, food, vendor, general',
+    }, { status: 400 });
+  }
+  if (!subject || subject.length < 1 || subject.length > 200) {
+    return NextResponse.json({ error: 'subject required (1-200 characters)' }, { status: 400 });
+  }
+  if (!description || description.length < 1 || description.length > 4000) {
+    return NextResponse.json({ error: 'description required (1-4000 characters)' }, { status: 400 });
   }
 
-  return NextResponse.json({ error: `unknown action: ${action}` }, { status: 400 });
+  // student_id defaults to parent's linked student; if provided, must match same school
+  let studentId = body.student_id?.trim() || parent.student_id;
+  if (body.student_id && body.student_id !== parent.student_id) {
+    const { data: studentCheck } = await supabaseAdmin
+      .from('students')
+      .select('id, school_id')
+      .eq('id', body.student_id)
+      .eq('school_id', parent.school_id)
+      .maybeSingle();
+    if (!studentCheck) {
+      return NextResponse.json({ error: 'student_id does not belong to this parent\'s school' }, { status: 403 });
+    }
+    studentId = studentCheck.id;
+  }
+
+  // Auto-escalation
+  const initialStatus = AUTO_ESCALATE_TYPES.has(complaintType) ? 'escalated' : 'open';
+
+  const { data: inserted, error: insertErr } = await supabaseAdmin
+    .from('parent_complaints')
+    .insert({
+      school_id: parent.school_id,
+      student_id: studentId,
+      parent_phone: parent.phone,
+      complaint_type: complaintType,
+      subject,
+      description,
+      status: initialStatus,
+    })
+    .select('id, complaint_type, subject, description, status, created_at')
+    .single();
+
+  if (insertErr || !inserted) {
+    console.error('Complaint insert error:', insertErr);
+    return NextResponse.json({ error: 'Failed to file complaint' }, { status: 500 });
+  }
+
+  // Best-effort: notify school admins about an escalated complaint via notifications table.
+  // Doesn't block on failure — the complaint is already filed.
+  if (initialStatus === 'escalated') {
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        school_id: parent.school_id,
+        type: 'alert',
+        title: `Escalated complaint: ${complaintType}`,
+        message: `A parent has filed a complaint requiring immediate attention. Subject: ${subject.slice(0, 100)}. View in admin → Parent Complaints.`,
+        channel: 'email',
+        status: 'pending',
+      });
+    } catch (notifyErr) {
+      // Log but don't fail the complaint creation
+      console.error('Failed to queue escalation notification:', notifyErr);
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    complaint: inserted,
+    auto_escalated: initialStatus === 'escalated',
+  });
 }
