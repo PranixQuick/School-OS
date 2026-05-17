@@ -5,9 +5,30 @@ function makeSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// Map registration form institution_type values to DB enum values
+// Ensures values not yet in the enum get a safe fallback
+const INST_TYPE_MAP: Record<string, string> = {
+  school_k10: 'school_k10',
+  school_k12: 'school_k12',
+  govt_school: 'govt_school',
+  govt_aided_school: 'govt_aided_school',
+  welfare_school: 'welfare_school',
+  anganwadi: 'anganwadi',
+  junior_college: 'junior_college',
+  degree_college: 'degree_college',
+  engineering: 'engineering',
+  polytechnic: 'polytechnic',
+  mba: 'mba',
+  medical: 'medical',
+  university: 'university',   // added via migration fix_orphan_schools_institution_id_v2
+  coaching: 'coaching',
+  vocational: 'vocational',
+};
+
 export async function POST(req: NextRequest) {
   let schoolId: string | null = null;
   let institutionId: string | null = null;
+  let organisationId: string | null = null;
 
   try {
     const body = await req.json() as {
@@ -29,38 +50,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const slug = makeSlug(school_name);
+    const baseSlug = makeSlug(school_name);
 
-    // Check slug uniqueness
-    const { data: existing } = await supabaseAdmin
+    // Check slug uniqueness across both schools and institutions
+    const { data: existingSchool } = await supabaseAdmin
       .from('schools')
       .select('id')
-      .eq('slug', slug)
+      .eq('slug', baseSlug)
       .maybeSingle();
 
-    if (existing) {
+    if (existingSchool) {
       return NextResponse.json(
-        { error: 'A school with this name already exists. Please use a different name.' },
+        { error: 'An institution with this name already exists. Please use a different name.' },
         { status: 409 }
       );
     }
 
-    // Step 1: Create institutions row
-    // This captures the institution_type + ownership_type selected during registration.
-    // Previously this was silently dropped because the provisioning trigger
-    // (trg_provision_school) only creates school_config + usage_limits, not institutions.
-    const instType = body.institution_type ?? 'school_k10';
+    const instType = INST_TYPE_MAP[body.institution_type ?? 'school_k10'] ?? 'school_k10';
     const ownType = body.ownership_type ?? 'private';
 
-    // Determine feature flags from institution type at registration time
     const isGovt = ['govt_school', 'govt_aided_school', 'welfare_school'].includes(instType);
     const isPrivateOrFranchise = ['private', 'franchise'].includes(ownType);
     const isAided = ownType === 'aided';
 
+    // Step 1: Create organisation (top-level trust/management body)
+    // For single-school registration this is a 1:1 org:school relationship.
+    const orgSlug = baseSlug;
+    const { data: org, error: orgErr } = await supabaseAdmin
+      .from('organisations')
+      .insert({
+        name: school_name,
+        slug: orgSlug,
+        owner_email: admin_email.toLowerCase().trim(),
+      })
+      .select('id')
+      .single();
+
+    if (orgErr || !org) throw new Error(orgErr?.message ?? 'Failed to create organisation');
+    organisationId = org.id;
+
+    // Step 2: Create institution (campus entity)
     const { data: institution, error: instErr } = await supabaseAdmin
       .from('institutions')
       .insert({
         name: school_name,
+        slug: baseSlug,
+        organisation_id: organisationId,
         institution_type: instType,
         ownership_type: ownType,
         is_demo: false,
@@ -75,38 +110,30 @@ export async function POST(req: NextRequest) {
       .select('id')
       .single();
 
-    if (instErr || !institution) {
-      throw new Error(instErr?.message ?? 'Failed to create institution');
-    }
+    if (instErr || !institution) throw new Error(instErr?.message ?? 'Failed to create institution');
     institutionId = institution.id;
 
-    // Step 2: Create school — linked to the institutions row
-    // IMPORTANT: onboarded_at is NOT set here.
-    // It is set only when the owner completes the onboarding wizard
-    // and clicks Activate at step 7. Setting it here would bypass the
-    // OPS-5 activation guard (staff/class/student/subject preconditions).
+    // Step 3: Create school — linked to the institution row
+    // onboarded_at intentionally NOT set — set only when wizard Activate step completes
     const { data: school, error: schoolErr } = await supabaseAdmin
       .from('schools')
       .insert({
         name: school_name,
-        slug,
+        slug: baseSlug,
         plan: 'free',
         board: body.board ?? 'CBSE',
         contact_email: admin_email,
         contact_phone: body.contact_phone ?? null,
         institution_id: institutionId,
         is_active: true,
-        // onboarded_at deliberately omitted — set only at wizard activation
       })
       .select('id, name, slug, plan')
       .single();
 
-    if (schoolErr || !school) {
-      throw new Error(schoolErr?.message ?? 'Failed to create school');
-    }
+    if (schoolErr || !school) throw new Error(schoolErr?.message ?? 'Failed to create school');
     schoolId = school.id;
 
-    // Step 3: Create admin/owner user
+    // Step 4: Create admin/owner user in school_users
     const { error: userErr } = await supabaseAdmin
       .from('school_users')
       .insert({
@@ -117,26 +144,23 @@ export async function POST(req: NextRequest) {
       });
 
     if (userErr) {
-      // Rollback: delete school and institution
+      // Rollback all three created rows
       await supabaseAdmin.from('schools').delete().eq('id', school.id);
       await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
-      schoolId = null;
-      institutionId = null;
+      await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
+      schoolId = null; institutionId = null; organisationId = null;
       throw new Error(`Failed to create admin user: ${userErr.message}`);
     }
 
-    // Step 4: Seed a welcome event
+    // Step 5: Seed welcome event
     await supabaseAdmin.from('events').insert({
       school_id: school.id,
       title: 'Welcome to EdProSys!',
-      description: 'Your school is now registered. Complete the setup wizard to activate your school.',
+      description: 'Your account is ready. Complete the setup wizard to activate your school.',
       event_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       is_holiday: false,
     });
 
-    // Initial password: edprosys + first-4-chars of school UUID
-    // This is shown to the owner on the success screen.
-    // Staff added later share this same password for first login.
     const initialPassword = `edprosys${school.id.slice(0, 4)}`;
 
     return NextResponse.json({
@@ -154,20 +178,14 @@ export async function POST(req: NextRequest) {
         password: initialPassword,
       },
       next_step: '/onboarding',
-      message: `Account created. Your initial password is shown below. Complete the setup wizard to activate your school.`,
+      message: 'Account created. Save your password below, then complete the setup wizard.',
     });
 
   } catch (err) {
     console.error('School create error:', err);
-    // Safety net rollback
-    if (schoolId) {
-      try { await supabaseAdmin.from('schools').delete().eq('id', schoolId); } catch { /* ignore */ }
-    }
-    if (institutionId && !schoolId) {
-      // Only delete institution if school creation failed — if school was created,
-      // its cascade delete (or institution cleanup) should handle it
-      try { await supabaseAdmin.from('institutions').delete().eq('id', institutionId); } catch { /* ignore */ }
-    }
+    if (schoolId) { try { await supabaseAdmin.from('schools').delete().eq('id', schoolId); } catch { /* ignore */ } }
+    if (institutionId) { try { await supabaseAdmin.from('institutions').delete().eq('id', institutionId); } catch { /* ignore */ } }
+    if (organisationId) { try { await supabaseAdmin.from('organisations').delete().eq('id', organisationId); } catch { /* ignore */ } }
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
