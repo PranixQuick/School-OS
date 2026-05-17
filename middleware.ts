@@ -3,11 +3,6 @@ import type { NextRequest } from 'next/server';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
 
 // Fully public — no auth required
-//
-// Item #1 Track C: /teacher and /api/teacher were previously in this list
-// (phone+PIN-per-request anti-pattern from prior Items 9-13). They have been
-// removed so the new session-based teacher flow runs through the same
-// verifySession/redirect-to-login pipeline as admin and principal routes.
 const PUBLIC_PATHS = [
   '/',
   '/login',
@@ -19,32 +14,32 @@ const PUBLIC_PATHS = [
   '/api/auth/magic-link',
   '/api/schools/create',
   '/api/health',
-  '/api/cron',           // CRON_SECRET-guarded cron endpoints
+  '/api/cron',
   '/parent',
   '/api/parent',
-  // '/teacher' and '/api/teacher' removed in Item #1 Track C — now session-protected
   '/student',
-  '/api/student',       // Batch 4D: student_session self-managed, not school_session
-  '/api/transport',      // K6: Bus GPS device pings — device token auth (no session cookie)
-  '/api/whatsapp',       // Twilio webhook — must be public (no session cookie)
-  '/api/webhooks',      // Item #13: Razorpay webhook — must be public (raw body verification)
-  '/sitemap.xml',       // PR-5: SEO crawlers must reach sitemap without auth redirect
-  '/robots.txt',        // PR-5: SEO crawlers
-  '/manifest.json',     // PR-5: PWA manifest
-  '/api/og',            // PR-5: OG image generation for social previews
-  '/sw.js',             // PR-5: Service worker registration
-  '/offline.html',      // PR-5: PWA offline fallback
-  '/icons',             // PR-5: PWA icon assets directory
+  '/api/student',
+  '/api/transport',
+  '/api/whatsapp',
+  '/api/webhooks',
+  '/sitemap.xml',
+  '/robots.txt',
+  '/manifest.json',
+  '/api/og',
+  '/sw.js',
+  '/offline.html',
+  '/icons',
 ];
 
-// Super admin only paths
-const SUPER_ADMIN_PATHS = ['/super-admin'];
-const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? 'pranixailabs@gmail.com';
+// Paths requiring @pranixailabs.com email — checked with startsWith
+// so /super-admin/ops-dashboard, /super-admin/anything is also protected
+const SUPER_ADMIN_PREFIX = '/super-admin';
+const SUPER_ADMIN_EMAIL_SUFFIX = '@pranixailabs.com';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths and static files
+  // Allow public paths and static assets
   if (
     PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/')) ||
     pathname.startsWith('/_next') ||
@@ -57,11 +52,10 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(token);
 
   if (!session) {
-    // TODO(item-15): unauthenticated /api/* requests currently 302 to /login HTML. Should return 401 JSON. Deferred to Item #15.
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('redirect', pathname);
     const res = NextResponse.redirect(loginUrl);
-    // Clear any stale/invalid cookie so the browser doesn't keep sending it.
+    // Clear stale/invalid cookie so browser stops sending it
     if (token) {
       res.cookies.set(SESSION_COOKIE, '', {
         httpOnly: true,
@@ -74,14 +68,15 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // Super admin path protection
-  if (SUPER_ADMIN_PATHS.some(p => pathname === p)) {
-    if (session.userEmail !== SUPER_ADMIN_EMAIL) {
+  // Super-admin path protection — startsWith catches all sub-routes
+  if (pathname.startsWith(SUPER_ADMIN_PREFIX)) {
+    const email = (session.userEmail ?? '').toLowerCase();
+    if (!email.endsWith(SUPER_ADMIN_EMAIL_SUFFIX)) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   }
 
-  // Inject headers for API routes
+  // Inject session context headers for API routes
   const res = NextResponse.next();
   res.headers.set('x-school-id', session.schoolId ?? '');
   res.headers.set('x-user-role', session.userRole ?? '');
