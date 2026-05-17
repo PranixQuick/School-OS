@@ -1,9 +1,9 @@
 // app/api/admin/onboarding/6-students/route.ts
 // Onboarding Step 6: Bulk student + parent import
 // Fixes:
-//   - Higher-ed: accepts batch_label field and resolves to batch_id (colleges have no class/section)
-//   - Automation B6: queues parent welcome + PIN notification on parent creation
-//   - Parent access_pin stored plaintext here (hashing handled in parent auth flow)
+//   - Higher-ed: accepts batch_label field and resolves to batch_id
+//   - Automation B6: queues parent welcome + PIN notification (non-blocking)
+//   - Build fix: void async IIFE instead of .then().catch() — PromiseLike type fix
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
@@ -19,7 +19,7 @@ interface StudentRow {
   student_name: string;
   class?: string;
   section?: string;
-  batch_label?: string;   // higher-ed: batch name instead of class/section
+  batch_label?: string;
   parent_name?: string;
   parent_phone?: string;
   parent_email?: string;
@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
   const rows = (body.students as StudentRow[]) ?? [];
   if (!rows.length) return NextResponse.json({ error: 'students array required' }, { status: 400 });
 
-  // Resolve institution type and institution_id
   const { data: schoolRow } = await supabaseAdmin
     .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
   const institutionId = schoolRow?.institution_id ?? null;
@@ -55,7 +54,6 @@ export async function POST(req: NextRequest) {
 
   const usesBatches = BATCH_TYPES.has(institutionType);
 
-  // Pre-load batch label → batch_id map for higher-ed
   const batchMap = new Map<string, string>();
   if (usesBatches && institutionId) {
     const { data: batches } = await supabaseAdmin
@@ -69,7 +67,6 @@ export async function POST(req: NextRequest) {
   for (const row of rows) {
     if (!row.student_name?.trim()) { errors.push('Row missing student_name'); continue; }
 
-    // Validate required structure field based on institution type
     if (!usesBatches && !row.class?.trim()) {
       errors.push(`Row missing class for ${row.student_name}`);
       continue;
@@ -77,7 +74,6 @@ export async function POST(req: NextRequest) {
 
     const parentPhone = row.parent_phone?.trim() || null;
 
-    // Build student insert — batch_id for higher-ed, class/section for schools
     const studentData: Record<string, unknown> = {
       school_id: schoolId,
       institution_id: institutionId,
@@ -90,7 +86,6 @@ export async function POST(req: NextRequest) {
       const batchLabel = (row.batch_label ?? '').toLowerCase().trim();
       const batchId = batchMap.get(batchLabel) ?? null;
       if (batchId) studentData.batch_id = batchId;
-      // Use batch_label as class field for search/display compatibility
       studentData.class = row.batch_label?.trim() ?? 'General';
       studentData.section = 'A';
     } else {
@@ -104,7 +99,6 @@ export async function POST(req: NextRequest) {
     if (sErr) { errors.push(`Student insert failed (${row.student_name}): ${sErr.message}`); continue; }
     studentsCreated++;
 
-    // Upsert parent and queue welcome notification
     if (parentPhone || row.parent_name?.trim()) {
       try {
         const pin = String(Math.floor(1000 + Math.random() * 9000));
@@ -124,23 +118,31 @@ export async function POST(req: NextRequest) {
         if (!pErr) {
           parentsCreated++;
 
-          // Automation B6: welcome + PIN notification for parent
+          // Automation B6: fire-and-forget parent welcome notification
+          // void async IIFE — supabaseAdmin returns PromiseLike, not native Promise
           if (parentRow?.phone) {
-            await supabaseAdmin.from('notifications').insert({
-              school_id: schoolId,
-              type: 'parent_welcome',
-              title: 'Parent Portal Access',
-              message: `Hello ${parentRow.name}, your child ${row.student_name.trim()} has been enrolled. Your parent portal PIN is: ${parentRow.access_pin ?? pin}. Login at edprosys.com/parent`,
-              module: 'onboarding',
-              status: 'pending',
-              channel: 'whatsapp',
-              template_vars: {
-                parent_name: parentRow.name,
-                student_name: row.student_name.trim(),
-                pin: parentRow.access_pin ?? pin,
-                portal_url: 'https://www.edprosys.com/parent',
-              },
-            }).then(() => {}).catch(() => {});
+            const notifName = parentRow.name;
+            const notifStudentName = row.student_name.trim();
+            const notifPin = parentRow.access_pin ?? pin;
+            void (async () => {
+              try {
+                await supabaseAdmin.from('notifications').insert({
+                  school_id: schoolId,
+                  type: 'parent_welcome',
+                  title: 'Parent Portal Access',
+                  message: `Hello ${notifName}, your child ${notifStudentName} has been enrolled. Your parent portal PIN is: ${notifPin}. Login at edprosys.com/parent`,
+                  module: 'onboarding',
+                  status: 'pending',
+                  channel: 'whatsapp',
+                  template_vars: {
+                    parent_name: notifName,
+                    student_name: notifStudentName,
+                    pin: notifPin,
+                    portal_url: 'https://www.edprosys.com/parent',
+                  },
+                });
+              } catch { /* non-blocking */ }
+            })();
           }
         } else {
           errors.push(`Parent upsert (${row.student_name}): ${pErr.message}`);
