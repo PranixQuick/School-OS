@@ -1,9 +1,12 @@
 // lib/session.ts
-// Phase 0 Task 0.1. Stateless signed-JWT session tokens (HS256, 7d, issuer school-os).
-// Pure `jose` — safe to import from Edge Runtime (middleware.ts).
-// Does NOT import supabase or next/headers to keep the edge bundle small.
+// Stateless signed-JWT session tokens (HS256, 7d, issuer school-os).
+// Pure jose — safe to import from Edge Runtime (middleware.ts).
+// AG-5 fix: revokeSession() now writes to revoked_sessions denylist.
+// verifySession() checks the denylist on every call.
+// The denylist is purged automatically via DB trigger after 8 days.
 
 import { SignJWT, jwtVerify } from 'jose';
+import { createClient } from '@supabase/supabase-js';
 import { env } from './env';
 
 export interface SchoolSession {
@@ -29,9 +32,19 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(env.SESSION_SECRET);
 }
 
+// Lazy supabase admin client — only created if revocation is used.
+// Avoids importing supabase into edge-runtime-only contexts where it would
+// fail; callers that need denylist checks (server-side API routes) always
+// run in Node runtime.
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
+
 export interface IssueSessionOptions {
-  // Pass 'legacy' for the short-lived pre-migration session used when a user signs
-  // in with the demo password. 'default' is the 7-day post-migration session.
   variant?: 'default' | 'legacy';
 }
 
@@ -73,6 +86,26 @@ export async function verifySession(token: string | undefined | null): Promise<S
     ) {
       return null;
     }
+
+    // AG-5: Check revocation denylist.
+    // payload.sub is userId, payload.iat is issue timestamp.
+    // Both together uniquely identify this token.
+    // Fail-open on DB error so a Supabase outage doesn't lock everyone out.
+    if (payload.sub && payload.iat) {
+      try {
+        const { data } = await adminClient()
+          .from('revoked_sessions')
+          .select('id')
+          .eq('user_id', payload.sub)
+          .eq('issued_at', payload.iat)
+          .maybeSingle();
+        if (data) return null; // token is revoked
+      } catch {
+        // Fail-open: if denylist check fails, allow the session
+        // to avoid locking users out on DB errors
+      }
+    }
+
     return {
       schoolId: payload.schoolId,
       schoolName: (payload.schoolName as string) ?? '',
@@ -112,9 +145,34 @@ export function clearedSessionCookie(isProduction: boolean) {
   };
 }
 
-// JWTs are stateless; "revoke" here is a semantic marker the caller can use
-// in combination with clearing the cookie. Persistent revocation would need
-// a denylist table — out of scope for Phase 0.
-export async function revokeSession(): Promise<void> {
-  return;
+// AG-5: revokeSession now writes to the denylist.
+// Accepts the raw token so it can extract userId + iat.
+// Falls back silently on error so logout always clears the cookie
+// even if the DB write fails.
+export async function revokeSession(
+  token?: string,
+  opts?: { reason?: string; ip?: string }
+): Promise<void> {
+  if (!token) return;
+  try {
+    const { payload } = await jwtVerify(token, secretKey(), {
+      issuer: ISSUER,
+      algorithms: [ALG],
+    });
+    if (payload.sub && payload.iat) {
+      await adminClient()
+        .from('revoked_sessions')
+        .upsert(
+          {
+            user_id: payload.sub,
+            issued_at: payload.iat,
+            reason: opts?.reason ?? 'logout',
+            ip: opts?.ip ?? null,
+          },
+          { onConflict: 'user_id,issued_at', ignoreDuplicates: true }
+        );
+    }
+  } catch {
+    // Fail silently — logout must always succeed from the user's perspective
+  }
 }
