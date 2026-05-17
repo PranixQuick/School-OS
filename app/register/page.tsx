@@ -5,20 +5,21 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const INSTITUTION_TYPES = [
-  { value: 'school_k10',       label: 'School (Class 1–10)' },
-  { value: 'school_k12',       label: 'School (Class 1–12)' },
-  { value: 'govt_school',      label: 'Government School' },
-  { value: 'govt_aided_school',label: 'Government-Aided School' },
-  { value: 'welfare_school',   label: 'Welfare / Residential School' },
-  { value: 'anganwadi',        label: 'Anganwadi / Balwadi' },
-  { value: 'junior_college',   label: 'Junior College (11–12 / PUC)' },
-  { value: 'degree_college',   label: 'Degree College (BA / BSc / BCom)' },
-  { value: 'engineering',      label: 'Engineering College' },
-  { value: 'polytechnic',      label: 'Polytechnic / ITI' },
-  { value: 'mba',              label: 'MBA / Business School' },
-  { value: 'medical',          label: 'Medical / Pharmacy / Nursing College' },
-  { value: 'university',       label: 'University' },
-  { value: 'coaching',         label: 'Coaching / Training Institute' },
+  { value: 'school_k10',        label: 'School (Class 1–10)' },
+  { value: 'school_k12',        label: 'School (Class 1–12)' },
+  { value: 'govt_school',       label: 'Government School' },
+  { value: 'govt_aided_school', label: 'Government-Aided School' },
+  { value: 'welfare_school',    label: 'Welfare / Residential School' },
+  { value: 'anganwadi',         label: 'Anganwadi / Balwadi' },
+  { value: 'junior_college',    label: 'Junior College (11–12 / PUC)' },
+  { value: 'degree_college',    label: 'Degree College (BA / BSc / BCom)' },
+  { value: 'engineering',       label: 'Engineering College' },
+  { value: 'polytechnic',       label: 'Polytechnic / ITI' },
+  { value: 'mba',               label: 'MBA / Business School' },
+  { value: 'medical',           label: 'Medical / Pharmacy / Nursing College' },
+  { value: 'university',        label: 'University' },
+  { value: 'coaching',          label: 'Coaching / Training Institute' },
+  { value: 'vocational',        label: 'Vocational / Skill Development' },
 ];
 
 const OWNERSHIP_TYPES = [
@@ -27,6 +28,15 @@ const OWNERSHIP_TYPES = [
   { value: 'aided',      label: 'Government-Aided' },
   { value: 'franchise',  label: 'Franchise' },
 ];
+
+// Board/affiliation options by institution category
+const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE', 'Other'];
+const HIGHER_ED_AFFILIATIONS = ['UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
+
+// Govt types that require district/block/mandal (for DISE/UDISE reporting)
+const GOVT_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi'];
+// Higher-ed types where school board is irrelevant
+const HIGHER_ED_TYPES = ['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,6 +47,8 @@ export default function RegisterPage() {
     admin_name: '',
     contact_phone: '',
     board: 'CBSE',
+    address: '',
+    district: '',
     institution_type: 'school_k10',
     ownership_type: 'private',
   });
@@ -52,13 +64,17 @@ export default function RegisterPage() {
     setForm(p => ({ ...p, [k]: v }));
   }
 
+  const isGovtType = GOVT_TYPES.includes(form.institution_type);
+  const isHigherEd = HIGHER_ED_TYPES.includes(form.institution_type);
+  const boardOptions = isHigherEd ? HIGHER_ED_AFFILIATIONS : SCHOOL_BOARDS;
+  const boardLabel = isHigherEd ? 'AFFILIATION / BODY' : 'BOARD / AFFILIATION';
+
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
     setStep('creating');
     setError('');
 
     try {
-      // Step 1: Create school + institution
       const createRes = await fetch('/api/schools/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +97,6 @@ export default function RegisterPage() {
       const loginEmail = createData.login?.email ?? form.admin_email;
       const loginPassword = createData.login?.password ?? '';
 
-      // Step 2: Auto-login with the generated password
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,14 +107,11 @@ export default function RegisterPage() {
       setStep('done');
 
       if (loginRes.ok) {
-        // Redirect to /onboarding to complete the setup wizard.
-        // We delay briefly so the owner can read their credentials.
         setTimeout(() => {
           setRedirecting(true);
           router.push('/onboarding');
         }, 4000);
       }
-      // If auto-login failed (edge case), owner can use the credentials shown to log in manually.
     } catch {
       setError('Network error. Please try again.');
       setStep('form');
@@ -125,9 +137,8 @@ export default function RegisterPage() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       padding: 24,
     }}>
-      <div style={{ width: '100%', maxWidth: 480 }}>
+      <div style={{ width: '100%', maxWidth: 500 }}>
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <div style={{
@@ -144,23 +155,19 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Card */}
         <div style={{
           background: '#fff', borderRadius: 18,
           padding: '32px 28px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
         }}>
 
-          {/* Creating state */}
           {step === 'creating' && (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
               <div style={{
                 width: 48, height: 48,
-                border: '4px solid #E5E7EB',
-                borderTop: '4px solid #4F46E5',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
+                border: '4px solid #E5E7EB', borderTop: '4px solid #4F46E5',
+                borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 margin: '0 auto 20px',
               }} />
               <div style={{ fontWeight: 700, fontSize: 17, color: '#111827', marginBottom: 6 }}>
@@ -172,7 +179,6 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Done state — show credentials clearly before redirect */}
           {step === 'done' && doneData && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{
@@ -184,8 +190,6 @@ export default function RegisterPage() {
               <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 8 }}>
                 {doneData.schoolName} is ready!
               </div>
-
-              {/* Credentials box — prominently displayed */}
               <div style={{
                 background: '#F0FDF4', border: '2px solid #86EFAC',
                 borderRadius: 12, padding: '16px 20px',
@@ -206,17 +210,12 @@ export default function RegisterPage() {
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: '#166534', marginTop: 10, lineHeight: 1.5 }}>
-                  Write this down now. After first login, use &ldquo;Sign in with email link&rdquo;
-                  to set up passwordless access.
+                  Write this down now. After first login, use &ldquo;Sign in with email link&rdquo; to set up passwordless access.
                 </div>
               </div>
-
               <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 16 }}>
-                {redirecting
-                  ? 'Taking you to the setup wizard...'
-                  : 'Logging you in — redirecting to setup wizard in a moment...'}
+                {redirecting ? 'Taking you to the setup wizard...' : 'Logging you in — redirecting to setup wizard in a moment...'}
               </div>
-
               <button
                 onClick={() => router.push('/onboarding')}
                 style={{
@@ -231,7 +230,6 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Form state */}
           {step === 'form' && (
             <>
               <div style={{ fontWeight: 800, fontSize: 20, color: '#111827', marginBottom: 4 }}>
@@ -255,8 +253,7 @@ export default function RegisterPage() {
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>INSTITUTION NAME *</label>
                   <input
-                    required
-                    style={inputStyle}
+                    required style={inputStyle}
                     value={form.school_name}
                     onChange={e => set('school_name', e.target.value)}
                     placeholder="e.g. Sunrise Academy / Govt. High School, Hyderabad"
@@ -267,8 +264,7 @@ export default function RegisterPage() {
                   <div>
                     <label style={labelStyle}>YOUR NAME *</label>
                     <input
-                      required
-                      style={inputStyle}
+                      required style={inputStyle}
                       value={form.admin_name}
                       onChange={e => set('admin_name', e.target.value)}
                       placeholder="Principal / Admin"
@@ -276,37 +272,50 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label style={labelStyle}>OWNERSHIP *</label>
-                    <select
-                      style={inputStyle}
-                      value={form.ownership_type}
-                      onChange={e => set('ownership_type', e.target.value)}
-                    >
-                      {OWNERSHIP_TYPES.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
+                    <select style={inputStyle} value={form.ownership_type} onChange={e => set('ownership_type', e.target.value)}>
+                      {OWNERSHIP_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>INSTITUTION TYPE *</label>
-                  <select
-                    style={inputStyle}
-                    value={form.institution_type}
-                    onChange={e => set('institution_type', e.target.value)}
-                  >
-                    {INSTITUTION_TYPES.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
+                  <select style={inputStyle} value={form.institution_type} onChange={e => set('institution_type', e.target.value)}>
+                    {INSTITUTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
+
+                {/* Address — always shown */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>INSTITUTION ADDRESS</label>
+                  <input
+                    style={inputStyle}
+                    value={form.address}
+                    onChange={e => set('address', e.target.value)}
+                    placeholder="Full address (street, city, state)"
+                  />
+                </div>
+
+                {/* District / Block / Mandal — shown for government institution types only */}
+                {isGovtType && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>DISTRICT / BLOCK / MANDAL *</label>
+                    <input
+                      style={inputStyle}
+                      value={form.district}
+                      onChange={e => set('district', e.target.value)}
+                      placeholder="e.g. Hyderabad Urban / Kukatpally Mandal"
+                    />
+                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                      Required for government reporting (DISE / UDISE)
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>ADMIN EMAIL *</label>
                   <input
-                    required
-                    type="email"
-                    style={inputStyle}
+                    required type="email" style={inputStyle}
                     value={form.admin_email}
                     onChange={e => set('admin_email', e.target.value)}
                     placeholder="you@yourschool.edu.in"
@@ -324,15 +333,9 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>BOARD / AFFILIATION</label>
-                    <select
-                      style={inputStyle}
-                      value={form.board}
-                      onChange={e => set('board', e.target.value)}
-                    >
-                      {['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE', 'UGC', 'AICTE', 'Other'].map(b => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
+                    <label style={labelStyle}>{boardLabel}</label>
+                    <select style={inputStyle} value={form.board} onChange={e => set('board', e.target.value)}>
+                      {boardOptions.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </div>
                 </div>

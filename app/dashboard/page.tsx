@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-// Phase C: demoData removed — no fallback KPIs
 
 interface KPIs {
   total_students: number; total_staff: number; pending_fees_count: number;
@@ -27,7 +26,6 @@ const MODULES = [
   { title: 'WhatsApp Bot', desc: 'Parent assistant deployed and answering attendance, fees, events 24/7.', href: '/whatsapp', btn: 'View Config', color: '#065F46', bg: '#D1FAE5', icon: '💬' },
 ];
 
-// KPI cards — each links to its corresponding module
 const KPI_CARDS = [
   { label: 'Total Students', sub_key: 'enrolments', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
   { label: 'Pending Fees',   sub_key: 'fees',        color: '#B91C1C', bg: '#FEF2F2', href: '/billing' },
@@ -41,8 +39,9 @@ export default function DashboardPage() {
   const [evals, setEvals] = useState<Eval[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  // Item #3: legal acceptance renewal banner
   const [legalPendingCount, setLegalPendingCount] = useState(0);
+  // Audit fix: show setup banner when school has no staff yet
+  const [setupIncomplete, setSetupIncomplete] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard/summary')
@@ -59,7 +58,6 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Item #3: legal acceptance renewal check (best-effort, non-fatal)
   useEffect(() => {
     fetch('/api/admin/legal/acceptance-status')
       .then(r => r.ok ? r.json() : null)
@@ -67,9 +65,16 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
+  // Check if school setup is incomplete (no staff added yet)
+  useEffect(() => {
+    fetch('/api/admin/staff')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.count === 0) setSetupIncomplete(true); })
+      .catch(() => {});
+  }, []);
+
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // Guard: kpis is null while loading (Phase C: no DEMO_KPIS fallback)
   if (!kpis) {
     return (
       <div style={{ padding: 32 }}>
@@ -83,7 +88,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Compute values from KPIs
   const kpiValues = [
     kpis.total_students,
     kpis.pending_fees_count,
@@ -107,6 +111,17 @@ export default function DashboardPage() {
         </Link>
       }
     >
+      {/* Audit fix: Setup incomplete banner — shown when 0 staff added */}
+      {setupIncomplete && (
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#1E40AF' }}>🚀 Complete your school setup</div>
+            <div style={{ fontSize: 12, color: '#1E40AF', marginTop: 2 }}>Add staff, classes, and students to fully activate your school.</div>
+          </div>
+          <a href="/onboarding" style={{ padding: '7px 14px', background: '#4F46E5', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>Complete setup →</a>
+        </div>
+      )}
+
       {/* Item #3: legal renewal banner */}
       {legalPendingCount > 0 && (
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -118,7 +133,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* KPI grid — each card is a clickable link */}
+      {/* KPI grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {KPI_CARDS.map((k, i) => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
@@ -172,7 +187,6 @@ export default function DashboardPage() {
       {/* Bottom 3-col */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
 
-        {/* Top leads */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="section-title" style={{ fontSize: 13 }}>Top Leads</div>
@@ -194,7 +208,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Teacher evals */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="section-title" style={{ fontSize: 13 }}>Teacher Evaluations</div>
@@ -223,7 +236,6 @@ export default function DashboardPage() {
           })}
         </div>
 
-        {/* Events */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6' }}>
             <div className="section-title" style={{ fontSize: 13 }}>Upcoming Events</div>
