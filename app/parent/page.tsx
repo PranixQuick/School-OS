@@ -527,6 +527,24 @@ export default function ParentPage() {
     } catch { setPayingFeeId(null); setFeeActionToast('Payment error — please try again'); setTimeout(() => setFeeActionToast(''), 4000); }
   }
 
+  // HF-6 fix: logout handler — resets all auth state
+  function handleLogout() {
+    setParent(null);
+    setStudent(null);
+    setPhone('');
+    setPin('');
+    setHomework([]);
+    setAnnouncements([]);
+    setAttendance([]);
+    setLessonPlans([]);
+    setFees([]);
+    setPtmSlots([]);
+    setRcData([]);
+    setTransport(null);
+    setComplaints([]);
+    setActiveTab('homework');
+  }
+
   // === LOGIN SCREEN ===
   if (!parent || !student) {
     return (
@@ -574,13 +592,22 @@ export default function ParentPage() {
         </div>
       ) : null}
 
-      {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ fontSize: 11, color: '#6B7280' }}>Parent of</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{student.name}</div>
-        <div style={{ fontSize: 11, color: '#6B7280' }}>
-          Class {student.class}-{student.section} · {parent.name}
+      {/* Header — HF-6: logout button added */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280' }}>Parent of</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{student.name}</div>
+          <div style={{ fontSize: 11, color: '#6B7280' }}>
+            Class {student.class}-{student.section} · {parent.name}
+          </div>
         </div>
+        <button
+          onClick={handleLogout}
+          style={{ padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: 7, background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+          aria-label="Log out"
+        >
+          Log out
+        </button>
       </div>
 
       {/* Tab bar */}
