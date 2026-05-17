@@ -31,8 +31,7 @@ const PUBLIC_PATHS = [
   '/icons',
 ];
 
-// Paths requiring @pranixailabs.com email — checked with startsWith
-// so /super-admin/ops-dashboard, /super-admin/anything is also protected
+// Paths requiring @pranixailabs.com email — startsWith protects all sub-routes
 const SUPER_ADMIN_PREFIX = '/super-admin';
 const SUPER_ADMIN_EMAIL_SUFFIX = '@pranixailabs.com';
 
@@ -52,10 +51,31 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(token);
 
   if (!session) {
+    // AG-7 fix: API routes must return 401 JSON, not an HTML redirect.
+    // A 302 redirect causes fetch() calls to follow to /login, receive HTML,
+    // and crash on JSON.parse — silently breaking every protected API on session expiry.
+    if (pathname.startsWith('/api/')) {
+      const res = NextResponse.json(
+        { error: 'Unauthorized', code: 'SESSION_EXPIRED' },
+        { status: 401 }
+      );
+      // Clear stale cookie
+      if (token) {
+        res.cookies.set(SESSION_COOKIE, '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 0,
+          path: '/',
+        });
+      }
+      return res;
+    }
+
+    // Non-API paths: redirect to login
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('redirect', pathname);
     const res = NextResponse.redirect(loginUrl);
-    // Clear stale/invalid cookie so browser stops sending it
     if (token) {
       res.cookies.set(SESSION_COOKIE, '', {
         httpOnly: true,
@@ -76,7 +96,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Inject session context headers for API routes
+  // Inject session context headers for API routes and server components
   const res = NextResponse.next();
   res.headers.set('x-school-id', session.schoolId ?? '');
   res.headers.set('x-user-role', session.userRole ?? '');
