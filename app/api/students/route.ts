@@ -1,190 +1,212 @@
+// app/api/students/route.ts
+// Full student lifecycle: GET list, POST create, PATCH edit/transfer/graduate/archive, DELETE soft-deactivate
+// Real workflow: class teacher or admin edits student register daily
+// Lifecycle transitions: active → transferred | graduated | withdrawn | archived
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
-import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
+import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
-import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity } from '@/lib/logger';
-import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
-
-function generatePin(): string {
-  // 6-digit numeric PIN
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 export async function GET(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
     const classFilter = req.nextUrl.searchParams.get('class');
     const section = req.nextUrl.searchParams.get('section');
-    const search = req.nextUrl.searchParams.get('search');
-    const includeInactive = req.nextUrl.searchParams.get('include_inactive') === 'true';
+    const status = req.nextUrl.searchParams.get('status') ?? 'active';
+    const search = req.nextUrl.searchParams.get('q');
+    const batchId = req.nextUrl.searchParams.get('batch_id');
+    const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '200', 10) || 200, 1000);
 
-    let query = supabaseAdmin
+    let q = supabaseAdmin
       .from('students')
-      .select('id, name, class, section, roll_number, admission_number, phone_parent, parent_name, date_of_birth, is_active, created_at')
+      .select('id, name, class, section, roll_number, admission_number, phone_parent, parent_name, date_of_birth, is_active, status, batch_id, institution_id, stream_group, created_at, transfer_school, transfer_date, graduation_year')
       .eq('school_id', schoolId)
-      .order('class', { ascending: true })
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(limit);
 
-    if (!includeInactive) query = query.eq('is_active', true);
-    if (classFilter) query = query.eq('class', classFilter);
-    if (section) query = query.eq('section', section);
-    if (search) query = query.ilike('name', `%${search}%`);
+    if (status === 'all') {
+      // no filter
+    } else {
+      q = q.eq('status', status);
+    }
+    if (classFilter) q = q.eq('class', classFilter);
+    if (section) q = q.eq('section', section);
+    if (batchId) q = q.eq('batch_id', batchId);
+    if (search) q = q.ilike('name', `%${search}%`);
 
-    const { data, error, count } = await query;
-    if (error) throw new Error(error.message);
+    const { data, error } = await q;
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ students: data ?? [], total: count ?? data?.length ?? 0 });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ students: data ?? [], count: (data ?? []).length });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const body = await req.json() as {
-      name: string; class: string; section?: string;
-      roll_number?: string; admission_number?: string;
-      phone_parent?: string; parent_name?: string; date_of_birth?: string;
-    };
+    const actorEmail = req.headers.get('x-user-email') ?? 'system';
+    const body = await req.json() as Record<string, unknown>;
 
-    if (!body.name || !body.class) {
-      return NextResponse.json({ error: 'name and class are required' }, { status: 400 });
+    const { name, class: cls, section, roll_number, admission_number,
+      phone_parent, parent_name, date_of_birth, batch_id, stream_group } = body;
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'name is required' }, { status: 400 });
     }
 
-    // Phase 1 Task 1.4 — dual-write institution_id + academic_year_id alongside school_id.
-    const instCtx = await getInstitutionForSchool(schoolId);
+    const { data: school } = await supabaseAdmin
+      .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
 
-    const { data: student, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('students')
       .insert({
         school_id: schoolId,
-        institution_id: instCtx.institution_id,
-        academic_year_id: instCtx.academic_year_id,
-        name: body.name,
-        class: body.class,
-        section: body.section ?? 'A',
-        roll_number: body.roll_number ?? null,
-        admission_number: body.admission_number ?? null,
-        phone_parent: body.phone_parent ?? null,
-        parent_name: body.parent_name ?? null,
-        date_of_birth: body.date_of_birth ?? null,
+        institution_id: school?.institution_id ?? null,
+        name: String(name).trim(),
+        class: cls ? String(cls).trim() : null,
+        section: section ? String(section).trim().toUpperCase() : null,
+        roll_number: roll_number ? String(roll_number).trim() : null,
+        admission_number: admission_number ? String(admission_number).trim() : null,
+        phone_parent: phone_parent ? String(phone_parent).trim() : null,
+        parent_name: parent_name ? String(parent_name).trim() : null,
+        date_of_birth: date_of_birth ? String(date_of_birth) : null,
+        batch_id: batch_id ? String(batch_id) : null,
+        stream_group: stream_group ? String(stream_group).trim() : null,
+        status: 'active',
         is_active: true,
       })
-      .select()
+      .select('id, name, class, section, admission_number, status')
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Auto-generate parent PIN and create parent record
-    let pin: string | null = null;
-    if (body.phone_parent) {
-      pin = generatePin();
-      await supabaseAdmin.from('parents').upsert({
-        school_id: schoolId,
-        student_id: student.id,
-        name: body.parent_name ?? 'Parent',
-        phone: normalisePhone(body.phone_parent) ?? body.phone_parent,
-        access_pin: pin,
-        whatsapp_opted_out: false,
-      }, { onConflict: 'school_id,student_id' }).then(null, (e: unknown) => {
-        console.error('Parent record error:', e);
-      });
+    await logActivity({ schoolId, action: 'student_created', module: 'students',
+      actorEmail, details: { student_id: data.id, name: data.name } });
 
-      // Send PIN via WhatsApp (non-blocking)
-      const normPhone = normalisePhone(body.phone_parent);
-      if (normPhone) {
-        const { data: school } = await supabaseAdmin.from('schools').select('name').eq('id', schoolId).single();
-        const schoolName = school?.name ?? 'School';
-        void sendWhatsApp({
-          to: normPhone,
-          body: `Welcome to ${schoolName}!\n\nDear ${body.parent_name ?? 'Parent'},\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nUse your phone number + this PIN to access the parent portal.\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.edprosys.com'}/parent\n\nReply STOP to unsubscribe.`,
-          schoolName,
-        }).catch(() => {}); // fire and forget — Promise<WhatsAppResult>.catch() is valid
-      }
-    }
-
-    await logActivity({
-      schoolId,
-      action: `Added student: ${body.name} (Class ${body.class})`,
-      module: 'import',
-      details: { name: body.name, class: body.class, pin_generated: !!pin },
-    });
-
-    return NextResponse.json({ success: true, student, pin_generated: !!pin });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ success: true, student: data });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const body = await req.json() as {
-      id: string; name?: string; class?: string; section?: string;
-      roll_number?: string; admission_number?: string;
-      phone_parent?: string; parent_name?: string; date_of_birth?: string;
-      is_active?: boolean;
-    };
+    const actorEmail = req.headers.get('x-user-email') ?? 'system';
+    const body = await req.json() as Record<string, unknown>;
+    const { id, action: lifecycleAction, ...fields } = body;
 
-    if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'id required' }, { status: 400 });
+    }
 
-    const { data, error } = await supabaseAdmin
-      .from('students')
-      .update({
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.class !== undefined && { class: body.class }),
-        ...(body.section !== undefined && { section: body.section }),
-        ...(body.roll_number !== undefined && { roll_number: body.roll_number }),
-        ...(body.admission_number !== undefined && { admission_number: body.admission_number }),
-        ...(body.phone_parent !== undefined && { phone_parent: body.phone_parent }),
-        ...(body.parent_name !== undefined && { parent_name: body.parent_name }),
-        ...(body.date_of_birth !== undefined && { date_of_birth: body.date_of_birth }),
-        ...(body.is_active !== undefined && { is_active: body.is_active }),
-      })
-      .eq('id', body.id)
-      .eq('school_id', schoolId)
-      .select()
-      .single();
+    // Fetch current student to validate school ownership
+    const { data: existing } = await supabaseAdmin
+      .from('students').select('id, name, status, school_id').eq('id', id).maybeSingle();
+    if (!existing || existing.school_id !== schoolId) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
 
-    if (error) throw new Error(error.message);
+    let update: Record<string, unknown> = {};
+    let auditAction = 'student_updated';
 
-    // If phone was updated, update parent record too
-    if (body.phone_parent !== undefined) {
-      const normPhone = normalisePhone(body.phone_parent);
-      if (normPhone) {
-        await supabaseAdmin.from('parents')
-          .update({ phone: normPhone, ...(body.parent_name && { name: body.parent_name }) })
-          .eq('student_id', body.id)
-          .eq('school_id', schoolId)
-          .then(null, () => {});
+    // Lifecycle transitions — real India school workflow
+    if (lifecycleAction === 'transfer') {
+      // Student moves to another school — TC issued separately
+      update = {
+        status: 'transferred',
+        is_active: false,
+        transfer_school: fields.transfer_school ? String(fields.transfer_school).trim() : null,
+        transfer_date: fields.transfer_date ? String(fields.transfer_date) : new Date().toISOString().split('T')[0],
+      };
+      auditAction = 'student_transferred';
+    } else if (lifecycleAction === 'graduate') {
+      // End of academic journey — passout
+      update = {
+        status: 'graduated',
+        is_active: false,
+        graduation_year: fields.graduation_year ? Number(fields.graduation_year) : new Date().getFullYear(),
+      };
+      auditAction = 'student_graduated';
+    } else if (lifecycleAction === 'withdraw') {
+      // Left school without formal TC
+      update = { status: 'withdrawn', is_active: false };
+      auditAction = 'student_withdrawn';
+    } else if (lifecycleAction === 'archive') {
+      // Administrative archive — old inactive record
+      update = { status: 'archived', is_active: false };
+      auditAction = 'student_archived';
+    } else if (lifecycleAction === 'reactivate') {
+      // Undo accidental deactivation (only if transferred/withdrawn, not graduated)
+      if (existing.status === 'graduated') {
+        return NextResponse.json({ error: 'Graduated students cannot be reactivated' }, { status: 400 });
+      }
+      update = { status: 'active', is_active: true, transfer_school: null, transfer_date: null };
+      auditAction = 'student_reactivated';
+    } else {
+      // Regular field edit
+      const editable = ['name', 'class', 'section', 'roll_number', 'admission_number',
+        'phone_parent', 'parent_name', 'date_of_birth', 'batch_id', 'stream_group',
+        'blood_group', 'emergency_contact_name', 'emergency_contact_phone'];
+      for (const k of editable) {
+        if (k in fields) {
+          update[k] = fields[k] === '' ? null : fields[k];
+        }
+      }
+      if (!Object.keys(update).length) {
+        return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
       }
     }
 
+    const { data, error } = await supabaseAdmin
+      .from('students').update(update).eq('id', id).eq('school_id', schoolId)
+      .select('id, name, status, class, section, is_active').single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Write lifecycle event for audit trail
+    await supabaseAdmin.from('student_lifecycle_events').insert({
+      student_id: id,
+      school_id: schoolId,
+      from_status: existing.status,
+      to_status: data.status,
+      triggered_by: actorEmail,
+      notes: fields.notes ? String(fields.notes) : null,
+      metadata: { action: lifecycleAction ?? 'edit', fields_updated: Object.keys(update) },
+    });
+
+    await logActivity({ schoolId, action: auditAction, module: 'students',
+      actorEmail, details: { student_id: id, name: data.name, update } });
+
     return NextResponse.json({ success: true, student: data });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
     const schoolId = getSchoolId(req);
-    const { id } = await req.json() as { id: string };
+    const actorEmail = req.headers.get('x-user-email') ?? 'system';
+    const id = req.nextUrl.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-    const { error } = await supabaseAdmin
+    // Soft delete — never hard delete student records
+    const { data, error } = await supabaseAdmin
       .from('students')
-      .update({ is_active: false })
-      .eq('id', id)
-      .eq('school_id', schoolId);
+      .update({ is_active: false, status: 'archived' })
+      .eq('id', id).eq('school_id', schoolId)
+      .select('id, name').single();
 
-    if (error) throw new Error(error.message);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await logActivity({ schoolId, action: 'Deactivated student (soft delete)', module: 'import', details: { student_id: id } });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    await logActivity({ schoolId, action: 'student_deactivated', module: 'students',
+      actorEmail, details: { student_id: id, name: data.name } });
+
+    return NextResponse.json({ success: true, message: 'Student archived' });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
