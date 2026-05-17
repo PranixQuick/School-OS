@@ -1,6 +1,6 @@
 'use client';
 // app/students/page.tsx — Student management with full lifecycle actions
-// Transfer, graduate, withdraw, archive now wired to /api/students PATCH
+// Transfer, graduate, withdraw, archive wired to /api/students PATCH
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 
@@ -21,6 +21,66 @@ const STATUS_BADGE: Record<string, [string, string]> = {
   archived: ['#F3F4F6', '#6B7280'],
 };
 
+interface ModalProps {
+  student: Student;
+  action: 'transfer' | 'graduate' | 'withdraw' | 'archive' | 'edit';
+  acting: boolean;
+  onConfirm: (fields: Record<string, string>) => void;
+  onClose: () => void;
+}
+
+function ActionModal({ student, action, acting, onConfirm, onClose }: ModalProps) {
+  const [fields, setFields] = useState<Record<string, string>>(() => {
+    if (action === 'edit') return { name: student.name, class: student.class ?? '', section: student.section ?? '', phone_parent: student.phone_parent ?? '', parent_name: student.parent_name ?? '' };
+    if (action === 'graduate') return { graduation_year: String(new Date().getFullYear()) };
+    return {};
+  });
+
+  const configs: Record<string, { title: string; color: string; fields?: { label: string; key: string; type?: string }[] }> = {
+    transfer: { title: `Transfer ${student.name}`, color: '#1D4ED8', fields: [{ label: 'Destination School', key: 'transfer_school' }, { label: 'Transfer Date', key: 'transfer_date', type: 'date' }] },
+    graduate: { title: `Graduate ${student.name}`, color: '#065F46', fields: [{ label: 'Graduation Year', key: 'graduation_year', type: 'number' }] },
+    withdraw: { title: `Withdraw ${student.name}`, color: '#92400E' },
+    archive: { title: `Archive ${student.name}`, color: '#6B7280' },
+    edit: { title: `Edit ${student.name}`, color: '#4F46E5', fields: [{ label: 'Name', key: 'name' }, { label: 'Class', key: 'class' }, { label: 'Section', key: 'section' }, { label: 'Parent Phone', key: 'phone_parent' }, { label: 'Parent Name', key: 'parent_name' }] },
+  };
+  const cfg = configs[action];
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 12 }}>{cfg.title}</div>
+        {cfg.fields && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+            {cfg.fields.map(f => (
+              <div key={f.key}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 3 }}>{f.label}</label>
+                <input type={f.type ?? 'text'} value={fields[f.key] ?? ''}
+                  onChange={e => setFields(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: '100%', height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }} />
+              </div>
+            ))}
+          </div>
+        )}
+        {!cfg.fields && action !== 'edit' && (
+          <div style={{ background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#92400E' }}>
+            {action === 'archive' ? 'This will mark the student as archived. Record will be preserved.' : `This will mark ${student.name} as ${action}. Confirm?`}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => onConfirm(fields)} disabled={acting}
+            style={{ flex: 1, padding: '10px', background: cfg.color, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            {acting ? 'Processing...' : 'Confirm'}
+          </button>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: '10px', background: '#fff', border: '1px solid #D1D5DB', color: '#374151', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,10 +90,8 @@ export default function StudentsPage() {
   const [toastType, setToastType] = useState<'ok' | 'err'>('ok');
   const [selected, setSelected] = useState<Student | null>(null);
   const [actionModal, setActionModal] = useState<'transfer' | 'graduate' | 'withdraw' | 'archive' | 'edit' | null>(null);
-  const [actionFields, setActionFields] = useState<Record<string, string>>({});
   const [acting, setActing] = useState(false);
 
-  // Add student
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ name: '', class: '', section: '', phone_parent: '', parent_name: '' });
   const [addError, setAddError] = useState('');
@@ -55,16 +113,16 @@ export default function StudentsPage() {
     setToast(msg); setToastType(type); setTimeout(() => setToast(''), 3500);
   }
 
-  async function doAction() {
+  async function doAction(fields: Record<string, string>) {
     if (!selected || !actionModal) return;
     setActing(true);
-    const body: Record<string, unknown> = { id: selected.id, action: actionModal, ...actionFields };
-    if (actionModal === 'graduate' && actionFields.graduation_year) body.graduation_year = Number(actionFields.graduation_year);
+    const body: Record<string, unknown> = { id: selected.id, action: actionModal, ...fields };
+    if (actionModal === 'graduate' && fields.graduation_year) body.graduation_year = Number(fields.graduation_year);
     const r = await fetch('/api/students', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json(); setActing(false);
     if (!r.ok) { showToast(d.error ?? 'Action failed', 'err'); return; }
     showToast(`${selected.name} — ${actionModal} complete`);
-    setActionModal(null); setSelected(null); setActionFields({}); load();
+    setActionModal(null); setSelected(null); load();
   }
 
   async function addStudent() {
@@ -78,59 +136,22 @@ export default function StudentsPage() {
 
   const STATUSES = ['active', 'graduated', 'transferred', 'withdrawn', 'archived', 'all'];
 
-  const ActionModal = () => {
-    if (!selected || !actionModal) return null;
-    const configs: Record<string, { title: string; color: string; fields?: { label: string; key: string; type?: string }[] }> = {
-      transfer: { title: `Transfer ${selected.name}`, color: '#1D4ED8', fields: [{ label: 'Destination School', key: 'transfer_school' }, { label: 'Transfer Date', key: 'transfer_date', type: 'date' }] },
-      graduate: { title: `Graduate ${selected.name}`, color: '#065F46', fields: [{ label: 'Graduation Year', key: 'graduation_year', type: 'number' }] },
-      withdraw: { title: `Withdraw ${selected.name}`, color: '#92400E' },
-      archive: { title: `Archive ${selected.name}`, color: '#6B7280' },
-      edit: { title: `Edit ${selected.name}`, color: '#4F46E5', fields: [{ label: 'Name', key: 'name' }, { label: 'Class', key: 'class' }, { label: 'Section', key: 'section' }, { label: 'Parent Phone', key: 'phone_parent' }, { label: 'Parent Name', key: 'parent_name' }] },
-    };
-    const cfg = configs[actionModal];
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 12 }}>{cfg.title}</div>
-          {cfg.fields && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-              {cfg.fields.map(f => (
-                <div key={f.key}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 3 }}>{f.label}</label>
-                  <input type={f.type ?? 'text'} defaultValue={actionModal === 'edit' ? (selected as Record<string, unknown>)[f.key] as string ?? '' : ''}
-                    onChange={e => setActionFields(p => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ width: '100%', height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }} />
-                </div>
-              ))}
-            </div>
-          )}
-          {!cfg.fields && actionModal !== 'edit' && (
-            <div style={{ background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#92400E' }}>
-              {actionModal === 'archive' ? 'This will mark the student as archived. Record will be preserved.' : `This will mark ${selected.name} as ${actionModal}. Confirm?`}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={doAction} disabled={acting} style={{ flex: 1, padding: '10px', background: cfg.color, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-              {acting ? 'Processing...' : 'Confirm'}
-            </button>
-            <button onClick={() => { setActionModal(null); setSelected(null); setActionFields({}); }}
-              style={{ flex: 1, padding: '10px', background: '#fff', border: '1px solid #D1D5DB', color: '#374151', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <Layout title="Students" subtitle={`${students.length} ${statusFilter === 'all' ? 'total' : statusFilter} students`}>
       {toast && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: toastType === 'err' ? '#991B1B' : '#111827', color: '#fff', padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{toast}</div>
       )}
-      <ActionModal />
 
-      {/* Status filter pills */}
+      {selected && actionModal && (
+        <ActionModal
+          student={selected}
+          action={actionModal}
+          acting={acting}
+          onConfirm={doAction}
+          onClose={() => { setActionModal(null); setSelected(null); }}
+        />
+      )}
+
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         {STATUSES.map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
@@ -141,7 +162,6 @@ export default function StudentsPage() {
         ))}
       </div>
 
-      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && load()}
           placeholder="Search name..." style={{ flex: 1, minWidth: 180, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14 }} />
@@ -150,7 +170,6 @@ export default function StudentsPage() {
         </button>
       </div>
 
-      {/* Add form */}
       {showAdd && (
         <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, marginBottom: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Add Student</div>
@@ -192,20 +211,20 @@ export default function StudentsPage() {
                     {s.status}
                   </span>
                 </div>
-
-                {/* Lifecycle action buttons — only for active students */}
                 {s.status === 'active' && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                    <button onClick={() => { setSelected(s); setActionModal('edit'); setActionFields({ name: s.name, class: s.class ?? '', section: s.section ?? '', phone_parent: s.phone_parent ?? '', parent_name: s.parent_name ?? '' }); }}
-                      style={{ padding: '4px 10px', fontSize: 12, background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', color: '#374151' }}>Edit</button>
-                    <button onClick={() => { setSelected(s); setActionModal('transfer'); }}
-                      style={{ padding: '4px 10px', fontSize: 12, background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 6, cursor: 'pointer', color: '#1E40AF' }}>Transfer</button>
-                    <button onClick={() => { setSelected(s); setActionModal('graduate'); setActionFields({ graduation_year: String(new Date().getFullYear()) }); }}
-                      style={{ padding: '4px 10px', fontSize: 12, background: '#EDE9FE', border: '1px solid #DDD6FE', borderRadius: 6, cursor: 'pointer', color: '#5B21B6' }}>Graduate</button>
-                    <button onClick={() => { setSelected(s); setActionModal('withdraw'); }}
-                      style={{ padding: '4px 10px', fontSize: 12, background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 6, cursor: 'pointer', color: '#92400E' }}>Withdraw</button>
-                    <button onClick={() => { setSelected(s); setActionModal('archive'); }}
-                      style={{ padding: '4px 10px', fontSize: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', color: '#6B7280' }}>Archive</button>
+                    {[
+                      ['Edit', 'edit', '#F3F4F6', '#374151', '#E5E7EB'],
+                      ['Transfer', 'transfer', '#EFF6FF', '#1E40AF', '#BFDBFE'],
+                      ['Graduate', 'graduate', '#EDE9FE', '#5B21B6', '#DDD6FE'],
+                      ['Withdraw', 'withdraw', '#FEF9C3', '#92400E', '#FDE68A'],
+                      ['Archive', 'archive', '#F9FAFB', '#6B7280', '#E5E7EB'],
+                    ].map(([label, act, bg2, fg2, border]) => (
+                      <button key={act} onClick={() => { setSelected(s); setActionModal(act as typeof actionModal); }}
+                        style={{ padding: '4px 10px', fontSize: 12, background: bg2, border: `1px solid ${border}`, borderRadius: 6, cursor: 'pointer', color: fg2 }}>
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 )}
                 {s.status !== 'active' && s.status !== 'graduated' && (
