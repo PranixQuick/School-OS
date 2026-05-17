@@ -1,7 +1,6 @@
 import { supabaseAdmin } from './supabaseClient';
 import { callClaude } from './claudeClient';
 import { logActivity, logNotification, logError } from './logger';
-import { processPendingNotifications } from './dispatcher';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -174,7 +173,7 @@ School: ${school.name}. Include a friendly payment request and contact number 04
     });
 
     // Dispatch the new notifications immediately
-    const dispatchResult = await processPendingNotifications(school.id, { limit: remindersSent + 5 });
+    const dispatchResult = null /* dispatch handled by Edge Function */;
 
     await completeRun(runId, {
       status: 'success',
@@ -296,7 +295,7 @@ export async function runRiskDetection(
         targetCount: criticalCount + highCount,
         module: 'cron',
       });
-      dispatchResult = await processPendingNotifications(school.id, { limit: 5 });
+      dispatchResult = null /* dispatch handled by Edge Function */;
     }
 
     const result: Record<string, unknown> = {
@@ -442,7 +441,7 @@ Generate the principal daily briefing now.`,
       attempts: 0,
     });
 
-    const dispatchResult = await processPendingNotifications(school.id, { limit: 5 });
+    const dispatchResult = null /* dispatch handled by Edge Function */;
 
     await logActivity({
       schoolId: school.id,
@@ -463,32 +462,6 @@ Generate the principal daily briefing now.`,
   }
 }
 
-// ─── Job 4: Dispatch pending notifications ────────────────────────────────────
-
-export async function runDispatch(
-  school: SchoolRecord,
-  triggeredBy: 'auto' | 'manual' | 'api' = 'auto'
-): Promise<CronJobResult> {
-  const startedAt = Date.now();
-  const runId = await trackRun({ schoolId: school.id, jobName: 'dispatch', triggeredBy });
-
-  // Concurrent run detected — return early
-  if (!runId) {
-    return { job: 'dispatch', schoolId: school.id, success: true, data: { skipped: true, reason: 'Already running' }, durationMs: 0 };
-  }
-
-  try {
-    const result = await processPendingNotifications(school.id, { limit: 50 });
-
-    await completeRun(runId, { status: result.processed === 0 ? 'skipped' : 'success', result: result as unknown as Record<string, unknown>, startedAt });
-    return { job: 'dispatch', schoolId: school.id, success: true, data: result as unknown as Record<string, unknown>, durationMs: Date.now() - startedAt };
-  } catch (err) {
-    const error = String(err);
-    await logError({ route: '/api/cron/daily:dispatch', error, schoolId: school.id });
-    await completeRun(runId, { status: 'failed', error, startedAt });
-    return { job: 'dispatch', schoolId: school.id, success: false, error, durationMs: Date.now() - startedAt };
-  }
-}
 
 // ─── Master: Run all jobs for one school ──────────────────────────────────────
 
@@ -502,8 +475,6 @@ export async function runAllJobsForSchool(
   results.push(await runFeeReminders(school, triggeredBy));
   results.push(await runRiskDetection(school, triggeredBy));
   results.push(await runPrincipalBriefing(school, triggeredBy));
-  // Final sweep: dispatch any remaining pending notifications
-  results.push(await runDispatch(school, triggeredBy));
 
   const succeeded = results.filter(r => r.success).length;
   console.log(`[Cron] ${school.name}: ${succeeded}/${results.length} jobs succeeded`);
