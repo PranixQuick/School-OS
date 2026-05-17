@@ -1,22 +1,22 @@
 'use client';
 // app/admin/library/page.tsx
-// Library management: book inventory + issue/return + overdue tracking
-// Real workflow: librarian searches accession number, issues book, marks return
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 
 interface LibItem { id: string; accession_number: string; title: string; author: string | null; subject: string | null; category: string | null; total_copies: number; available_copies: number; }
 interface Issue { id: string; borrower_type: string; issued_date: string; due_date: string; returned_date: string | null; fine_amount: number | null; fine_paid: boolean; status: string; item: { title: string; accession_number: string } | null; student: { name: string; class: string; section: string } | null; }
 
+type IssueView = 'issues' | 'overdue';
+type Tab = 'items' | IssueView;
+
 export default function LibraryPage() {
-  const [tab, setTab] = useState<'items' | 'issues' | 'overdue'>('items');
+  const [tab, setTab] = useState<Tab>('items');
   const [items, setItems] = useState<LibItem[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
 
-  // Issue form
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [issueItemId, setIssueItemId] = useState('');
   const [issueStudentId, setIssueStudentId] = useState('');
@@ -24,7 +24,6 @@ export default function LibraryPage() {
   const [issueError, setIssueError] = useState('');
   const [issueSubmitting, setIssueSubmitting] = useState(false);
 
-  // Add item form
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ accession_number: '', title: '', author: '', subject: '', category: '', total_copies: '1' });
   const [addError, setAddError] = useState('');
@@ -40,7 +39,7 @@ export default function LibraryPage() {
     } finally { setLoading(false); }
   }, [search]);
 
-  const fetchIssues = useCallback(async (view: 'issues' | 'overdue') => {
+  const fetchIssues = useCallback(async (view: IssueView) => {
     setLoading(true);
     try {
       const r = await fetch(`/api/admin/library?view=${view}`);
@@ -71,7 +70,11 @@ export default function LibraryPage() {
     const r = await fetch('/api/admin/library', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: issueId, action: 'return' }) });
     const d = await r.json();
-    if (r.ok) { setToast(d.overdue_days > 0 ? `Returned — Fine: ₹${d.fine_amount}` : 'Returned'); setTimeout(() => setToast(''), 3000); fetchIssues(tab); }
+    if (r.ok) {
+      setToast(d.overdue_days > 0 ? `Returned — Fine: ₹${d.fine_amount}` : 'Returned');
+      setTimeout(() => setToast(''), 3000);
+      if (tab !== 'items') fetchIssues(tab);
+    }
   }
 
   async function addItem() {
@@ -86,13 +89,16 @@ export default function LibraryPage() {
     fetchItems();
   }
 
-  const TABS = [{ key: 'items', label: '📚 Inventory' }, { key: 'issues', label: '📤 Issued' }, { key: 'overdue', label: '⚠️ Overdue' }] as const;
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'items', label: '📚 Inventory' },
+    { key: 'issues', label: '📤 Issued' },
+    { key: 'overdue', label: '⚠️ Overdue' },
+  ];
 
   return (
     <Layout title="Library" subtitle="Book inventory and issue/return management">
       {toast && <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#111827', color: '#fff', padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{toast}</div>}
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#F3F4F6', borderRadius: 10, padding: 4 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -104,7 +110,6 @@ export default function LibraryPage() {
         ))}
       </div>
 
-      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         {tab === 'items' && (
           <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchItems()}
@@ -118,7 +123,6 @@ export default function LibraryPage() {
         )}
       </div>
 
-      {/* Add Book Form */}
       {showAddForm && (
         <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Add to Inventory</div>
@@ -142,7 +146,6 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Issue Form */}
       {showIssueForm && (
         <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Issue a Book</div>
@@ -165,7 +168,6 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Content */}
       {loading ? <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>Loading...</div> : (
         <>
           {tab === 'items' && (
