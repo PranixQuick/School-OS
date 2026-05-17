@@ -27,7 +27,7 @@ const ROLES = ['teacher','admin','principal','counsellor'];
 
 // K1: Institution type helpers for wizard branching
 function isCoaching(t: string) { return t === 'coaching'; }
-function isCollege(t: string) { return ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t); }
+function isCollege(t: string) { return ['junior_college','degree_college','engineering','mba','medical','polytechnic','university','vocational'].includes(t); }
 function isGovt(t: string) { return ['govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t); }
 
 async function post(path: string, body: unknown) {
@@ -174,6 +174,8 @@ export default function OnboardingWizard() {
           setStaffCredentials(result.data.credentials);
         }
       } else if (step === 4) {
+        // HF-1: skip fee defaults for govt schools — fee module disabled
+        if (isGovt(instType)) { setStep(s => s + 1); setSaving(false); return; }
         const fees = feeDefaults.filter(f => f.fee_type && f.amount && f.due_date).map(f => ({ fee_type: f.fee_type, amount: parseFloat(f.amount), due_date: f.due_date, ...(f.class ? { class: f.class } : {}) }));
         result = await post('/api/admin/onboarding/4-fee-defaults', { fee_defaults: fees });
       } else if (step === 5) {
@@ -396,6 +398,12 @@ export default function OnboardingWizard() {
 
     if (step === 4) return (
       <div>
+        {isGovt(instType) ? (
+          <div style={{ background:'#ECFDF5', border:'1px solid #BBF7D0', borderRadius:8, padding:'12px 14px', fontSize:13 }}>
+            <strong>Government institution:</strong> The fee module is not applicable. Click <strong>Next</strong> to continue.
+          </div>
+        ) : (
+          <>
         <div style={{ fontSize:12, color:'#6B7280', marginBottom:10 }}>Optional. Set default fee amounts per type. Leave blank to skip.</div>
         {feeDefaults.map((f,i)=>(
           <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr auto', gap:6, marginBottom:6 }}>
@@ -407,6 +415,8 @@ export default function OnboardingWizard() {
           </div>
         ))}
         <button onClick={()=>setFeeDefaults(d=>[...d,{fee_type:'',amount:'',due_date:'',class:''}])} style={{ ...btnSecondary, fontSize:12 }}>+ Add Fee Type</button>
+          </>
+        )}
       </div>
     );
 
@@ -434,7 +444,7 @@ export default function OnboardingWizard() {
 
     if (step === 6) return (
       <div>
-        <div style={{ fontSize:12, color:'#6B7280', marginBottom:10 }}>Upload a CSV or add students manually. CSV columns: student_name, class, section, parent_name, parent_phone, parent_email</div>
+        <div style={{ fontSize:12, color:'#6B7280', marginBottom:10 }}>Upload a CSV or add students manually. For schools: student_name, class, section, parent_name, parent_phone, parent_email. For colleges/coaching: student_name, batch_label, parent_name, parent_phone, parent_email</div>
         <div style={{ marginBottom:12 }}>
           <label style={labelStyle}>CSV Upload</label>
           <input ref={studentFileRef} type="file" accept=".csv" style={{ fontSize:12 }}

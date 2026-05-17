@@ -1,11 +1,25 @@
 // app/api/admin/onboarding/7-activate/route.ts
-// OPS-5: Server-side preconditions — cannot activate with 0 staff, 0 classes, 0 subjects, 0 students
+// OPS-5: precondition guard — cannot activate with 0 staff + 0 academic structure + 0 subjects + 0 students
+//
+// Academic structure check is INSTITUTION-TYPE AWARE:
+//   - School types (school_k10, school_k12, govt_*): requires classes > 0
+//   - College/higher-ed types: requires batches > 0 (they never have classes rows)
+//   - Coaching: requires batches > 0
+//   - Anganwadi / vocational: classes OR batches > 0 (either accepted)
+//
 // DPDP GUARD: all legal documents must be accepted before activation.
+
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 export const runtime = 'nodejs';
+
+// Types that use batches instead of classes
+const BATCH_TYPES = new Set([
+  'coaching', 'junior_college', 'degree_college', 'engineering',
+  'polytechnic', 'mba', 'medical', 'university', 'vocational',
+]);
 
 export async function POST(req: NextRequest) {
   let ctx;
@@ -20,33 +34,61 @@ export async function POST(req: NextRequest) {
     .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
   const institutionId = school?.institution_id ?? null;
 
+  // Resolve institution type for context-aware checks
+  let institutionType = 'school_k10';
+  if (institutionId) {
+    const { data: inst } = await supabaseAdmin
+      .from('institutions').select('institution_type').eq('id', institutionId).maybeSingle();
+    if (inst?.institution_type) institutionType = inst.institution_type;
+  }
+
+  const usesBatches = BATCH_TYPES.has(institutionType);
+
   // ── OPS-5 PRECONDITION GUARD ─────────────────────────────────────────────────
-  const [staffRes, classRes, studentRes, subjectRes] = await Promise.all([
+  const checks = await Promise.all([
+    // Staff: always required
     supabaseAdmin.from('staff')
       .select('id', { count: 'exact', head: true })
       .eq('school_id', schoolId).eq('is_active', true),
-    supabaseAdmin.from('classes')
-      .select('id', { count: 'exact', head: true })
-      .eq('school_id', schoolId),
+    // Academic structure: classes for schools, batches for colleges/coaching
+    usesBatches
+      ? supabaseAdmin.from('batches')
+          .select('id', { count: 'exact', head: true })
+          .eq('institution_id', institutionId ?? '00000000-0000-0000-0000-000000000000')
+      : supabaseAdmin.from('classes')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId),
+    // Students: always required
     supabaseAdmin.from('students')
       .select('id', { count: 'exact', head: true })
       .eq('school_id', schoolId).eq('is_active', true),
+    // Subjects: required for schools; optional for coaching/higher-ed (they may use course codes instead)
     supabaseAdmin.from('subjects')
       .select('id', { count: 'exact', head: true })
       .eq('school_id', schoolId),
   ]);
 
+  const [staffRes, structureRes, studentRes, subjectRes] = checks;
   const missing: string[] = [];
+
   if ((staffRes.count ?? 0) < 1) missing.push('at_least_one_staff_member');
-  if ((classRes.count ?? 0) < 1) missing.push('at_least_one_class');
+
+  if ((structureRes.count ?? 0) < 1) {
+    missing.push(usesBatches ? 'at_least_one_batch' : 'at_least_one_class');
+  }
+
   if ((studentRes.count ?? 0) < 1) missing.push('at_least_one_student');
-  if ((subjectRes.count ?? 0) < 1) missing.push('at_least_one_subject');
+
+  // Subjects: only required for school types; coaching/higher-ed can activate without subjects
+  const isSchoolType = !usesBatches;
+  if (isSchoolType && (subjectRes.count ?? 0) < 1) missing.push('at_least_one_subject');
 
   if (missing.length > 0) {
     return NextResponse.json({
       error: 'onboarding_incomplete',
-      message: 'School setup is incomplete. Please complete required steps before activating.',
+      message: 'School setup is incomplete. Please complete all required steps before activating.',
       missing,
+      institution_type: institutionType,
     }, { status: 400 });
   }
 
@@ -80,12 +122,11 @@ export async function POST(req: NextRequest) {
 
   if (institutionId) {
     await supabaseAdmin.from('institutions').update({ onboarded_at: now }).eq('id', institutionId);
-    const { data: inst } = await supabaseAdmin
-      .from('institutions').select('institution_type, ownership_type')
-      .eq('id', institutionId).maybeSingle();
-    const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(inst?.institution_type ?? '');
-    const isPrivateOrFranchise = ['private','franchise'].includes(inst?.ownership_type ?? '');
-    const isAided = inst?.ownership_type === 'aided';
+    const isGovt = ['govt_school', 'govt_aided_school', 'welfare_school'].includes(institutionType);
+    const isAided = (await supabaseAdmin.from('institutions')
+      .select('ownership_type').eq('id', institutionId).maybeSingle())
+      .data?.ownership_type === 'aided';
+    const isPrivateOrFranchise = !isGovt && !isAided;
     await supabaseAdmin.from('institutions').update({
       feature_flags: {
         fee_module_enabled: isPrivateOrFranchise || isAided,
@@ -97,5 +138,11 @@ export async function POST(req: NextRequest) {
     }).eq('id', institutionId);
   }
 
-  return NextResponse.json({ success: true, step: 7, redirect: '/dashboard', message: 'School is now active.' });
+  return NextResponse.json({
+    success: true,
+    step: 7,
+    redirect: '/dashboard',
+    message: 'Your institution is now active.',
+    institution_type: institutionType,
+  });
 }

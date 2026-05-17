@@ -152,6 +152,20 @@ export async function POST(req: NextRequest) {
       throw new Error(`Failed to create admin user: ${userErr.message}`);
     }
 
+    // Step 4b: Create owner_profiles entry (W-13 fix: was never populated on registration)
+    // owner_profiles links institution_id to the owner for plan management
+    void (async () => {
+      try {
+        await supabaseAdmin.from('owner_profiles').insert({
+          institution_id: institutionId,
+          owner_name: admin_name,
+          owner_email: admin_email.toLowerCase().trim(),
+          subscription_plan: 'basic',
+          max_schools: 1,
+        });
+      } catch { /* non-blocking — owner_profiles failure must not fail registration */ }
+    })();
+
     // Step 5: Seed welcome event
     await supabaseAdmin.from('events').insert({
       school_id: school.id,
