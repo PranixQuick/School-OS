@@ -3,7 +3,7 @@ import { supabaseAdmin } from './supabaseClient';
 export async function logActivity(params: {
   schoolId: string;
   action: string;
-  module: 'report_cards' | 'teacher_eval' | 'admissions' | 'broadcasts' | 'ptm' | 'risk' | 'settings' | 'auth' | 'import';
+  module: string;  // Widened from narrow union — activity_logs.module is a text column
   actorEmail?: string;
   details?: Record<string, unknown>;
 }) {
@@ -40,7 +40,7 @@ export async function logError(params: {
 
 export async function logNotification(params: {
   schoolId: string;
-  type: 'broadcast' | 'fee_reminder' | 'ptm' | 'alert' | 'system' | 'risk';
+  type: string;
   title: string;
   message: string;
   targetCount?: number;
