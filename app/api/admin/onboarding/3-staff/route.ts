@@ -1,10 +1,9 @@
 // app/api/admin/onboarding/3-staff/route.ts
 // Onboarding Step 3: Staff bulk import
-// Body: { staff: [{ name, role, email, phone }] }
-// role must be one of: admin | teacher | principal | counsellor
-// Creates staff row + school_users row for each. Idempotent on email.
-// Returns login credentials for each successfully created user so the
-// onboarding UI can display them to the admin for distribution.
+// Fixes:
+//   - W-2: institution_id now set on staff rows
+//   - Automation wiring: dispatches welcome notification for staff with email
+// Returns login credentials for distribution.
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
@@ -29,11 +28,11 @@ export async function POST(req: NextRequest) {
   const staffList = (body.staff as { name: string; role: string; email?: string; phone?: string }[]) ?? [];
   if (!staffList.length) return NextResponse.json({ error: 'staff array required' }, { status: 400 });
 
-  // The initial login password uses the same pattern as owner registration:
-  // edprosys + first-4-chars-of-school-uuid
-  // This is the ONE place where this is shown to the admin so they can
-  // distribute it to staff. It is shown in the API response and surfaced
-  // in the onboarding UI credential table.
+  // Resolve institution_id for this school (W-2 fix)
+  const { data: schoolRow } = await supabaseAdmin
+    .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
+  const institutionId = schoolRow?.institution_id ?? null;
+
   const initialPassword = `edprosys${schoolId.slice(0, 4)}`;
 
   let created = 0;
@@ -46,11 +45,11 @@ export async function POST(req: NextRequest) {
     const role = VALID_ROLES.has(s.role) ? s.role : 'teacher';
     const roleV2 = role === 'admin' ? 'admin_staff' : role;
 
-    // Insert staff row
     const { data: staffRow, error: sErr } = await supabaseAdmin
       .from('staff')
       .insert({
         school_id: schoolId,
+        institution_id: institutionId,   // W-2 fix: was null before
         name: s.name.trim(),
         role,
         phone: s.phone?.trim() ?? null,
@@ -62,13 +61,13 @@ export async function POST(req: NextRequest) {
 
     if (sErr) { errors.push(`Staff insert failed for ${s.name}: ${sErr.message}`); continue; }
 
-    // Insert school_users row if email provided
     if (s.email?.trim()) {
       const email = s.email.trim().toLowerCase();
       const { error: uErr } = await supabaseAdmin
         .from('school_users')
         .upsert({
           school_id: schoolId,
+          institution_id: institutionId,
           email,
           name: s.name.trim(),
           role: role === 'teacher' ? 'teacher' : 'admin',
@@ -80,13 +79,25 @@ export async function POST(req: NextRequest) {
       if (uErr) {
         errors.push(`User insert for ${s.email}: ${uErr.message}`);
       } else {
-        // Record credentials so admin can distribute them
-        createdUsers.push({
-          name: s.name.trim(),
-          email,
-          role,
-          password: initialPassword,
-        });
+        createdUsers.push({ name: s.name.trim(), email, role, password: initialPassword });
+
+        // Automation B6: queue welcome notification for staff with email
+        await supabaseAdmin.from('notifications').insert({
+          school_id: schoolId,
+          type: 'staff_welcome',
+          title: 'Welcome to EdProSys',
+          message: `Hello ${s.name.trim()}, your ${role} account has been created. Login at edprosys.com with email: ${email} and password: ${initialPassword}. Use the email link option to set up secure access.`,
+          module: 'onboarding',
+          status: 'pending',
+          channel: 'whatsapp',
+          template_vars: {
+            name: s.name.trim(),
+            role,
+            email,
+            password: initialPassword,
+            login_url: 'https://www.edprosys.com/login',
+          },
+        }).then(() => {}).catch(() => {}); // non-blocking, best-effort
       }
     }
     created++;
@@ -97,11 +108,8 @@ export async function POST(req: NextRequest) {
     step: 3,
     created,
     errors,
-    // Credential list — shown to admin in onboarding UI for distribution to staff
-    // Each staff member should receive their email + this password.
-    // They can use "Forgot password? Sign in with email link" to set their own access.
     credentials: createdUsers,
-    credential_note: `All staff share the initial password shown above. Each person should sign in once, then use the email link option to set their own permanent access.`,
+    credential_note: 'All staff share the initial password. Each person should sign in once, then use email link to secure their account.',
     initial_password: initialPassword,
   });
 }
