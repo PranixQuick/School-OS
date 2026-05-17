@@ -15,42 +15,51 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/accounts',                 label: 'Accounts',              icon: '💰', roles: ['owner','admin','accountant'] },
-  { href: '/dashboard',                  label: 'Dashboard',            icon: '◈', exact: true },
-  { href: '/principal',                  label: 'Principal View',       icon: '📊', roles: ['owner','admin'] },
-  { href: '/students',                   label: 'Students',             icon: '👨‍🎓', roles: ['owner','admin','principal','teacher'] },
-  { href: '/admissions',                 label: 'New Inquiry',          icon: '✦',  roles: ['owner','admin'] },
-  { href: '/admissions/crm',             label: 'Leads CRM',            icon: '◎',  roles: ['owner','admin'] },
-  { href: '/admissions/call-analysis',   label: 'Call Analysis',        icon: '📞', roles: ['owner','admin'] },
-  { href: '/report-cards',               label: 'Report Cards',         icon: '◷',  roles: ['owner','admin','principal','teacher'] },
-  { href: '/admin/coaching-tests',        label: 'Tests & Ranks',          icon: '📊', roles: ['owner','admin','teacher'] },
-  { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕',  roles: ['owner','admin','principal'] },
-  { href: '/automation',                 label: 'Automation',           icon: '⚡', roles: ['owner','admin'] },
-  { href: '/automation/cron',            label: 'Automation Schedule',  icon: '🤖', roles: ['owner','admin'] },
-  { href: '/analytics',                  label: 'Analytics',            icon: '◉',  roles: ['owner','admin','principal'] },
-  { href: '/connectors',                 label: 'Data Connectors',      icon: '🔗', roles: ['owner','admin'] },
-  { href: '/whatsapp',                   label: 'WhatsApp Bot',         icon: '💬', roles: ['owner','admin'] },
-  { href: '/import',                     label: 'CSV Import',           icon: '↑',  roles: ['owner','admin'] },
-  { href: '/billing',                    label: 'Billing',              icon: '💳', roles: ['owner'] },
-  { href: '/settings',                   label: 'Settings',             icon: '⚙',  roles: ['owner','admin'] },
-  { href: '/admin/observability',         label: 'Observability',         icon: '📡', roles: ['owner','admin'] },
-  { href: '/admin/report-cards',          label: 'Report Cards',          icon: '📋', roles: ['owner','admin'] },
-  { href: '/admin/ptm',                   label: 'PTM Scheduling',         icon: '🤝', roles: ['owner','admin','principal'] },
-  { href: '/admin/parents',            label: 'Parent Accounts',        icon: '👨‍👩‍👧', roles: ['owner','admin'] },
-  { href: '/admin/complaints',         label: 'Parent Complaints',      icon: '📣', roles: ['owner','admin','principal'] },
-  { href: '/admin/ops',               label: 'Ops Console',            icon: '📡', roles: ['owner','admin'] },
-  { href: '/admin/meals',              label: 'Meal Attendance',         icon: '🍽', roles: ['owner','admin','teacher'] },
-  { href: '/admin/scholarships',        label: 'Scholarships',            icon: '🎓', roles: ['owner','admin'] },
-  { href: '/admin/rte',                   label: 'RTE Admissions',          icon: '🏫', roles: ['owner','admin'] },
-  { href: '/owner',                       label: 'Owner Dashboard',          icon: '🏢', roles: ['owner'] },
-  { href: '/admin/health-incidents',      label: 'Health Incidents',         icon: '🩺', roles: ['owner','admin','principal'] },
-  { href: '/admin/sanitary',              label: 'Sanitary Inventory',        icon: '📦', roles: ['owner','admin'] },
-  { href: '/admin/transport',             label: 'Transport',                 icon: '🚌', roles: ['owner','admin','principal'] },
-  { href: '/admin/timetable',             label: 'Timetable',                 icon: '🗓', roles: ['owner','admin'] },
-  { href: '/admin/regulatory',            label: 'Regulatory',               icon: '📋', roles: ['owner','admin','principal'] },
-  { href: '/admin/knowledge',             label: 'Knowledge Base',           icon: '📚', roles: ['owner','admin','principal'] },
-  { href: '/admin/conversations',         label: 'Conversations',             icon: '💬', roles: ['owner','admin','principal'] },
-  { href: '/admin/nl-ops',                label: 'NL Ops',                   icon: '🤖', roles: ['owner','admin','principal'] },
+  { href: '/accounts',                         label: 'Accounts',              icon: '💰', roles: ['owner','admin','accountant'] },
+  { href: '/dashboard',                        label: 'Dashboard',             icon: '◈',  exact: true },
+  { href: '/principal',                        label: 'Principal View',        icon: '📊', roles: ['owner','admin'] },
+  { href: '/students',                         label: 'Students',              icon: '👨‍🎓', roles: ['owner','admin','principal','teacher'] },
+  { href: '/admissions',                       label: 'New Inquiry',           icon: '✦',  roles: ['owner','admin'] },
+  { href: '/admissions/crm',                   label: 'Leads CRM',             icon: '◎',  roles: ['owner','admin'] },
+  { href: '/admissions/call-analysis',         label: 'Call Analysis',         icon: '📞', roles: ['owner','admin'] },
+  { href: '/report-cards',                     label: 'Report Cards',          icon: '◷',  roles: ['owner','admin','principal','teacher'] },
+  { href: '/admin/coaching-tests',             label: 'Tests & Ranks',         icon: '📊', roles: ['owner','admin','teacher'] },
+  { href: '/teacher-eval',                     label: 'Teacher Eval',          icon: '⊕',  roles: ['owner','admin','principal'] },
+  { href: '/automation',                       label: 'Automation',            icon: '⚡', roles: ['owner','admin'] },
+  { href: '/automation/cron',                  label: 'Automation Schedule',   icon: '🤖', roles: ['owner','admin'] },
+  { href: '/analytics',                        label: 'Analytics',             icon: '◉',  roles: ['owner','admin','principal'] },
+  { href: '/connectors',                       label: 'Data Connectors',       icon: '🔗', roles: ['owner','admin'] },
+  { href: '/whatsapp',                         label: 'WhatsApp Bot',          icon: '💬', roles: ['owner','admin'] },
+  { href: '/import',                           label: 'CSV Import',            icon: '↑',  roles: ['owner','admin'] },
+  { href: '/billing',                          label: 'Billing',               icon: '💳', roles: ['owner'] },
+  { href: '/settings',                         label: 'Settings',              icon: '⚙',  roles: ['owner','admin'] },
+  { href: '/admin/observability',              label: 'Observability',         icon: '📡', roles: ['owner','admin'] },
+  { href: '/admin/report-cards',               label: 'Report Cards Admin',    icon: '📋', roles: ['owner','admin'] },
+  { href: '/admin/ptm',                        label: 'PTM Scheduling',        icon: '🤝', roles: ['owner','admin','principal'] },
+  { href: '/admin/parents',                    label: 'Parent Accounts',       icon: '👨‍👩‍👧', roles: ['owner','admin'] },
+  { href: '/admin/complaints',                 label: 'Parent Complaints',     icon: '📣', roles: ['owner','admin','principal'] },
+  { href: '/admin/ops',                        label: 'Ops Console',           icon: '📡', roles: ['owner','admin'] },
+  { href: '/admin/meals',                      label: 'Meal Attendance',       icon: '🍽', roles: ['owner','admin','teacher'] },
+  { href: '/admin/scholarships',               label: 'Scholarships',          icon: '🎓', roles: ['owner','admin'] },
+  { href: '/admin/rte',                        label: 'RTE Admissions',        icon: '🏫', roles: ['owner','admin'] },
+  { href: '/owner',                            label: 'Owner Dashboard',       icon: '🏢', roles: ['owner'] },
+  { href: '/admin/health-incidents',           label: 'Health Incidents',      icon: '🩺', roles: ['owner','admin','principal'] },
+  { href: '/admin/sanitary',                   label: 'Sanitary Inventory',    icon: '📦', roles: ['owner','admin'] },
+  { href: '/admin/transport',                  label: 'Transport',             icon: '🚌', roles: ['owner','admin','principal'] },
+  { href: '/admin/timetable',                  label: 'Timetable',             icon: '🗓', roles: ['owner','admin'] },
+  { href: '/admin/regulatory',                 label: 'Regulatory',            icon: '📋', roles: ['owner','admin','principal'] },
+  { href: '/admin/knowledge',                  label: 'Knowledge Base',        icon: '📚', roles: ['owner','admin','principal'] },
+  { href: '/admin/conversations',              label: 'Conversations',         icon: '💬', roles: ['owner','admin','principal'] },
+  { href: '/admin/nl-ops',                     label: 'NL Ops',                icon: '🤖', roles: ['owner','admin','principal'] },
+  // --- Higher-ed + institutional modules (gated by institution_type) ---
+  { href: '/admin/departments',                label: 'Departments',           icon: '🏛', roles: ['owner','admin','principal'] },
+  { href: '/admin/batches',                    label: 'Batches',               icon: '🎒', roles: ['owner','admin','principal'] },
+  { href: '/admin/programmes',                 label: 'Programmes',            icon: '📖', roles: ['owner','admin','principal'] },
+  { href: '/admin/academic-years',             label: 'Academic Years',        icon: '📅', roles: ['owner','admin','principal'] },
+  { href: '/admin/library',                    label: 'Library',               icon: '📗', roles: ['owner','admin','librarian'] },
+  { href: '/admin/hostel',                     label: 'Hostel',                icon: '🏠', roles: ['owner','admin','hostel_admin'] },
+  { href: '/admin/placement',                  label: 'Placement',             icon: '💼', roles: ['owner','admin','placement_officer'] },
+  { href: '/admin/vendors',                    label: 'Vendors',               icon: '🤝', roles: ['owner','admin'] },
 ];
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
@@ -61,6 +70,12 @@ const PLAN_COLOR: Record<string, string> = {
   growth: '#4F46E5',  pro: '#4F46E5',
   campus: '#065F46',  enterprise: '#065F46',
 };
+
+// Institution types that are "higher-ed" — show departments/batches/placement
+const HIGHER_ED = new Set(['junior_college','degree_college','engineering','mba','medical','polytechnic','university','coaching','vocational']);
+const HAS_HOSTEL = new Set(['degree_college','engineering','mba','medical','polytechnic','university']);
+const HAS_LIBRARY = new Set(['degree_college','engineering','mba','medical','polytechnic','university','junior_college','school_k10','school_k12','govt_school','govt_aided_school','welfare_school']);
+const HAS_PLACEMENT = new Set(['degree_college','engineering','mba','polytechnic','university']);
 
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
   const pathname = usePathname();
@@ -77,7 +92,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  // C6: WhatsApp health badge — fetch dispatcher status on mount
   useEffect(() => {
     fetch('/api/notifications/health')
       .then(r => r.json())
@@ -101,38 +115,34 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   function canSee(item: NavItem) {
     if (!item.roles) return true;
     if (!item.roles.includes(session?.userRole ?? 'viewer')) return false;
-    // G5: institution_type gating
-    const t = institutionType;
-    if (t) {
-      if (item.label === 'RTE Admissions' && !['govt_school','govt_aided_school','welfare_school'].includes(t)) return false;
-      if (item.label === 'Meal Attendance' && !['govt_school','welfare_school'].includes(t)) return false;
-      if (item.label === 'Sanitary Inventory' && t === 'coaching') return false;
-      if (['Leads CRM','Call Analysis'].includes(item.label) && ['govt_school','govt_aided_school'].includes(t)) return false;
-      if (item.label === 'Tests & Ranks' && t !== 'coaching') return false;
-      if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
-    }
-    // PR-3: Full institution type gating — all comparisons use (t ?? '') to satisfy strict TS string[].includes
-    const isSchool = !t ||
-      ['school_k10','school_k12','govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t ?? '');
-    const isCollege = ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t ?? '');
+    const t = institutionType ?? '';
+    const isSchool = !t || ['school_k10','school_k12','govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t);
+    const isCollege = HIGHER_ED.has(t);
     const isCoaching = t === 'coaching';
-    const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(t ?? '');
+    const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(t);
 
-    // Transfer Certificates: schools only (defensive — nav item not present yet)
-    if (item.label === 'Transfer Certificates' && (isCoaching || isCollege)) return false;
-    // PTM: schools only — hide for coaching + colleges
+    if (item.label === 'RTE Admissions' && !isGovt) return false;
+    if (item.label === 'Meal Attendance' && !['govt_school','welfare_school'].includes(t)) return false;
+    if (item.label === 'Sanitary Inventory' && isCoaching) return false;
+    if (['Leads CRM','Call Analysis'].includes(item.label) && isGovt) return false;
+    if (item.label === 'Tests & Ranks' && !isCoaching) return false;
+    if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
     if (item.label === 'PTM Scheduling' && (isCoaching || isCollege)) return false;
-    // Health Incidents: not for coaching
     if (item.label === 'Health Incidents' && isCoaching) return false;
-    // Scholarships: govt/aided only
     if (item.label === 'Scholarships' && !isGovt) return false;
-    // Report Cards: not for coaching (they have Tests & Ranks instead) or colleges
     if (item.label === 'Report Cards' && (isCoaching || isCollege)) return false;
-    // Academic Year Promotion: schools only (defensive — nav item not present yet)
-    if (item.label === 'Academic Year Promotion' && (isCoaching || isCollege)) return false;
-    // Billing: not for govt schools
+    if (item.label === 'Report Cards Admin' && (isCoaching || isCollege)) return false;
     if (item.label === 'Billing' && isGovt) return false;
-    // Suppress unused-var lint
+
+    // Higher-ed modules — only show when institution type is set and appropriate
+    if (item.label === 'Departments' && !isCollege) return false;
+    if (item.label === 'Batches' && !isCollege && !isCoaching) return false;
+    if (item.label === 'Programmes' && !isCollege) return false;
+    if (item.label === 'Academic Years' && isCoaching) return false;
+    if (item.label === 'Hostel' && !HAS_HOSTEL.has(t)) return false;
+    if (item.label === 'Placement' && !HAS_PLACEMENT.has(t)) return false;
+    if (item.label === 'Library' && !HAS_LIBRARY.has(t)) return false;
+
     void isSchool;
     return true;
   }
@@ -207,7 +217,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   return (
     <div className="shell">
-      {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -215,20 +224,12 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           className="mob-overlay"
         />
       )}
-
-      {/* Desktop sidebar */}
-      <aside className="sidebar">
-        <SidebarInner />
-      </aside>
-
-      {/* Mobile slide-in sidebar */}
+      <aside className="sidebar"><SidebarInner /></aside>
       <aside className="sidebar mob-sidebar" style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}>
         <SidebarInner />
       </aside>
-
       <div className="main-content">
         <header className="topbar">
-          {/* Hamburger button — only shown on mobile via CSS */}
           <button
             className="hamburger-btn"
             onClick={() => setSidebarOpen(v => !v)}
@@ -241,7 +242,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               <rect y="12" width="18" height="2" rx="1" fill={sidebarOpen ? '#4F46E5' : '#374151'} />
             </svg>
           </button>
-
           <div style={{ flex: 1 }}>
             <Breadcrumb />
             <div className="topbar-title">{title}</div>
@@ -254,7 +254,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         </header>
         <main className="page-content">{children}</main>
       </div>
-
       <style>{`
         @media (max-width: 768px) {
           .sidebar:not(.mob-sidebar) { display: none !important; }
