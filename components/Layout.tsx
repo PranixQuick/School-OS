@@ -24,15 +24,6 @@ const NAV: NavItem[] = [
   { href: '/admissions/call-analysis',   label: 'Call Analysis',        icon: '📞', roles: ['owner','admin'] },
   { href: '/report-cards',               label: 'Report Cards',         icon: '◷',  roles: ['owner','admin','principal','teacher'] },
   { href: '/admin/coaching-tests',        label: 'Tests & Ranks',          icon: '📊', roles: ['owner','admin','teacher'] },
-  { href: '/admin/students',              label: 'Students',               icon: '👨‍🎓', roles: ['owner','admin','principal'] },
-  { href: '/admin/staff',                 label: 'Staff',                  icon: '👤', roles: ['owner','admin','principal'] },
-  { href: '/admin/departments',           label: 'Departments',            icon: '🏛',  roles: ['owner','admin'] },
-  { href: '/admin/batches',               label: 'Batches',                icon: '📦', roles: ['owner','admin'] },
-  { href: '/admin/academic-years',        label: 'Academic Years',         icon: '📅', roles: ['owner','admin','principal'] },
-  { href: '/admin/library',               label: 'Library',                icon: '📚', roles: ['owner','admin','librarian'] },
-  { href: '/admin/hostel',                label: 'Hostel',                 icon: '🏠', roles: ['owner','admin','hostel_admin'] },
-  { href: '/admin/placement',             label: 'Placement',              icon: '🎓', roles: ['owner','admin','placement_officer'] },
-  { href: '/admin/vendors',               label: 'Vendors',                icon: '🚛', roles: ['owner','admin'] },
   { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕',  roles: ['owner','admin','principal'] },
   { href: '/automation',                 label: 'Automation',           icon: '⚡', roles: ['owner','admin'] },
   { href: '/automation/cron',            label: 'Automation Schedule',  icon: '🤖', roles: ['owner','admin'] },
@@ -60,6 +51,14 @@ const NAV: NavItem[] = [
   { href: '/admin/knowledge',             label: 'Knowledge Base',           icon: '📚', roles: ['owner','admin','principal'] },
   { href: '/admin/conversations',         label: 'Conversations',             icon: '💬', roles: ['owner','admin','principal'] },
   { href: '/admin/nl-ops',                label: 'NL Ops',                   icon: '🤖', roles: ['owner','admin','principal'] },
+  // Phase 2-3 operational modules
+  { href: '/admin/departments',           label: 'Departments',            icon: '🏛',  roles: ['owner','admin'] },
+  { href: '/admin/batches',               label: 'Batches',                icon: '📦', roles: ['owner','admin'] },
+  { href: '/admin/academic-years',        label: 'Academic Years',         icon: '📅', roles: ['owner','admin','principal'] },
+  { href: '/admin/library',               label: 'Library',                icon: '📚', roles: ['owner','admin','librarian'] },
+  { href: '/admin/hostel',                label: 'Hostel',                 icon: '🏠', roles: ['owner','admin','hostel_admin'] },
+  { href: '/admin/placement',             label: 'Placement',              icon: '🎯', roles: ['owner','admin','placement_officer'] },
+  { href: '/admin/vendors',               label: 'Vendors',                icon: '🚛', roles: ['owner','admin'] },
 ];
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
