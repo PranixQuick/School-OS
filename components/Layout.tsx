@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
+import Breadcrumb from '@/components/Breadcrumb';
 
 interface NavItem {
   href: string;
@@ -242,6 +243,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </button>
 
           <div style={{ flex: 1 }}>
+            <Breadcrumb />
             <div className="topbar-title">{title}</div>
             {subtitle && <div className="topbar-sub">{subtitle}</div>}
           </div>
