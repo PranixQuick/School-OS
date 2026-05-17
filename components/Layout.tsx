@@ -51,6 +51,14 @@ const NAV: NavItem[] = [
   { href: '/admin/knowledge',             label: 'Knowledge Base',           icon: '📚', roles: ['owner','admin','principal'] },
   { href: '/admin/conversations',         label: 'Conversations',             icon: '💬', roles: ['owner','admin','principal'] },
   { href: '/admin/nl-ops',                label: 'NL Ops',                   icon: '🤖', roles: ['owner','admin','principal'] },
+  // Phase 4 — Operational workflow pages
+  { href: '/admin/departments',              label: 'Departments',               icon: '🏛',  roles: ['owner','admin','principal'] },
+  { href: '/admin/batches',                  label: 'Batches',                   icon: '📦',  roles: ['owner','admin'] },
+  { href: '/admin/academic-years',           label: 'Academic Years',            icon: '📆',  roles: ['owner','admin','principal'] },
+  { href: '/admin/library',                  label: 'Library',                   icon: '📚',  roles: ['owner','admin','principal'] },
+  { href: '/admin/hostel',                   label: 'Hostel',                    icon: '🏠',  roles: ['owner','admin','principal'] },
+  { href: '/admin/placement',                label: 'Placement',                 icon: '🎯',  roles: ['owner','admin','principal'] },
+  { href: '/admin/vendors',                  label: 'Vendors',                   icon: '🤝',  roles: ['owner','admin'] },
 ];
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
