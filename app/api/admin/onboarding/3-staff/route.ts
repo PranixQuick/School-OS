@@ -2,8 +2,9 @@
 // Onboarding Step 3: Staff bulk import
 // Fixes:
 //   - W-2: institution_id now set on staff rows
-//   - Automation wiring: dispatches welcome notification for staff with email
-// Returns login credentials for distribution.
+//   - Automation B6: dispatches welcome notification (non-blocking fire-and-forget)
+//   - Build fix: use void async IIFE instead of .then().catch() — Supabase QueryBuilder
+//     returns PromiseLike, not a native Promise, so .catch() does not exist on the type
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const staffList = (body.staff as { name: string; role: string; email?: string; phone?: string }[]) ?? [];
   if (!staffList.length) return NextResponse.json({ error: 'staff array required' }, { status: 400 });
 
-  // Resolve institution_id for this school (W-2 fix)
+  // Resolve institution_id for this school (W-2 fix: was null before)
   const { data: schoolRow } = await supabaseAdmin
     .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
   const institutionId = schoolRow?.institution_id ?? null;
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       .from('staff')
       .insert({
         school_id: schoolId,
-        institution_id: institutionId,   // W-2 fix: was null before
+        institution_id: institutionId,
         name: s.name.trim(),
         role,
         phone: s.phone?.trim() ?? null,
@@ -81,23 +82,29 @@ export async function POST(req: NextRequest) {
       } else {
         createdUsers.push({ name: s.name.trim(), email, role, password: initialPassword });
 
-        // Automation B6: queue welcome notification for staff with email
-        await supabaseAdmin.from('notifications').insert({
-          school_id: schoolId,
-          type: 'staff_welcome',
-          title: 'Welcome to EdProSys',
-          message: `Hello ${s.name.trim()}, your ${role} account has been created. Login at edprosys.com with email: ${email} and password: ${initialPassword}. Use the email link option to set up secure access.`,
-          module: 'onboarding',
-          status: 'pending',
-          channel: 'whatsapp',
-          template_vars: {
-            name: s.name.trim(),
-            role,
-            email,
-            password: initialPassword,
-            login_url: 'https://www.edprosys.com/login',
-          },
-        }).then(() => {}).catch(() => {}); // non-blocking, best-effort
+        // Automation B6: fire-and-forget welcome notification
+        // Using void async IIFE — supabaseAdmin.from().insert() returns PromiseLike
+        // (not a native Promise), so .catch() is not available on the type.
+        void (async () => {
+          try {
+            await supabaseAdmin.from('notifications').insert({
+              school_id: schoolId,
+              type: 'staff_welcome',
+              title: 'Welcome to EdProSys',
+              message: `Hello ${s.name.trim()}, your ${role} account has been created. Login at edprosys.com with email: ${email} and password: ${initialPassword}. Use the email link option to set up secure access.`,
+              module: 'onboarding',
+              status: 'pending',
+              channel: 'whatsapp',
+              template_vars: {
+                name: s.name.trim(),
+                role,
+                email,
+                password: initialPassword,
+                login_url: 'https://www.edprosys.com/login',
+              },
+            });
+          } catch { /* non-blocking — notification failure must not fail staff creation */ }
+        })();
       }
     }
     created++;
