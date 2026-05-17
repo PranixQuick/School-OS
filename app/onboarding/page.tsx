@@ -103,6 +103,7 @@ export default function OnboardingWizard() {
   // Step 3: Staff
   const [staffList, setStaffList] = useState<StaffRow[]>([{ name: '', role: 'teacher', email: '', phone: '' }]);
   const [staffCsvText, setStaffCsvText] = useState('');
+  const [staffCredentials, setStaffCredentials] = useState<{name:string;email:string;role:string;password:string}[]>([]);
   const staffFileRef = useRef<HTMLInputElement>(null);
 
   // Step 4: Fees
@@ -169,6 +170,9 @@ export default function OnboardingWizard() {
       } else if (step === 3) {
         const staff = staffCsvText.trim() ? parseCSV(staffCsvText).map(r => ({ name: r.name??'', role: r.role??'teacher', email: r.email??'', phone: r.phone??'' })) : staffList.filter(s => s.name.trim());
         result = await post('/api/admin/onboarding/3-staff', { staff });
+        if (result.ok && result.data?.credentials?.length) {
+          setStaffCredentials(result.data.credentials);
+        }
       } else if (step === 4) {
         const fees = feeDefaults.filter(f => f.fee_type && f.amount && f.due_date).map(f => ({ fee_type: f.fee_type, amount: parseFloat(f.amount), due_date: f.due_date, ...(f.class ? { class: f.class } : {}) }));
         result = await post('/api/admin/onboarding/4-fee-defaults', { fee_defaults: fees });
@@ -368,6 +372,25 @@ export default function OnboardingWizard() {
           ))}
           <button onClick={()=>setStaffList(l=>[...l,{name:'',role:'teacher',email:'',phone:''}])} style={{ ...btnSecondary, fontSize:12 }}>+ Add Staff</button>
         </>)}
+        {staffCredentials.length > 0 && (
+          <div style={{ marginTop:16, background:'#F0FDF4', border:'1px solid #86EFAC', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'#166534', marginBottom:10, textTransform:'uppercase' }}>📋 Staff Login Credentials — Share with each person</div>
+            <table style={{ width:'100%', fontSize:12, borderCollapse:'collapse' }}>
+              <thead><tr style={{ color:'#6B7280' }}><th style={{ textAlign:'left', paddingBottom:6 }}>Name</th><th style={{ textAlign:'left' }}>Role</th><th style={{ textAlign:'left' }}>Email</th><th style={{ textAlign:'left' }}>Initial Password</th></tr></thead>
+              <tbody>
+                {staffCredentials.map((c,i) => (
+                  <tr key={i} style={{ borderTop:'1px solid #D1FAE5' }}>
+                    <td style={{ padding:'4px 0' }}>{c.name}</td>
+                    <td style={{ padding:'4px 8px' }}>{c.role}</td>
+                    <td style={{ padding:'4px 8px', fontFamily:'monospace' }}>{c.email}</td>
+                    <td style={{ padding:'4px 8px', fontFamily:'monospace', background:'#ECFDF5', borderRadius:4 }}>{c.password}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize:11, color:'#166534', marginTop:10 }}>Each staff member can log in with their email + the password above. They should use "Sign in with email link" on their first login to secure their account.</div>
+          </div>
+        )}
       </div>
     );
 
