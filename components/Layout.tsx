@@ -59,7 +59,9 @@ const NAV: NavItem[] = [
   { href: '/admin/hostel',                label: 'Hostel',                 icon: '🏠', roles: ['owner','admin','hostel_admin'] },
   { href: '/admin/placement',             label: 'Placement',              icon: '🎯', roles: ['owner','admin','placement_officer'] },
   { href: '/admin/vendors',               label: 'Vendors',                icon: '🚛', roles: ['owner','admin'] },
+  { href: '/admin/programmes',              label: 'Programmes',              icon: '🎓',  roles: ['owner','admin','principal'] },
 ];
+
 
 interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
 interface SessionData { schoolName: string; userEmail: string; userName: string; plan: string; userRole: string; }
