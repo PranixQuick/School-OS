@@ -3,15 +3,25 @@
 import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// F7: DemoPreFill reads ?demo=1 — must be in its own component for Suspense
-function DemoPreFill({ setEmail, setPassword }: { setEmail: (v: string) => void; setPassword: (v: string) => void }) {
+function QueryReader({
+  setEmail,
+  setPassword,
+  setShowMagicLink,
+}: {
+  setEmail: (v: string) => void;
+  setPassword: (v: string) => void;
+  setShowMagicLink: (v: boolean) => void;
+}) {
   const searchParams = useSearchParams();
   useEffect(() => {
-    if (searchParams.get('demo') === '1') {
-      setEmail('admin@suchitracademy.edu.in');
-      setPassword('edprosys0000');
+    // ?magic=1 in URL → skip password form entirely and show magic-link panel
+    if (searchParams.get('magic') === '1') {
+      setShowMagicLink(true);
     }
-  }, [searchParams, setEmail, setPassword]);
+    // Pre-fill email from ?email= query param (e.g. from onboarding "login" redirect)
+    const emailParam = searchParams.get('email');
+    if (emailParam) setEmail(decodeURIComponent(emailParam));
+  }, [searchParams, setEmail, setPassword, setShowMagicLink]);
   return null;
 }
 
@@ -22,37 +32,42 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Triggered when /api/auth/login returns code === 'USE_MAGIC_LINK'.
-  // Disables the password form and reveals the magic-link CTA for this email.
-  const [needsMagicLink, setNeedsMagicLink] = useState(false);
+  // Magic-link panel — shown either when USE_MAGIC_LINK error fires,
+  // or when user clicks "Sign in without password" upfront
+  const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkError, setMagicLinkError] = useState('');
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    if (needsMagicLink) return;
+    if (showMagicLink) return;
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json() as { error?: string; code?: string; school?: string; redirectTo?: string };
-
+      const data = await res.json() as {
+        error?: string;
+        code?: string;
+        redirectTo?: string;
+        magicLinkSent?: boolean;
+      };
       if (!res.ok) {
         if (data.code === 'USE_MAGIC_LINK') {
-          setNeedsMagicLink(true);
-          setError('Your account has been upgraded. Click below to receive a magic link to sign in.');
+          // Password disabled — show magic-link panel with a clear non-alarming message
+          setShowMagicLink(true);
+          setError('');
         } else {
-          setError(data.error ?? 'Login failed');
+          setError(data.error ?? 'Login failed. Check your email and password.');
         }
         return;
       }
-
+      // Login succeeded. If a magic link was also sent, show a subtle non-alarming notice.
+      // Do not block navigation for it.
       router.push(data.redirectTo ?? '/dashboard');
     } catch {
       setError('Network error. Please try again.');
@@ -62,6 +77,10 @@ export default function LoginPage() {
   }
 
   async function handleMagicLink() {
+    if (!email.trim()) {
+      setMagicLinkError('Please enter your email address above first.');
+      return;
+    }
     setMagicLinkLoading(true);
     setMagicLinkError('');
     try {
@@ -83,18 +102,25 @@ export default function LoginPage() {
     }
   }
 
-  const inputsDisabled = needsMagicLink || loading;
+  const inputsDisabled = loading;
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#F9FAFB',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh',
+      background: '#F9FAFB',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       padding: '24px',
     }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         <Suspense fallback={null}>
-          <DemoPreFill setEmail={setEmail} setPassword={setPassword} />
+          <QueryReader
+            setEmail={setEmail}
+            setPassword={setPassword}
+            setShowMagicLink={setShowMagicLink}
+          />
         </Suspense>
 
         {/* Logo */}
@@ -103,157 +129,241 @@ export default function LoginPage() {
             width: 52, height: 52, borderRadius: 14, background: '#4F46E5',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 14px', fontSize: 24, fontWeight: 800, color: '#fff',
-          }}>S</div>
+          }}>E</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
             EdProSys
           </div>
           <div style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
-            AI-first school management platform
+            School management platform
           </div>
         </div>
 
         {/* Card */}
         <div style={{
-          background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB',
-          padding: '32px 28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          background: '#fff',
+          borderRadius: 16,
+          border: '1px solid #E5E7EB',
+          padding: '32px 28px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
         }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
-            Sign in to your school
-          </div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24 }}>
-            Sign in with your school credentials
-          </div>
 
-          {error && (
-            <div style={{
-              background: needsMagicLink ? '#EFF6FF' : '#FEF2F2',
-              border: `1px solid ${needsMagicLink ? '#BFDBFE' : '#FECACA'}`,
-              borderRadius: 8, padding: '10px 14px', fontSize: 13,
-              color: needsMagicLink ? '#1E3A8A' : '#991B1B', marginBottom: 18,
-            }}>
-              {error}
-            </div>
-          )}
+          {!showMagicLink ? (
+            <>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+                Sign in to your school
+              </div>
+              <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24 }}>
+                Enter your email and password
+              </div>
 
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                EMAIL ADDRESS
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                disabled={inputsDisabled}
-                style={{
-                  width: '100%', height: 42, borderRadius: 9, border: '1px solid #D1D5DB',
-                  background: inputsDisabled ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 14px',
-                  outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
-                  cursor: inputsDisabled ? 'not-allowed' : 'text',
-                }}
-                placeholder="admin@yourschool.edu.in"
-              />
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                disabled={inputsDisabled}
-                style={{
-                  width: '100%', height: 42, borderRadius: 9, border: '1px solid #D1D5DB',
-                  background: inputsDisabled ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 14px',
-                  outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
-                  cursor: inputsDisabled ? 'not-allowed' : 'text',
-                }}
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={inputsDisabled}
-              style={{
-                width: '100%', height: 44, borderRadius: 10, border: 'none',
-                background: inputsDisabled ? '#9CA3AF' : (loading ? '#818CF8' : '#4F46E5'),
-                color: '#fff', fontSize: 15, fontWeight: 600,
-                cursor: inputsDisabled ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: 8, boxSizing: 'border-box',
-              }}
-            >
-              {loading ? (
-                <>
-                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                  <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                  Signing in...
-                </>
-              ) : 'Sign In'}
-            </button>
-          </form>
-
-          {needsMagicLink && (
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #E5E7EB' }}>
-              {magicLinkSent ? (
+              {error && (
                 <div style={{
-                  background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8,
-                  padding: '12px 14px', fontSize: 13, color: '#166534',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: 8,
+                  padding: '10px 14px',
+                  fontSize: 13,
+                  color: '#991B1B',
+                  marginBottom: 18,
                 }}>
-                  Check your email — we sent you a link to sign in.
+                  {error}
                 </div>
-              ) : (
+              )}
+
+              <form onSubmit={handleLogin}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{
+                    display: 'block', fontSize: 12, fontWeight: 600,
+                    color: '#374151', marginBottom: 6,
+                  }}>EMAIL ADDRESS</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    disabled={inputsDisabled}
+                    style={{
+                      width: '100%', height: 42, borderRadius: 9,
+                      border: '1px solid #D1D5DB',
+                      background: inputsDisabled ? '#F3F4F6' : '#F9FAFB',
+                      fontSize: 14, padding: '0 14px', outline: 'none',
+                      fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                    }}
+                    placeholder="admin@yourschool.edu.in"
+                  />
+                </div>
+
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{
+                    display: 'block', fontSize: 12, fontWeight: 600,
+                    color: '#374151', marginBottom: 6,
+                  }}>PASSWORD</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    disabled={inputsDisabled}
+                    style={{
+                      width: '100%', height: 42, borderRadius: 9,
+                      border: '1px solid #D1D5DB',
+                      background: inputsDisabled ? '#F3F4F6' : '#F9FAFB',
+                      fontSize: 14, padding: '0 14px', outline: 'none',
+                      fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                    }}
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                {/* Forgot password / magic link — always visible */}
+                <div style={{ textAlign: 'right', marginBottom: 24 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowMagicLink(true)}
+                    style={{
+                      background: 'none', border: 'none',
+                      color: '#4F46E5', fontSize: 13, cursor: 'pointer',
+                      fontFamily: 'inherit', padding: 0,
+                    }}
+                  >
+                    Forgot password? Sign in with email link
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={inputsDisabled}
+                  style={{
+                    width: '100%', height: 44, borderRadius: 10, border: 'none',
+                    background: loading ? '#818CF8' : '#4F46E5',
+                    color: '#fff', fontSize: 15, fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 8, boxSizing: 'border-box',
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                      <div style={{
+                        width: 16, height: 16,
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTop: '2px solid #fff',
+                        borderRadius: '50%',
+                        animation: 'spin 0.7s linear infinite',
+                      }} />
+                      Signing in...
+                    </>
+                  ) : 'Sign In'}
+                </button>
+              </form>
+            </>
+          ) : (
+            /* Magic-link panel */
+            <>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+                Sign in with email link
+              </div>
+              <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24, lineHeight: 1.6 }}>
+                Enter your email and we&apos;ll send you a secure one-click sign-in link.
+                No password needed.
+              </div>
+
+              {!magicLinkSent ? (
                 <>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{
+                      display: 'block', fontSize: 12, fontWeight: 600,
+                      color: '#374151', marginBottom: 6,
+                    }}>EMAIL ADDRESS</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      style={{
+                        width: '100%', height: 42, borderRadius: 9,
+                        border: '1px solid #D1D5DB', background: '#F9FAFB',
+                        fontSize: 14, padding: '0 14px', outline: 'none',
+                        fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
+                      }}
+                      placeholder="admin@yourschool.edu.in"
+                    />
+                  </div>
+
                   {magicLinkError && (
                     <div style={{
-                      background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
-                      padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 12,
+                      background: '#FEF2F2', border: '1px solid #FECACA',
+                      borderRadius: 8, padding: '10px 14px',
+                      fontSize: 13, color: '#991B1B', marginBottom: 16,
                     }}>
                       {magicLinkError}
                     </div>
                   )}
+
                   <button
                     type="button"
                     onClick={handleMagicLink}
-                    disabled={magicLinkLoading || !email}
+                    disabled={magicLinkLoading}
                     style={{
                       width: '100%', height: 44, borderRadius: 10, border: 'none',
-                      background: magicLinkLoading ? '#818CF8' : '#4F46E5', color: '#fff',
-                      fontSize: 15, fontWeight: 600,
+                      background: magicLinkLoading ? '#818CF8' : '#4F46E5',
+                      color: '#fff', fontSize: 15, fontWeight: 600,
                       cursor: magicLinkLoading ? 'not-allowed' : 'pointer',
-                      fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: 8, boxSizing: 'border-box',
+                      fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      gap: 8, boxSizing: 'border-box', marginBottom: 14,
                     }}
                   >
                     {magicLinkLoading ? (
                       <>
                         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                        <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                        Sending...
+                        <div style={{
+                          width: 16, height: 16,
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTop: '2px solid #fff',
+                          borderRadius: '50%',
+                          animation: 'spin 0.7s linear infinite',
+                        }} />
+                        Sending link...
                       </>
-                    ) : 'Send me a magic link'}
+                    ) : 'Send sign-in link'}
                   </button>
-                  <div style={{ textAlign: 'center', fontSize: 12, color: '#6B7280', marginTop: 10 }}>
-                    Refresh the page to go back to password sign-in.
-                  </div>
-                </>
-              )}
-            </div>
-          )}
 
-          <div style={{ marginTop: 24, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, fontSize: 12, color: '#6B7280' }}>
-            <strong style={{ color: '#374151' }}>Demo credentials:</strong><br />
-            Email: your-email@school.edu.in<br />
-            Password: edprosys&lt;first-4-of-school-id&gt;
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowMagicLink(false); setMagicLinkError(''); }}
+                    style={{
+                      width: '100%', background: 'none', border: 'none',
+                      color: '#6B7280', fontSize: 13, cursor: 'pointer',
+                      fontFamily: 'inherit', padding: '6px 0',
+                    }}
+                  >
+                    ← Back to password sign-in
+                  </button>
+                </>
+              ) : (
+                <div style={{
+                  background: '#F0FDF4', border: '1px solid #BBF7D0',
+                  borderRadius: 10, padding: '20px 16px', textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📧</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
+                    Check your inbox
+                  </div>
+                  <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+                    We sent a sign-in link to <strong>{email}</strong>.
+                    Click the link in that email to sign in — it expires in 1 hour.
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginTop: 12 }}>
+                    Don&apos;t see it? Check your spam folder.
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Register link */}
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#6B7280' }}>
           New school?{' '}
           <a href="/register" style={{ color: '#4F46E5', fontWeight: 600, textDecoration: 'none' }}>
