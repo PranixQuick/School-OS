@@ -63,17 +63,30 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login test: login as Suchitra admin first to anchor page to production,
-  // then make parent login call via the same page.request (same context, proven origin).
+  // Parent login cross-tenant isolation test.
+  // The security property: parents.phone has a UNIQUE constraint on (school_id, phone),
+  // so the same phone number in two schools returns only the correct school's parent.
+  // We verify this by logging in and calling the public parent login endpoint.
   test('Suchitra parent login resolves to Suchitra school only', async ({ page }) => {
-    // Anchor page to production by logging in (proven to reach production in every CI run)
     await loginWith(page, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
-    // Now page is at https://www.edprosys.com/dashboard — page.request origin is confirmed
+
+    // Intercept the parent login request to capture the full URL being used
+    let capturedUrl = '';
+    await page.route('**/api/parent/login', async (route) => {
+      capturedUrl = route.request().url();
+      await route.continue();
+    });
+
     const res = await page.request.post('/api/parent/login', {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
     });
-    expect(res.status()).toBe(200);
-    const body = await res.json() as { parent?: { school_id?: string } };
+
+    const statusCode = res.status();
+    const bodyText = await res.text();
+    console.log(`[parent-login-diag] URL: ${capturedUrl} | status: ${statusCode} | body: ${bodyText}`);
+
+    expect(statusCode).toBe(200);
+    const body = JSON.parse(bodyText) as { parent?: { school_id?: string } };
     expect(body.parent?.school_id).toBe(SUCHITRA_SCHOOL_ID);
     expect(body.parent?.school_id).not.toBe(DPS_SCHOOL_ID);
   });
