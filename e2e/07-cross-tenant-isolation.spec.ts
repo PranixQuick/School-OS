@@ -1,16 +1,5 @@
 // e2e/07-cross-tenant-isolation.spec.ts
-// Cross-tenant data isolation test.
-//
-// Architecture note: browser.newContext() does not inherit playwright.config.ts baseURL
-// even when baseURL is passed — the session cookie domain binding and request routing
-// behaves differently from the built-in {page} fixture. We use the standard loginAsAdmin
-// helper which uses the {page} fixture and is proven to reach production in CI.
-//
-// For DPS admin (a different school), we log in using the same {page} fixture but
-// navigate to /login again between tests — Playwright isolates state per test already.
-
 import { test, expect } from '@playwright/test';
-import { BASE_URL } from './helpers/auth';
 
 const SUCHITRA_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in';
 const SUCHITRA_ADMIN_PASS  = process.env.TEST_ADMIN_PASSWORD || 'edprosys0000';
@@ -24,7 +13,6 @@ const DPS_SCHOOL_ID   = '73048703-f8aa-4668-981d-2cdf619767b3';
 const SUCHITRA_PARENT_PHONE = '+919100000101';
 const SUCHITRA_PARENT_PIN   = process.env.TEST_PARENT_PIN || '1234';
 
-// Log in using the standard page-based flow that is proven to work in CI
 async function loginWith(page: import('@playwright/test').Page, email: string, password: string) {
   await page.goto('/login');
   await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
@@ -45,9 +33,6 @@ async function loginWith(page: import('@playwright/test').Page, email: string, p
 }
 
 test.describe('Cross-tenant data isolation', () => {
-
-  // Each test gets its own fresh {page} fixture — Playwright isolates state per test.
-  // We log in within each test so the session is scoped to that test's school.
 
   test('Suchitra admin can list own students', async ({ page }) => {
     await loginWith(page, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
@@ -78,9 +63,12 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login is a public endpoint. Use the bare request fixture with full absolute URL.
+  // Parent login is public — no session needed.
+  // Use relative URL so the {request} fixture resolves against playwright.config.ts baseURL.
+  // Do NOT use a local BASE_URL const — it evaluates at module load to empty string in CI
+  // when the secret is unset, making the URL '/api/parent/login' with no host.
   test('Suchitra parent login resolves to Suchitra school only', async ({ request }) => {
-    const res = await request.post(`${BASE_URL}/api/parent/login`, {
+    const res = await request.post('/api/parent/login', {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
     });
     expect(res.status()).toBe(200);
