@@ -1,4 +1,4 @@
-// k6/cron_load.js — Phase I7: Load test for cron/run-school endpoint
+// k6/cron_load.js — Load test for cron/run-school endpoint
 // Simulates 50-school daily cron fan-out.
 // Run: k6 run k6/cron_load.js
 // CI: .github/workflows/load-test.yml (Monday 2am UTC weekly)
@@ -19,7 +19,7 @@ export const options = {
   },
 };
 
-const BASE = __ENV.BASE_URL || 'https://school-os-rh47.vercel.app';
+const BASE = __ENV.BASE_URL || 'https://www.edprosys.com';
 const SECRET = __ENV.CRON_SECRET;
 
 export default function () {
