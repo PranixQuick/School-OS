@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireTeacherSession(req);
 
-    const [leaveRes, staffRes] = await Promise.allSettled([
+    const [leaveRes, staffRes, schoolRes] = await Promise.allSettled([
       supabaseAdmin
         .from('teacher_leave_requests')
         .select('id,status')
@@ -14,22 +14,22 @@ export async function GET(req: NextRequest) {
         .eq('staff_id', session.staffId),
       supabaseAdmin
         .from('staff')
-        .select('name,school_id')
+        .select('name')
         .eq('id', session.staffId)
+        .single(),
+      supabaseAdmin
+        .from('schools')
+        .select('name')
+        .eq('id', session.schoolId)
         .single(),
     ]);
 
     const leaves = leaveRes.status === 'fulfilled' ? (leaveRes.value.data ?? []) : [];
     const staff = staffRes.status === 'fulfilled' ? staffRes.value.data : null;
-
-    const { data: school } = await supabaseAdmin
-      .from('schools')
-      .select('name')
-      .eq('id', session.schoolId)
-      .single();
+    const school = schoolRes.status === 'fulfilled' ? schoolRes.value.data : null;
 
     return NextResponse.json({
-      name: staff?.name ?? session.userEmail,
+      name: staff?.name ?? '',
       school_name: school?.name ?? '',
       today_day: new Date().toLocaleDateString('en-IN', { weekday: 'long' }),
       schedule: [],
