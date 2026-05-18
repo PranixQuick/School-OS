@@ -81,6 +81,6 @@ jobs:
             Android APK — internal distribution build.
             **Install:** Download APK → enable "Install from unknown sources" → install.
             **Requires:** Android 7.0+ (API 24+)
-            **Loads:** https://school-os-rh47.vercel.app
+            **Loads:** www.edprosys.com
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
