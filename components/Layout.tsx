@@ -1,287 +1,303 @@
 'use client';
-
-import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
-import { useState, useEffect } from 'react';
-import Breadcrumb from '@/components/Breadcrumb';
+import { usePathname } from 'next/navigation';
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: string;
-  exact?: boolean;
-  roles?: string[];
-}
+// Role-based navigation — ONLY routes that have actual pages
+const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href: string; icon: string }[] }[]> = {
+  admin: [
+    { group: 'Overview', items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+      { label: 'Admissions', href: '/admissions', icon: '🚀' },
+    ]},
+    { group: 'School', items: [
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+      { label: 'Timetable', href: '/admin/timetable', icon: '🗓' },
+    ]},
+    { group: 'Finance', items: [
+      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+    ]},
+    { group: 'Communication', items: [
+      { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
+      { label: 'WhatsApp Bot', href: '/whatsapp', icon: '💬' },
+      { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
+    ]},
+    { group: 'AI Tools', items: [
+      { label: 'Report Cards', href: '/report-cards', icon: '📄' },
+      { label: 'Teacher Eval', href: '/teacher-eval', icon: '🎙' },
+      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    ]},
+    { group: 'Records', items: [
+      { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
+    ]},
+    { group: 'Account', items: [
+      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  admin_staff: [
+    { group: 'Overview', items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    ]},
+    { group: 'School', items: [
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    ]},
+    { group: 'Finance', items: [
+      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+    ]},
+    { group: 'Communication', items: [
+      { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
+      { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
+    ]},
+    { group: 'Records', items: [
+      { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
+    ]},
+    { group: 'Account', items: [
+      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  accountant: [
+    { group: 'Finance', items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+    ]},
+    { group: 'Account', items: [
+      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  principal: [
+    { group: 'Overview', items: [
+      { label: 'Dashboard', href: '/principal', icon: '🏠' },
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    ]},
+    { group: 'AI Tools', items: [
+      { label: 'Teacher Eval', href: '/teacher-eval', icon: '🎙' },
+      { label: 'Report Cards', href: '/report-cards', icon: '📄' },
+      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    ]},
+    { group: 'Account', items: [
+      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  owner: [
+    { group: 'Overview', items: [
+      { label: 'Dashboard', href: '/owner', icon: '🏠' },
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    ]},
+    { group: 'Finance', items: [
+      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+    ]},
+    { group: 'AI Tools', items: [
+      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    ]},
+    { group: 'Account', items: [
+      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  teacher: [
+    { group: 'My Day', items: [
+      { label: 'Dashboard', href: '/teacher', icon: '🏠' },
+      { label: 'Attendance', href: '/teacher/checkin', icon: '✅' },
+    ]},
+    { group: 'Classes', items: [
+      { label: 'Homework', href: '/teacher/homework', icon: '📚' },
+      { label: 'Marks', href: '/teacher/marks', icon: '📝' },
+      { label: 'Lesson Plans', href: '/teacher/lesson-plans', icon: '📖' },
+    ]},
+    { group: 'HR', items: [
+      { label: 'Leave', href: '/teacher/leave', icon: '🏖' },
+    ]},
+  ],
+};
 
-const NAV: NavItem[] = [
-  { href: '/accounts',                 label: 'Accounts',              icon: '💰', roles: ['owner','admin','accountant'] },
-  { href: '/dashboard',                  label: 'Dashboard',            icon: '◈', exact: true },
-  { href: '/principal',                  label: 'Principal View',       icon: '📊', roles: ['owner','admin'] },
-  { href: '/students',                   label: 'Students',             icon: '👨‍🎓', roles: ['owner','admin','principal','teacher'] },
-  { href: '/admissions',                 label: 'New Inquiry',          icon: '✦',  roles: ['owner','admin'] },
-  { href: '/admissions/crm',             label: 'Leads CRM',            icon: '◎',  roles: ['owner','admin'] },
-  { href: '/admissions/call-analysis',   label: 'Call Analysis',        icon: '📞', roles: ['owner','admin'] },
-  { href: '/report-cards',               label: 'Report Cards',         icon: '◷',  roles: ['owner','admin','principal','teacher'] },
-  { href: '/admin/coaching-tests',        label: 'Tests & Ranks',          icon: '📊', roles: ['owner','admin','teacher'] },
-  { href: '/teacher-eval',               label: 'Teacher Eval',         icon: '⊕',  roles: ['owner','admin','principal'] },
-  { href: '/automation',                 label: 'Automation',           icon: '⚡', roles: ['owner','admin'] },
-  { href: '/automation/cron',            label: 'Automation Schedule',  icon: '🤖', roles: ['owner','admin'] },
-  { href: '/analytics',                  label: 'Analytics',            icon: '◉',  roles: ['owner','admin','principal'] },
-  { href: '/connectors',                 label: 'Data Connectors',      icon: '🔗', roles: ['owner','admin'] },
-  { href: '/whatsapp',                   label: 'WhatsApp Bot',         icon: '💬', roles: ['owner','admin'] },
-  { href: '/import',                     label: 'CSV Import',           icon: '↑',  roles: ['owner','admin'] },
-  { href: '/billing',                    label: 'Billing',              icon: '💳', roles: ['owner'] },
-  { href: '/settings',                   label: 'Settings',             icon: '⚙',  roles: ['owner','admin'] },
-  { href: '/admin/observability',         label: 'Observability',         icon: '📡', roles: ['owner','admin'] },
-  { href: '/admin/report-cards',          label: 'Report Cards',          icon: '📋', roles: ['owner','admin'] },
-  { href: '/admin/ptm',                   label: 'PTM Scheduling',         icon: '🤝', roles: ['owner','admin','principal'] },
-  { href: '/admin/parents',            label: 'Parent Accounts',        icon: '👨‍👩‍👧', roles: ['owner','admin'] },
-  { href: '/admin/complaints',         label: 'Parent Complaints',      icon: '📣', roles: ['owner','admin','principal'] },
-  { href: '/admin/ops',               label: 'Ops Console',            icon: '📡', roles: ['owner','admin'] },
-  { href: '/admin/meals',              label: 'Meal Attendance',         icon: '🍽', roles: ['owner','admin','teacher'] },
-  { href: '/admin/scholarships',        label: 'Scholarships',            icon: '🎓', roles: ['owner','admin'] },
-  { href: '/admin/rte',                   label: 'RTE Admissions',          icon: '🏫', roles: ['owner','admin'] },
-  { href: '/owner',                       label: 'Owner Dashboard',          icon: '🏢', roles: ['owner'] },
-  { href: '/admin/health-incidents',      label: 'Health Incidents',         icon: '🩺', roles: ['owner','admin','principal'] },
-  { href: '/admin/sanitary',              label: 'Sanitary Inventory',        icon: '📦', roles: ['owner','admin'] },
-  { href: '/admin/transport',             label: 'Transport',                 icon: '🚌', roles: ['owner','admin','principal'] },
-  { href: '/admin/timetable',             label: 'Timetable',                 icon: '🗓', roles: ['owner','admin'] },
-  { href: '/admin/regulatory',            label: 'Regulatory',               icon: '📋', roles: ['owner','admin','principal'] },
-  { href: '/admin/knowledge',             label: 'Knowledge Base',           icon: '📚', roles: ['owner','admin','principal'] },
-  { href: '/admin/conversations',         label: 'Conversations',             icon: '💬', roles: ['owner','admin','principal'] },
-  { href: '/admin/nl-ops',                label: 'NL Ops',                   icon: '🤖', roles: ['owner','admin','principal'] },
-  // Phase 2-3 operational modules
-  { href: '/admin/departments',           label: 'Departments',            icon: '🏛',  roles: ['owner','admin'] },
-  { href: '/admin/batches',               label: 'Batches',                icon: '📦', roles: ['owner','admin'] },
-  { href: '/admin/academic-years',        label: 'Academic Years',         icon: '📅', roles: ['owner','admin','principal'] },
-  { href: '/admin/library',               label: 'Library',                icon: '📚', roles: ['owner','admin','librarian'] },
-  { href: '/admin/hostel',                label: 'Hostel',                 icon: '🏠', roles: ['owner','admin','hostel_admin'] },
-  { href: '/admin/placement',             label: 'Placement',              icon: '🎯', roles: ['owner','admin','placement_officer'] },
-  { href: '/admin/vendors',               label: 'Vendors',                icon: '🚛', roles: ['owner','admin'] },
-  { href: '/admin/programmes',              label: 'Programmes',              icon: '🎓',  roles: ['owner','admin','principal'] },
+// Fallback nav for unknown roles
+const DEFAULT_NAV = [
+  { group: 'Main', items: [
+    { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    { label: 'Settings', href: '/settings', icon: '⚙️' },
+  ]},
 ];
 
-
-interface LayoutProps { children: ReactNode; title: string; subtitle?: string; actions?: ReactNode; }
-interface SessionData { schoolName: string; userEmail: string; userName: string; plan: string; userRole: string; }
-
-const PLAN_COLOR: Record<string, string> = {
-  starter: '#6B7280', free: '#6B7280',
-  growth: '#4F46E5',  pro: '#4F46E5',
-  campus: '#065F46',  enterprise: '#065F46',
-};
+interface LayoutProps {
+  children: React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+}
 
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [session, setSession] = useState<SessionData | null>(null);
+  const [role, setRole] = useState<string>('admin');
+  const [userName, setUserName] = useState('');
+  const [schoolName, setSchoolName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [waOk, setWaOk] = useState<boolean | null>(null);
-  const [institutionType, setInstitutionType] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/auth/session').then(r => r.json()).then(d => { if (d.session) setSession(d.session); }).catch(() => {});
-    fetch('/api/admin/institution-config').then(r => r.json()).then(d => { if (d.institution_type) setInstitutionType(d.institution_type); }).catch(() => {});
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d) {
+        setRole(d.role ?? 'admin');
+        setUserName(d.name ?? d.email ?? '');
+        setSchoolName(d.school_name ?? '');
+      }
+    }).catch(() => {});
   }, []);
 
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        setSidebarOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [sidebarOpen]);
+
+  // Close sidebar on route change (mobile)
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  // C6: WhatsApp health badge — fetch dispatcher status on mount
-  useEffect(() => {
-    fetch('/api/notifications/health')
-      .then(r => r.json())
-      .then((d: { dispatcher_mode?: string }) => {
-        const mode = d?.dispatcher_mode;
-        setWaOk(!!mode && mode !== 'unknown' && mode !== 'dry_run');
-      })
-      .catch(() => setWaOk(false));
-  }, []);
+  const navGroups = NAV_BY_ROLE[role] ?? DEFAULT_NAV;
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    window.location.href = '/login';
   }
 
-  function isActive(item: NavItem) {
-    if (item.exact) return pathname === item.href;
-    return pathname.startsWith(item.href);
-  }
-
-  function canSee(item: NavItem) {
-    if (!item.roles) return true;
-    if (!item.roles.includes(session?.userRole ?? 'viewer')) return false;
-    // G5: institution_type gating
-    const t = institutionType;
-    if (t) {
-      if (item.label === 'RTE Admissions' && !['govt_school','govt_aided_school','welfare_school'].includes(t)) return false;
-      if (item.label === 'Meal Attendance' && !['govt_school','welfare_school'].includes(t)) return false;
-      if (item.label === 'Sanitary Inventory' && t === 'coaching') return false;
-      if (['Leads CRM','Call Analysis'].includes(item.label) && ['govt_school','govt_aided_school'].includes(t)) return false;
-      if (item.label === 'Tests & Ranks' && t !== 'coaching') return false;
-      if (item.label === 'Transport' && ['coaching','anganwadi'].includes(t)) return false;
-    }
-    // PR-3: Full institution type gating — all comparisons use (t ?? '') to satisfy strict TS string[].includes
-    const isSchool = !t ||
-      ['school_k10','school_k12','govt_school','govt_aided_school','welfare_school','anganwadi'].includes(t ?? '');
-    const isCollege = ['junior_college','degree_college','engineering','mba','medical','polytechnic'].includes(t ?? '');
-    const isCoaching = t === 'coaching';
-    const isGovt = ['govt_school','govt_aided_school','welfare_school'].includes(t ?? '');
-
-    // Transfer Certificates: schools only (defensive — nav item not present yet)
-    if (item.label === 'Transfer Certificates' && (isCoaching || isCollege)) return false;
-    // PTM: schools only — hide for coaching + colleges
-    if (item.label === 'PTM Scheduling' && (isCoaching || isCollege)) return false;
-    // Health Incidents: not for coaching
-    if (item.label === 'Health Incidents' && isCoaching) return false;
-    // Scholarships: govt/aided only
-    if (item.label === 'Scholarships' && !isGovt) return false;
-    // Report Cards: not for coaching (they have Tests & Ranks instead) or colleges
-    if (item.label === 'Report Cards' && (isCoaching || isCollege)) return false;
-    // Academic Year Promotion: schools only (defensive — nav item not present yet)
-    if (item.label === 'Academic Year Promotion' && (isCoaching || isCollege)) return false;
-    // Billing: not for govt schools
-    if (item.label === 'Billing' && isGovt) return false;
-    // Suppress unused-var lint
-    void isSchool;
-    return true;
-  }
-
-  const plan = session?.plan ?? 'free';
-  const planColor = PLAN_COLOR[plan] ?? '#6B7280';
-  const visibleNav = NAV.filter(canSee);
-
-  function SidebarInner() {
-    return (
-      <>
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon" style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.5px' }}>E</div>
-          <div>
-            <div className="sidebar-logo-text">EdProSys</div>
-            <div className="sidebar-logo-sub">{session?.schoolName ?? 'Loading...'}</div>
-          </div>
-        </div>
-
-        {session?.plan && (
-          <Link href="/billing" style={{ textDecoration: 'none' }}>
-            <div style={{ margin: '0 12px 8px', padding: '5px 10px', background: '#F3F4F6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-              <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Plan</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: planColor, textTransform: 'capitalize' }}>{plan} ↗</span>
-            </div>
-          </Link>
-        )}
-
-        <div style={{ padding: '4px 0', flex: 1, overflowY: 'auto' }}>
-          <div className="sidebar-section-label">Platform</div>
-          <nav className="sidebar-nav">
-            {visibleNav.map(item => (
-              <Link key={item.href} href={item.href} className={`sidebar-link${isActive(item) ? ' active' : ''}`}>
-                <span className="sidebar-link-icon">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div style={{ padding: '0 12px 8px' }}>
-          <div className="sidebar-section-label">System</div>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Link href="/whatsapp" style={{ textDecoration: 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 14, color: '#9CA3AF', cursor: 'pointer' }}>
-                <span className="sidebar-link-icon">◉</span>
-                WhatsApp Bot
-                {waOk === true && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: 10 }}>LIVE</span>}
-                {waOk === false && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '2px 7px', borderRadius: 10 }}>STUB</span>}
-              </div>
-            </Link>
-          </nav>
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">{session?.userName?.charAt(0) ?? 'A'}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sidebar-user-name">{session?.userName ?? 'Admin'}</div>
-              <div className="sidebar-user-role" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>
-                {session?.userRole ? `${session.userRole} · ` : ''}{session?.userEmail ?? ''}
-              </div>
-            </div>
-          </div>
-          <button onClick={handleLogout} style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-            Sign out
-          </button>
-        </div>
-      </>
-    );
-  }
+  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
 
   return (
-    <div className="shell">
-      {/* Mobile backdrop */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 149, display: 'none' }}
-          className="mob-overlay"
-        />
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 39, display: 'block' }} />
       )}
 
-      {/* Desktop sidebar */}
-      <aside className="sidebar">
-        <SidebarInner />
-      </aside>
+      {/* Sidebar */}
+      <div ref={sidebarRef} style={{
+        width: 240, background: '#fff', borderRight: '1px solid #E5E7EB',
+        display: 'flex', flexDirection: 'column', flexShrink: 0,
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 40,
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.22s ease',
+        overflowY: 'auto',
+        // Desktop: always visible
+        ...(typeof window !== 'undefined' && window.innerWidth >= 768 ? { transform: 'translateX(0)' } : {}),
+      }}
+        className="sidebar-desktop-visible">
 
-      {/* Mobile slide-in sidebar */}
-      <aside className="sidebar mob-sidebar" style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}>
-        <SidebarInner />
-      </aside>
+        {/* Logo */}
+        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#4F46E5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, fontWeight: 900, color: '#fff', flexShrink: 0 }}>E</div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: '#111827', lineHeight: 1.2 }}>EdProSys</div>
+              {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
+            </div>
+          </div>
+        </div>
 
-      <div className="main-content">
-        <header className="topbar">
-          {/* Hamburger button — only shown on mobile via CSS */}
-          <button
-            className="hamburger-btn"
-            onClick={() => setSidebarOpen(v => !v)}
-            aria-label="Open navigation"
-            style={{ display: 'none', width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 10 }}
-          >
-            <svg width="18" height="14" fill="none" viewBox="0 0 18 14">
-              <rect y="0"  width="18" height="2" rx="1" fill={sidebarOpen ? '#4F46E5' : '#374151'} />
-              <rect y="6"  width="18" height="2" rx="1" fill={sidebarOpen ? '#4F46E5' : '#374151'} />
-              <rect y="12" width="18" height="2" rx="1" fill={sidebarOpen ? '#4F46E5' : '#374151'} />
-            </svg>
+        {/* Nav groups */}
+        <nav style={{ flex: 1, padding: '8px 8px 0', overflowY: 'auto' }}>
+          {navGroups.map(group => (
+            <div key={group.group} style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em',
+                padding: '8px 10px 4px', textTransform: 'uppercase' }}>
+                {group.group}
+              </div>
+              {group.items.map(item => {
+                const active = isActive(item.href);
+                return (
+                  <Link key={item.href} href={item.href}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 10px', borderRadius: 9, marginBottom: 2,
+                      textDecoration: 'none', minHeight: 40,
+                      background: active ? '#EEF2FF' : 'transparent',
+                      color: active ? '#4F46E5' : '#374151',
+                      fontWeight: active ? 700 : 500, fontSize: 13,
+                    }}>
+                    <span style={{ fontSize: 16, flexShrink: 0, width: 20, textAlign: 'center' }}>{item.icon}</span>
+                    <span>{item.label}</span>
+                    {active && <span style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: '#4F46E5' }} />}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* User footer */}
+        <div style={{ padding: '10px 12px 14px', borderTop: '1px solid #F3F4F6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#EEF2FF', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, color: '#4F46E5', fontSize: 12 }}>
+              {userName ? userName[0].toUpperCase() : 'U'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName || 'User'}</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF' }}>{role}</div>
+            </div>
+          </div>
+          <button onClick={handleLogout}
+            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #E5E7EB',
+              background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              textAlign: 'left' }}>
+            Sign out →
           </button>
-
-          <div style={{ flex: 1 }}>
-            <Breadcrumb />
-            <div className="topbar-title">{title}</div>
-            {subtitle && <div className="topbar-sub">{subtitle}</div>}
-          </div>
-          <div className="topbar-right">
-            <div className="topbar-badge"><div className="topbar-badge-dot" />{waOk === true ? 'All systems live' : waOk === false ? 'Some services degraded' : 'Checking...'}</div>
-            {actions}
-          </div>
-        </header>
-        <main className="page-content">{children}</main>
+        </div>
       </div>
 
+      {/* Main content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, marginLeft: 0 }}
+        className="main-with-sidebar">
+
+        {/* Top bar */}
+        <div style={{
+          background: '#fff', borderBottom: '1px solid #E5E7EB',
+          padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', gap: 12,
+          position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
+        }}>
+          {/* Hamburger */}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="mobile-menu-btn"
+            style={{ width: 40, height: 40, borderRadius: 8, border: 'none', background: '#F3F4F6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              flexShrink: 0, padding: 0, fontSize: 18 }}>
+            ☰
+          </button>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {title && <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
+            {subtitle && <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>}
+          </div>
+
+          {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
+        </div>
+
+        {/* Page content */}
+        <main style={{ flex: 1, padding: '20px 16px 80px', maxWidth: 1100, width: '100%', boxSizing: 'border-box' }}>
+          {children}
+        </main>
+      </div>
+
+      {/* CSS for desktop sidebar visibility */}
       <style>{`
-        @media (max-width: 768px) {
-          .sidebar:not(.mob-sidebar) { display: none !important; }
-          .mob-sidebar {
-            display: flex !important;
-            position: fixed !important;
-            top: 0; left: 0; bottom: 0;
-            z-index: 150;
-            width: 240px !important;
-            transition: transform 0.25s ease;
-          }
-          .mob-overlay { display: block !important; }
-          .hamburger-btn { display: flex !important; }
+        @media (min-width: 768px) {
+          .sidebar-desktop-visible { transform: translateX(0) !important; }
+          .main-with-sidebar { margin-left: 240px !important; }
+          .mobile-menu-btn { display: none !important; }
         }
-        @media (min-width: 769px) {
-          .mob-sidebar { display: none !important; }
-          .mob-overlay { display: none !important; }
+        @media (max-width: 767px) {
+          .main-with-sidebar { margin-left: 0 !important; }
         }
       `}</style>
     </div>
