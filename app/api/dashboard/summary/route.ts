@@ -3,7 +3,15 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 
 export async function GET(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  let schoolId: string;
+  try {
+    schoolId = getSchoolId(req);
+  } catch {
+    // MissingSchoolIdError — request has no valid session headers.
+    // Return 401 rather than propagating as 500. Dashboard will redirect to login.
+    return NextResponse.json({ error: 'No session' }, { status: 401 });
+  }
+
   try {
     const [studentsRes, staffRes, feesRes, leadsCountRes, leadsDataRes, evalsCountRes, recordingsRes, eventsRes, narrativesRes] = await Promise.all([
       supabaseAdmin.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('is_active', true),
