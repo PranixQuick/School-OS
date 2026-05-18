@@ -12,28 +12,28 @@ test.describe('Security — Cross-tenant isolation', () => {
     if (res.ok()) {
       const body = await res.json();
       const students = body.students ?? [];
-      // All returned students must belong to the authenticated school
+      // All returned students must belong to the authenticated school, not DPS
       for (const student of students) {
         expect(student.school_id).not.toBe('73048703-f8aa-4668-981d-2cdf619767b3');
       }
     }
   });
 
-  test('API returns 401 for requests without session cookie', async ({ page }) => {
-    await page.context().clearCookies();
+  test('API returns 401 for requests without session cookie', async ({ request }) => {
+    // Use request fixture (no cookies) — completely separate from any page session
     const adminApis = ['/api/students', '/api/staff', '/api/admin/fees'];
     for (const api of adminApis) {
-      const res = await page.request.get(api);
+      const res = await request.get(api);
+      // Must be 401 or 403 — never 200 with real data
       expect([401, 403]).toContain(res.status());
     }
   });
 
-  test('rate-limit protected endpoints reject excessive requests', async ({ page }) => {
-    await page.context().clearCookies();
+  test('rate-limit protected endpoints reject excessive requests', async ({ request }) => {
     // Attempt 5 rapid login requests — at least one should trigger rate limiting or 401
     const results: number[] = [];
     for (let i = 0; i < 5; i++) {
-      const res = await page.request.post('/api/auth/login', {
+      const res = await request.post('/api/auth/login', {
         data: { email: 'notexist@x.com', password: 'wrong' },
       });
       results.push(res.status());
@@ -43,7 +43,6 @@ test.describe('Security — Cross-tenant isolation', () => {
   });
 
   test('session cookie is httpOnly (not accessible from JS)', async ({ page }) => {
-    // If we can read document.cookie, the session cookie should NOT be visible
     await page.goto('/login');
     const cookies = await page.evaluate(() => document.cookie);
     // school_session cookie should not appear in document.cookie (httpOnly)
