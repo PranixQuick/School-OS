@@ -1,13 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // TypeScript errors are tracked in code review, not blocking builds
-    // This codebase is pre-commercial — all type errors are warnings only
-    ignoreBuildErrors: true,
-  },
+  // TypeScript errors block production builds.
+  // ignoreBuildErrors was temporarily set during Phase 5 sprint — now reversed.
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
 };
 
