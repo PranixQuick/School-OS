@@ -6,6 +6,7 @@ const PUBLIC = [
   '/parent/consent', '/student', '/api/auth/', '/api/parent/',
   '/api/student/', '/api/schools/create', '/_next/', '/favicon',
   '/icons/', '/manifest', '/api/notifications/health',
+  '/api/health',
 ];
 
 // Stakeholder portal paths and their required roles
@@ -25,8 +26,6 @@ export function middleware(req: NextRequest) {
   // Allow API routes (auth handled in individual routes)
   if (pathname.startsWith('/api/')) {
     const res = NextResponse.next();
-    // Return 401 JSON for unauthenticated API calls (not 302 HTML redirect)
-    // Individual API routes do their own auth check via requireAdminSession
     return res;
   }
 
@@ -45,5 +44,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons|manifest).*)'],
+  // Exclude: Next.js internals, static assets, PWA files (sw.js, offline.html),
+  // icons, manifest — these must be publicly accessible without a session.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons|manifest|sw.js|offline.html).*)'],
 };
