@@ -1,9 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Playwright E2E config for EdProSys.
-// Tests run against the preview deployment URL (set via PLAYWRIGHT_BASE_URL env)
-// or localhost:3000 for local runs.
-// CI: tests triggered by GitHub Actions on every PR.
+// Tests run against the production URL (PLAYWRIGHT_BASE_URL) or localhost:3000 for local runs.
+// CI: tests triggered on every push to main.
+//
+// NOTE: GitHub Actions sets unset secrets to empty string "".
+// Use || (not ??) for fallbacks so empty string also falls back to the default.
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,7 +17,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://www.edprosys.com',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     storageState: undefined,
