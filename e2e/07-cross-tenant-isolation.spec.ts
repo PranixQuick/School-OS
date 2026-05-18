@@ -1,9 +1,16 @@
 // e2e/07-cross-tenant-isolation.spec.ts
 // Cross-tenant data isolation test.
+//
+// Architecture note: browser.newContext() does not inherit playwright.config.ts baseURL
+// even when baseURL is passed — the session cookie domain binding and request routing
+// behaves differently from the built-in {page} fixture. We use the standard loginAsAdmin
+// helper which uses the {page} fixture and is proven to reach production in CI.
+//
+// For DPS admin (a different school), we log in using the same {page} fixture but
+// navigate to /login again between tests — Playwright isolates state per test already.
 
-import { test, expect, Browser } from '@playwright/test';
-
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://www.edprosys.com';
+import { test, expect } from '@playwright/test';
+import { BASE_URL } from './helpers/auth';
 
 const SUCHITRA_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in';
 const SUCHITRA_ADMIN_PASS  = process.env.TEST_ADMIN_PASSWORD || 'edprosys0000';
@@ -17,46 +24,42 @@ const DPS_SCHOOL_ID   = '73048703-f8aa-4668-981d-2cdf619767b3';
 const SUCHITRA_PARENT_PHONE = '+919100000101';
 const SUCHITRA_PARENT_PIN   = process.env.TEST_PARENT_PIN || '1234';
 
-// Creates an isolated browser context with baseURL set, logs in, returns the page.
-// Caller must call page.context().close() when done.
-async function loginAndGetPage(browser: Browser, email: string, password: string) {
-  // baseURL is required so relative URLs in p.request work correctly
-  const ctx = await browser.newContext({ baseURL: BASE_URL });
-  const p = await ctx.newPage();
-  await p.goto('/login');
-  await p.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
+// Log in using the standard page-based flow that is proven to work in CI
+async function loginWith(page: import('@playwright/test').Page, email: string, password: string) {
+  await page.goto('/login');
+  await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
   const bypass = process.env.E2E_BYPASS_SECRET || '';
   if (bypass) {
-    await p.route('**/api/auth/login', async (route) => {
+    await page.route('**/api/auth/login', async (route) => {
       await route.continue({ headers: { ...route.request().headers(), 'x-e2e-bypass': bypass } });
     });
   }
-  await p.fill('input[type="email"]', email);
-  await p.fill('input[type="password"]', password);
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', password);
   const [res] = await Promise.all([
-    p.waitForResponse(r => r.url().includes('/api/auth/login') && r.request().method() === 'POST', { timeout: 15_000 }),
-    p.click('button[type="submit"]'),
+    page.waitForResponse(r => r.url().includes('/api/auth/login') && r.request().method() === 'POST', { timeout: 15_000 }),
+    page.click('button[type="submit"]'),
   ]);
-  if (!res.ok()) throw new Error(`Login failed: ${res.status()}`);
-  await p.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10_000 });
-  return p;
+  if (!res.ok()) throw new Error(`Login failed for ${email}: ${res.status()}`);
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10_000 });
 }
 
 test.describe('Cross-tenant data isolation', () => {
 
-  test('Suchitra admin can list own students', async ({ browser }) => {
-    const p = await loginAndGetPage(browser, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
-    const res = await p.request.get('/api/students');
-    await p.context().close();
+  // Each test gets its own fresh {page} fixture — Playwright isolates state per test.
+  // We log in within each test so the session is scoped to that test's school.
+
+  test('Suchitra admin can list own students', async ({ page }) => {
+    await loginWith(page, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
+    const res = await page.request.get('/api/students');
     expect(res.status()).toBe(200);
     const body = await res.json() as { students?: { id: string }[] };
     expect((body.students ?? []).map(s => s.id)).toContain(SUCHITRA_STUDENT_ID);
   });
 
-  test('DPS admin cannot read Suchitra student data', async ({ browser }) => {
-    const p = await loginAndGetPage(browser, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
-    const res = await p.request.get(`/api/students?id=${SUCHITRA_STUDENT_ID}`);
-    await p.context().close();
+  test('DPS admin cannot read Suchitra student data', async ({ page }) => {
+    await loginWith(page, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
+    const res = await page.request.get(`/api/students?id=${SUCHITRA_STUDENT_ID}`);
     if (res.status() === 200) {
       const body = await res.json() as { students?: { id?: string }[] };
       expect((body.students ?? []).some(s => s.id === SUCHITRA_STUDENT_ID)).toBe(false);
@@ -65,10 +68,9 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  test('DPS admin student list contains no Suchitra students', async ({ browser }) => {
-    const p = await loginAndGetPage(browser, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
-    const res = await p.request.get('/api/students');
-    await p.context().close();
+  test('DPS admin student list contains no Suchitra students', async ({ page }) => {
+    await loginWith(page, DPS_ADMIN_EMAIL, DPS_ADMIN_PASS);
+    const res = await page.request.get('/api/students');
     expect([200, 401, 403]).toContain(res.status());
     if (res.status() === 200) {
       const body = await res.json() as { students?: { id?: string }[] };
@@ -76,8 +78,7 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login is a fully public endpoint — no session or browser context needed.
-  // Uses the bare request fixture which makes a clean HTTP call with no cookies.
+  // Parent login is a public endpoint. Use the bare request fixture with full absolute URL.
   test('Suchitra parent login resolves to Suchitra school only', async ({ request }) => {
     const res = await request.post(`${BASE_URL}/api/parent/login`, {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
