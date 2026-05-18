@@ -31,9 +31,9 @@ interface ModalProps {
 
 function ActionModal({ student, action, acting, onConfirm, onClose }: ModalProps) {
   const [fields, setFields] = useState<Record<string, string>>(() => {
-    if (action === 'edit') return { name: student.name, class: student.class ?? '', section: student.section ?? '', phone_parent: student.phone_parent ?? '', parent_name: student.parent_name ?? '' };
-    if (action === 'graduate') return { graduation_year: String(new Date().getFullYear()) };
-    return {};
+    if (action === 'edit') return { name: student.name, class: student.class ?? '', section: student.section ?? '', phone_parent: student.phone_parent ?? '', parent_name: student.parent_name ?? '' } as Record<string, string>;
+    if (action === 'graduate') return { graduation_year: String(new Date().getFullYear()) } as Record<string, string>;
+    return {} as Record<string, string>;
   });
 
   const configs: Record<string, { title: string; color: string; fields?: { label: string; key: string; type?: string }[] }> = {
