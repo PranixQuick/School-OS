@@ -63,11 +63,12 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login is public — navigate to /login first so page has the baseURL wired,
-  // then use page.request which is proven to reach production in CI.
+  // Parent login test: login as Suchitra admin first to anchor page to production,
+  // then make parent login call via the same page.request (same context, proven origin).
   test('Suchitra parent login resolves to Suchitra school only', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('domcontentloaded');
+    // Anchor page to production by logging in (proven to reach production in every CI run)
+    await loginWith(page, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
+    // Now page is at https://www.edprosys.com/dashboard — page.request origin is confirmed
     const res = await page.request.post('/api/parent/login', {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
     });
