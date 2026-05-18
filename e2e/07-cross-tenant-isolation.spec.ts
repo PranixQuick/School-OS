@@ -1,10 +1,9 @@
 // e2e/07-cross-tenant-isolation.spec.ts
 // Cross-tenant data isolation test.
-// Uses page.request (browser context) so middleware cookies work end-to-end.
-// Each admin test creates its OWN context via browser.newContext() and closes it after.
-// The parent login test uses the shared {page} fixture — do NOT close it from admin tests.
 
 import { test, expect, Browser } from '@playwright/test';
+
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://www.edprosys.com';
 
 const SUCHITRA_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in';
 const SUCHITRA_ADMIN_PASS  = process.env.TEST_ADMIN_PASSWORD || 'edprosys0000';
@@ -18,8 +17,11 @@ const DPS_SCHOOL_ID   = '73048703-f8aa-4668-981d-2cdf619767b3';
 const SUCHITRA_PARENT_PHONE = '+919100000101';
 const SUCHITRA_PARENT_PIN   = process.env.TEST_PARENT_PIN || '1234';
 
+// Creates an isolated browser context with baseURL set, logs in, returns the page.
+// Caller must call page.context().close() when done.
 async function loginAndGetPage(browser: Browser, email: string, password: string) {
-  const ctx = await browser.newContext();
+  // baseURL is required so relative URLs in p.request work correctly
+  const ctx = await browser.newContext({ baseURL: BASE_URL });
   const p = await ctx.newPage();
   await p.goto('/login');
   await p.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
@@ -74,9 +76,10 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login is a public endpoint — uses shared {page} fixture, relative URL
-  test('Suchitra parent login resolves to Suchitra school only', async ({ page }) => {
-    const res = await page.request.post('/api/parent/login', {
+  // Parent login is a fully public endpoint — no session or browser context needed.
+  // Uses the bare request fixture which makes a clean HTTP call with no cookies.
+  test('Suchitra parent login resolves to Suchitra school only', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/parent/login`, {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
     });
     expect(res.status()).toBe(200);
