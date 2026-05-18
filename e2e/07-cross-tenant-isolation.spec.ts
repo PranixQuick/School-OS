@@ -63,12 +63,12 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login is public — no session needed.
-  // Use relative URL so the {request} fixture resolves against playwright.config.ts baseURL.
-  // Do NOT use a local BASE_URL const — it evaluates at module load to empty string in CI
-  // when the secret is unset, making the URL '/api/parent/login' with no host.
-  test('Suchitra parent login resolves to Suchitra school only', async ({ request }) => {
-    const res = await request.post('/api/parent/login', {
+  // Parent login is public — navigate to /login first so page has the baseURL wired,
+  // then use page.request which is proven to reach production in CI.
+  test('Suchitra parent login resolves to Suchitra school only', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
+    const res = await page.request.post('/api/parent/login', {
       data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
     });
     expect(res.status()).toBe(200);
