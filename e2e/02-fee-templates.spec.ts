@@ -1,39 +1,27 @@
 // e2e/02-fee-templates.spec.ts
-// Critical path: fee template CRUD via API.
-// Uses direct API calls (not UI navigation) to verify correctness without
-// depending on UI page that may not exist yet.
+// Fee template CRUD via API.
+// Uses page.request (browser context) — NOT the request fixture.
+// The request fixture bypasses Next.js middleware; page.request goes through
+// the full edge pipeline which injects x-school-id headers required by admin-auth.
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin, BASE_URL } from './helpers/auth';
+import { loginAsAdmin } from './helpers/auth';
 
 test.describe('Fee template API', () => {
-  let sessionCookie = '';
+  // Use page-scoped serial tests so the browser context (and session cookie) persists
+  test.use({ storageState: undefined });
 
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
+  test('GET /api/admin/fee-templates returns array', async ({ page }) => {
     await loginAsAdmin(page);
-    // Capture session cookie
-    const cookies = await page.context().cookies();
-    const session = cookies.find(c => c.name === 'school_session');
-    if (session) sessionCookie = `${session.name}=${session.value}`;
-    await page.close();
-  });
-
-  test('GET /api/admin/fee-templates returns array', async ({ request }) => {
-    const resp = await request.get(`${BASE_URL}/api/admin/fee-templates`, {
-      headers: sessionCookie ? { cookie: sessionCookie } : {},
-    });
+    const resp = await page.request.get('/api/admin/fee-templates');
     expect(resp.status()).toBe(200);
     const body = await resp.json();
     expect(body).toHaveProperty('templates');
     expect(Array.isArray(body.templates)).toBe(true);
   });
 
-  test('POST /api/admin/fee-templates creates template', async ({ request }) => {
-    const resp = await request.post(`${BASE_URL}/api/admin/fee-templates`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(sessionCookie ? { cookie: sessionCookie } : {}),
-      },
+  test('POST /api/admin/fee-templates creates template', async ({ page }) => {
+    await loginAsAdmin(page);
+    const resp = await page.request.post('/api/admin/fee-templates', {
       data: {
         name: 'E2E Test Template',
         grade_level: '5',
@@ -44,25 +32,16 @@ test.describe('Fee template API', () => {
     const body = await resp.json();
     expect(body).toHaveProperty('id');
     expect(body.grade_level).toBe('5');
-    // Cleanup: soft delete
+    // Cleanup
     if (body.id) {
-      await request.delete(`${BASE_URL}/api/admin/fee-templates/${body.id}`, {
-        headers: sessionCookie ? { cookie: sessionCookie } : {},
-      });
+      await page.request.delete(`/api/admin/fee-templates/${body.id}`);
     }
   });
 
-  test('POST /api/admin/fee-templates rejects invalid fee_items', async ({ request }) => {
-    const resp = await request.post(`${BASE_URL}/api/admin/fee-templates`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(sessionCookie ? { cookie: sessionCookie } : {}),
-      },
-      data: {
-        name: 'Bad Template',
-        grade_level: '5',
-        fee_items: [], // empty — invalid
-      },
+  test('POST /api/admin/fee-templates rejects invalid fee_items', async ({ page }) => {
+    await loginAsAdmin(page);
+    const resp = await page.request.post('/api/admin/fee-templates', {
+      data: { name: 'Bad Template', grade_level: '5', fee_items: [] },
     });
     expect(resp.status()).toBe(400);
   });
