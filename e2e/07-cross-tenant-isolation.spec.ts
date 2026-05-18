@@ -63,32 +63,28 @@ test.describe('Cross-tenant data isolation', () => {
     }
   });
 
-  // Parent login cross-tenant isolation test.
-  // The security property: parents.phone has a UNIQUE constraint on (school_id, phone),
-  // so the same phone number in two schools returns only the correct school's parent.
-  // We verify this by logging in and calling the public parent login endpoint.
+  // Parent login: use page.evaluate() to make a fetch() call from INSIDE the browser.
+  // page.request is Playwright's internal HTTP client which does not go through the
+  // browser network stack and silently fails in this CI environment.
+  // page.evaluate() executes in the browser context — same network path as real users.
   test('Suchitra parent login resolves to Suchitra school only', async ({ page }) => {
+    // Navigate to the login page to establish browser context at the correct origin
     await loginWith(page, SUCHITRA_ADMIN_EMAIL, SUCHITRA_ADMIN_PASS);
 
-    // Intercept the parent login request to capture the full URL being used
-    let capturedUrl = '';
-    await page.route('**/api/parent/login', async (route) => {
-      capturedUrl = route.request().url();
-      await route.continue();
-    });
+    // Execute fetch() inside the browser — goes through the real browser network stack
+    const result = await page.evaluate(async ({ phone, pin }: { phone: string; pin: string }) => {
+      const res = await fetch('/api/parent/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin }),
+      });
+      const body = await res.json();
+      return { status: res.status, body };
+    }, { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN });
 
-    const res = await page.request.post('/api/parent/login', {
-      data: { phone: SUCHITRA_PARENT_PHONE, pin: SUCHITRA_PARENT_PIN },
-    });
-
-    const statusCode = res.status();
-    const bodyText = await res.text();
-    console.log(`[parent-login-diag] URL: ${capturedUrl} | status: ${statusCode} | body: ${bodyText}`);
-
-    expect(statusCode).toBe(200);
-    const body = JSON.parse(bodyText) as { parent?: { school_id?: string } };
-    expect(body.parent?.school_id).toBe(SUCHITRA_SCHOOL_ID);
-    expect(body.parent?.school_id).not.toBe(DPS_SCHOOL_ID);
+    expect(result.status).toBe(200);
+    expect(result.body?.parent?.school_id).toBe(SUCHITRA_SCHOOL_ID);
+    expect(result.body?.parent?.school_id).not.toBe(DPS_SCHOOL_ID);
   });
 
 });
