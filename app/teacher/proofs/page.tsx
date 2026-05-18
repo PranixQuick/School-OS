@@ -1,164 +1,123 @@
-// app/teacher/proofs/page.tsx
-// Item #1 Track C Phase 4 — classroom proofs: capture + timeline.
-
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Proof {
-  id: string;
-  class_id: string;
-  taken_at: string;
-  audit_status: string;
-  audit_notes: string | null;
-  signed_url: string | null;
+  id: string; title: string; class: string; section: string; subject: string;
+  proof_type: string; note: string | null; image_url: string | null; created_at: string;
 }
-
-interface ClassOpt { id: string; label: string }
 
 export default function ProofsPage() {
   const [proofs, setProofs] = useState<Proof[]>([]);
-  const [classes, setClasses] = useState<ClassOpt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [pickedClass, setPickedClass] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: '', class: '', section: 'A', subject: '', proof_type: 'classroom_activity', note: '' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const [proofsRes, classesRes] = await Promise.all([
-        fetch('/api/teacher/proofs', { credentials: 'same-origin' }),
-        fetch('/api/teacher/classes', { credentials: 'same-origin' }),
-      ]);
-      if (!proofsRes.ok) throw new Error('Failed to load proofs');
-      if (!classesRes.ok) throw new Error('Failed to load classes');
-      const proofsData = await proofsRes.json();
-      const classesData = await classesRes.json();
-      setProofs(proofsData.proofs ?? []);
-      setClasses(classesData.classes ?? []);
-      if (!pickedClass && classesData.classes?.[0]) setPickedClass(classesData.classes[0].id);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally { setLoading(false); }
-  }, [pickedClass]);
+  useEffect(() => {
+    fetch('/api/teacher/proofs')
+      .then(r => r.ok ? r.json() : { proofs: [] })
+      .then(d => setProofs(d.proofs ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const save = async () => {
+    if (!form.title || !form.class || !form.subject) { setMsg('Title, class and subject are required.'); return; }
+    setSaving(true); setMsg('');
+    const res = await fetch('/api/teacher/proofs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setProofs(prev => [data.proof, ...prev]);
+      setShowForm(false);
+      setForm({ title: '', class: '', section: 'A', subject: '', proof_type: 'classroom_activity', note: '' });
+    } else { setMsg(data.error ?? 'Failed to save.'); }
+    setSaving(false);
+  };
 
-  async function handleCapture() {
-    setError(null); setSuccess(false);
-    if (!pickedClass) { setError('Pick a class'); return; }
-
-    // Get a file from the user via hidden input (camera-friendly on mobile)
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      setUploading(true);
-      try {
-        // Get geolocation (best-effort)
-        const pos = await new Promise<GeolocationPosition | null>((resolve) => {
-          if (!navigator.geolocation) return resolve(null);
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve(p), () => resolve(null),
-            { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-          );
-        });
-
-        // Request signed upload URL
-        const initRes = await fetch('/api/teacher/proofs', {
-          method: 'POST', credentials: 'same-origin',
-        });
-        if (!initRes.ok) {
-          const body = await initRes.json().catch(() => ({}));
-          throw new Error(body.error || 'Failed to get upload URL');
-        }
-        const { upload_url, photo_path } = await initRes.json();
-
-        // Upload directly to signed URL
-        const upRes = await fetch(upload_url, {
-          method: 'PUT', body: file,
-          headers: { 'Content-Type': file.type || 'image/jpeg' },
-        });
-        if (!upRes.ok) throw new Error('Photo upload failed');
-
-        // Finalize
-        const finRes = await fetch('/api/teacher/proofs', {
-          method: 'PUT', credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            photo_path,
-            class_id: pickedClass,
-            geo_lat: pos?.coords.latitude,
-            geo_lng: pos?.coords.longitude,
-          }),
-        });
-        if (!finRes.ok) {
-          const body = await finRes.json().catch(() => ({}));
-          throw new Error(body.error || 'Finalize failed');
-        }
-        setSuccess(true);
-        load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally { setUploading(false); }
-    };
-    input.click();
-  }
+  const typeLabel = (t: string) => ({ classroom_activity: 'Activity', homework_check: 'Homework', assessment: 'Assessment', other: 'Other' })[t] ?? t;
+  const typeColor = (t: string) => ({ classroom_activity: '#4F46E5', homework_check: '#D97706', assessment: '#16A34A', other: '#6B7280' })[t] ?? '#6B7280';
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Classroom proofs</h1>
-        <p className="mt-1 text-sm text-gray-500">Capture a photo to confirm class is in session.</p>
-      </div>
+    <div style={{ padding: 16 }}>
+      <style>{`
+        .pr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .pr-title { font-size: 18px; font-weight: 800; color: #111827; }
+        .pr-sub { font-size: 13px; color: #6B7280; margin-bottom: 16px; }
+        .pr-btn { padding: 9px 16px; border-radius: 10px; border: none; background: #4F46E5; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .pr-form { background: #fff; border-radius: 14px; border: 1px solid #E5E7EB; padding: 16px; margin-bottom: 16px; }
+        .pr-row { margin-bottom: 12px; }
+        .pr-label { font-size: 11px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .pr-input { width: 100%; height: 40px; border-radius: 9px; border: 1px solid #D1D5DB; background: #F9FAFB; font-size: 14px; padding: 0 12px; box-sizing: border-box; outline: none; font-family: inherit; }
+        .pr-select { width: 100%; height: 40px; border-radius: 9px; border: 1px solid #D1D5DB; background: #F9FAFB; font-size: 14px; padding: 0 12px; box-sizing: border-box; outline: none; font-family: inherit; }
+        .pr-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pr-card { background: #fff; border-radius: 14px; border: 1px solid #E5E7EB; padding: 14px; margin-bottom: 10px; }
+        .pr-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .pr-card-title { font-size: 14px; font-weight: 700; color: #111827; flex: 1; }
+        .pr-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: #F3F4F6; }
+        .pr-meta { font-size: 12px; color: #6B7280; }
+        .pr-empty { text-align: center; padding: 48px 20px; color: #9CA3AF; }
+        .pr-err { background: #FEF2F2; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #B91C1C; margin-bottom: 10px; }
+        .skel { background: #F3F4F6; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; margin-bottom: 10px; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+      `}</style>
 
-      {classes.length === 0 ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          You don&apos;t have any classes assigned yet. Ask your admin to schedule you.
-        </div>
-      ) : (
-        <div className="space-y-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <label htmlFor="proof-class" className="block text-xs text-gray-600">Class</label>
-          <select id="proof-class" value={pickedClass} onChange={(e) => setPickedClass(e.target.value)}
-            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
-            {classes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-          <button onClick={handleCapture} disabled={uploading}
-            className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300">
-            {uploading ? 'Uploading...' : 'Capture photo'}
-          </button>
+      <div className="pr-header">
+        <div className="pr-title">Proofs</div>
+        <button className="pr-btn" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : '+ Add Proof'}</button>
+      </div>
+      <div className="pr-sub">Capture classroom activity evidence.</div>
+
+      {showForm && (
+        <div className="pr-form">
+          {msg && <div className="pr-err">{msg}</div>}
+          <div className="pr-row"><div className="pr-label">Title</div><input className="pr-input" placeholder="e.g. Group activity — fractions" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
+          <div className="pr-grid2">
+            <div className="pr-row"><div className="pr-label">Class</div><input className="pr-input" placeholder="5" value={form.class} onChange={e => setForm(f => ({ ...f, class: e.target.value }))} /></div>
+            <div className="pr-row"><div className="pr-label">Section</div><input className="pr-input" placeholder="A" value={form.section} onChange={e => setForm(f => ({ ...f, section: e.target.value }))} /></div>
+          </div>
+          <div className="pr-row"><div className="pr-label">Subject</div><input className="pr-input" placeholder="e.g. Mathematics" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
+          <div className="pr-row">
+            <div className="pr-label">Type</div>
+            <select className="pr-select" value={form.proof_type} onChange={e => setForm(f => ({ ...f, proof_type: e.target.value }))}>
+              <option value="classroom_activity">Classroom Activity</option>
+              <option value="homework_check">Homework Check</option>
+              <option value="assessment">Assessment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="pr-row"><div className="pr-label">Note (optional)</div><input className="pr-input" placeholder="Any notes…" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} /></div>
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="pr-btn" style={{ flex: 1, background: '#F9FAFB', color: '#374151', border: '1px solid #E5E7EB' }} onClick={() => fileRef.current?.click()}>📷 Photo (optional)</button>
+            <button className="pr-btn" style={{ flex: 1 }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+          </div>
         </div>
       )}
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">Proof uploaded.</div>}
-
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-gray-500">Recent (last 30 days)</h2>
-        {loading && <p className="text-sm text-gray-400">Loading...</p>}
-        {!loading && proofs.length === 0 && <p className="text-sm text-gray-400">No proofs uploaded yet.</p>}
-        <ul className="space-y-2">
-          {proofs.map((p) => (
-            <li key={p.id} className="rounded border border-gray-200 bg-white p-3 text-sm shadow-sm">
-              <div className="flex items-baseline justify-between">
-                <span className="text-xs text-gray-600">{new Date(p.taken_at).toLocaleString()}</span>
-                <span className={'rounded px-2 py-0.5 text-xs ' + (p.audit_status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-700')}>
-                  {p.audit_status}
-                </span>
-              </div>
-              {p.signed_url && (
-                <img src={p.signed_url} alt="Classroom proof" className="mt-2 max-h-48 rounded" />
-              )}
-              {p.audit_notes && <p className="mt-1 text-xs text-gray-600">{p.audit_notes}</p>}
-            </li>
-          ))}
-        </ul>
-      </section>
+      {loading ? (
+        <><div className="skel" style={{ height: 72 }} /><div className="skel" style={{ height: 72 }} /></>
+      ) : proofs.length === 0 ? (
+        <div className="pr-empty">
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
+          <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No proofs yet</div>
+          <div>Tap &quot;+ Add Proof&quot; to capture classroom evidence.</div>
+        </div>
+      ) : proofs.map(p => (
+        <div key={p.id} className="pr-card">
+          <div className="pr-card-top">
+            <div className="pr-card-title">{p.title}</div>
+            <span className="pr-badge" style={{ color: typeColor(p.proof_type) }}>{typeLabel(p.proof_type)}</span>
+          </div>
+          <div className="pr-meta">Class {p.class}{p.section} · {p.subject} · {new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+          {p.note && <div style={{ fontSize: 12, color: '#374151', marginTop: 6 }}>{p.note}</div>}
+        </div>
+      ))}
     </div>
   );
 }
