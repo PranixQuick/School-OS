@@ -4,64 +4,49 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export const runtime = 'nodejs';
 
-// GET /api/admin/events/galleries — list all galleries for school
+// GET — list galleries for this school
 export async function GET(req: NextRequest) {
-  let ctx;
-  try { ctx = await requireAdminSession(req); }
+  let ctx; try { ctx = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
-  const { schoolId } = ctx;
 
-  const status = req.nextUrl.searchParams.get('status') ?? 'published';
-  const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '20'), 50);
-
-  let q = supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('event_galleries')
-    .select('id, title, description, event_type, event_date, status, audience_type, photo_count, video_count, featured_image_url, allow_download, created_at, expires_at')
-    .eq('school_id', schoolId)
+    .select('id, title, description, event_type, event_date, status, photo_count, video_count, featured_image_url, allow_download, audience_type, created_at')
+    .eq('school_id', ctx.schoolId)
     .order('event_date', { ascending: false })
-    .limit(limit);
+    .limit(50);
 
-  if (status !== 'all') q = q.eq('status', status);
-
-  const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ galleries: data ?? [] });
 }
 
-// POST /api/admin/events/galleries — create gallery
+// POST — create a new gallery
 export async function POST(req: NextRequest) {
-  let ctx;
-  try { ctx = await requireAdminSession(req); }
+  let ctx; try { ctx = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
-  const { schoolId, userId } = ctx;
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { title, description, event_type, event_date, audience_type, audience_class_filter, allow_download, expires_at } = body as {
-    title?: string; description?: string; event_type?: string; event_date?: string;
-    audience_type?: string; audience_class_filter?: unknown; allow_download?: boolean; expires_at?: string;
-  };
-
-  if (!title?.trim()) return NextResponse.json({ error: 'title is required' }, { status: 400 });
+  const { title, description, event_type, event_date, allow_download, audience_type } = body as Record<string, unknown>;
+  if (!title || !event_date) {
+    return NextResponse.json({ error: 'title and event_date required' }, { status: 400 });
+  }
 
   const { data, error } = await supabaseAdmin
     .from('event_galleries')
     .insert({
-      school_id: schoolId,
-      title: title.trim(),
-      description: description ?? null,
-      event_type: event_type ?? 'general',
-      event_date: event_date ?? new Date().toISOString().slice(0, 10),
-      audience_type: audience_type ?? 'all_parents',
-      audience_class_filter: audience_class_filter ?? null,
-      allow_download: allow_download !== false,
-      expires_at: expires_at ?? null,
+      school_id: ctx.schoolId,
+      title: title as string,
+      description: (description as string) ?? null,
+      event_type: (event_type as string) ?? 'general',
+      event_date: event_date as string,
       status: 'draft',
-      created_by: userId,
+      allow_download: Boolean(allow_download),
+      audience_type: (audience_type as string) ?? 'all_parents',
+      created_by: ctx.userId,
     })
-    .select()
-    .single();
+    .select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ gallery: data }, { status: 201 });
