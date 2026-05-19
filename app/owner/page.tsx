@@ -1,10 +1,10 @@
 'use client';
 // app/owner/page.tsx — Owner Dashboard: cross-school aggregates + health scores
+// No external chart library — pure CSS bar chart for fee trend
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface SchoolStat {
   school_id: string; school_name: string; plan: string; is_active: boolean;
@@ -37,11 +37,25 @@ function healthScore(s: SchoolStat): { score: number; grade: string; color: stri
   return { score, grade: 'D', color: '#B91C1C', bg: '#FEE2E2' };
 }
 
+function MiniBarChart({ data }: { data: FeePoint[] }) {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data.map(d => d.amount), 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 60, padding: '0 4px' }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <div style={{ width: '100%', background: '#4F46E5', borderRadius: '3px 3px 0 0', height: `${Math.max(4, (d.amount / max) * 52)}px`, opacity: i === data.length - 1 ? 1 : 0.45 }} />
+          <div style={{ fontSize: 9, color: '#9CA3AF', whiteSpace: 'nowrap' }}>{d.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function OwnerPage() {
   const [data, setData] = useState<OwnerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSchool, setActiveSchool] = useState<string>('all');
-
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   useEffect(() => {
@@ -57,14 +71,10 @@ export default function OwnerPage() {
   const schools = data?.school_stats ?? [];
   const filtered = activeSchool === 'all' ? schools : schools.filter(s => s.school_id === activeSchool);
 
-  // Aggregate stats for selected school(s)
   const aggStudents = filtered.reduce((s, sc) => s + sc.students, 0);
   const aggStaff = filtered.reduce((s, sc) => s + sc.staff, 0);
   const aggFeesAmt = filtered.reduce((s, sc) => s + sc.pending_fees_amount, 0);
   const aggRisk = filtered.reduce((s, sc) => s + sc.risk_count, 0);
-  const avgAtt = filtered.length > 0
-    ? filtered.filter(sc => sc.attendance_today_pct !== null).reduce((s, sc) => s + (sc.attendance_today_pct ?? 0), 0) / Math.max(filtered.filter(sc => sc.attendance_today_pct !== null).length, 1)
-    : null;
 
   if (loading && !data) {
     return (
@@ -73,7 +83,7 @@ export default function OwnerPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 16 }}>
           {[0,1,2,3].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
         </div>
-        <div style={{ height: 200, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <div style={{ height: 120, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
       </Layout>
     );
   }
@@ -121,24 +131,16 @@ export default function OwnerPage() {
         ))}
       </div>
 
-      {/* Fee collection trend */}
+      {/* Fee collection trend — inline bar chart, no library */}
       {data?.fee_collection_trend && data.fee_collection_trend.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>📈 Fee Collection Trend</div>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={data.fee_collection_trend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} width={48} />
-              <Tooltip formatter={(v: number) => [`₹${(v/1000).toFixed(1)}K`, 'Collected']} />
-              <Line type="monotone" dataKey="amount" stroke="#4F46E5" strokeWidth={2} dot={{ fill: '#4F46E5', r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <MiniBarChart data={data.fee_collection_trend} />
         </div>
       )}
 
       {/* Per-school health cards */}
-      {schools.length > 0 && (
+      {filtered.length > 0 && (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>School Health</div>
           <div className="school-grid" style={{ marginBottom: 20 }}>
@@ -156,7 +158,6 @@ export default function OwnerPage() {
                       <div style={{ fontSize: 9, color: h.color }}>{h.score}</div>
                     </div>
                   </div>
-
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
                     {[
                       { label: 'Students', val: sc.students, color: '#4F46E5' },
@@ -169,9 +170,8 @@ export default function OwnerPage() {
                       </div>
                     ))}
                   </div>
-
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <Link href="/dashboard" onClick={() => localStorage?.setItem?.('owner_school_id', sc.school_id)}
+                    <Link href="/dashboard"
                       style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: '#EEF2FF', color: '#4F46E5', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                       Dashboard
                     </Link>
