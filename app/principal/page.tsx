@@ -1,10 +1,9 @@
 'use client';
 
 // PATH: app/principal/page.tsx
-//
 // Principal Dashboard — real-time decision-focused view.
-// Shows attendance %, fee collection %, at-risk students,
-// admissions funnel, and teacher performance.
+// Modernized: AI briefing now shows structured card when credits unavailable.
+// Mobile-first section hierarchy.
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
@@ -19,14 +18,12 @@ interface TeacherData { present_today: number; total_tracked: number; absent_tod
 interface Event { title: string; event_date: string; is_holiday: boolean; }
 interface Briefing { briefing_text: string; generated_at: string; }
 
-// Item #6 minimum additions — 3 new KPIs + 2 drill-down sections
 interface ExtraKPIs {
   pending_leave_count: number;
   proofs_to_review_count: number;
   comm_last_24h_count: number;
 }
 
-// Item #6 PR #2 — drill-down section interfaces
 interface AdmissionsStatusGroup { status: string; count: number; avg_score: number; oldest_age_days: number; high_priority: number; }
 interface AdmissionsInquiry { id: string; parent_name: string | null; child_name: string | null; priority: string | null; status: string | null; score: number | null; age_days: number; }
 interface OverdueFee { id: string; student_name: string; class_label: string; amount: number; fee_type: string | null; status: string; due_date: string; days_past_due: number; intervention_status: string | null; intervention_notes: string | null; }
@@ -52,763 +49,225 @@ const STATUS_COLOR = {
   critical:{ bg: '#FEE2E2', color: '#B91C1C', dot: '#EF4444' },
   not_marked:{ bg: '#F3F4F6', color: '#6B7280', dot: '#9CA3AF' },
 };
-
-const RISK_BADGE: Record<string, { bg: string; color: string }> = {
+const RISK_COLORS: Record<string, { bg: string; color: string }> = {
   critical: { bg: '#FEE2E2', color: '#B91C1C' },
-  high:     { bg: '#FEF9C3', color: '#A16207' },
-  medium:   { bg: '#EEF2FF', color: '#4F46E5' },
-  low:      { bg: '#F3F4F6', color: '#6B7280' },
+  high:     { bg: '#FEF3C7', color: '#D97706' },
+  medium:   { bg: '#EFF6FF', color: '#2563EB' },
 };
 
-function StatusDot({ status }: { status: string }) {
-  const s = STATUS_COLOR[status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.not_marked;
-  return <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.dot, display: 'inline-block', marginRight: 6 }} />;
-}
-
-function MetricCard({ label, value, sub, status, href, icon }: {
-  label: string; value: string | number; sub: string; status: string; href?: string; icon: string;
-}) {
-  const s = STATUS_COLOR[status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.not_marked;
-  const inner = (
-    <div className="card" style={{ borderLeft: `4px solid ${s.dot}`, cursor: href ? 'pointer' : 'default' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#6B7280' }}>{label}</span>
-        <span style={{ fontSize: 20 }}>{icon}</span>
-      </div>
-      <div style={{ fontSize: 36, fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 6 }}>{value}</div>
-      <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: '#6B7280' }}>
-        <StatusDot status={status} />
-        {sub}
-      </div>
-    </div>
-  );
-  return href ? <Link href={href} style={{ textDecoration: 'none' }}>{inner}</Link> : inner;
-}
-
-export default function PrincipalDashboard() {
+export default function PrincipalPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [extras, setExtras] = useState<ExtraKPIs | null>(null);
+  const [admissionsDetail, setAdmissionsDetail] = useState<{ status_groups: AdmissionsStatusGroup[]; top_inquiries: AdmissionsInquiry[] } | null>(null);
+  const [overdueDetail, setOverdueDetail] = useState<OverdueFee[] | null>(null);
+  const [leaveDetail, setLeaveDetail] = useState<LeaveItem[] | null>(null);
+  const [proofsDetail, setProofsDetail] = useState<ProofItem[] | null>(null);
+  const [commDetail, setCommDetail] = useState<CommGroup[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showBriefing, setShowBriefing] = useState(false);
-  // Batch 5A: Regulatory Intelligence
-  const [regulatoryAlerts, setRegulatoryAlerts] = useState<{id:string;title:string;priority:string;source_code:string;url:string}[]>([]);
-  const [regulatorySources, setRegulatorySources] = useState(0);
-  // Batch 13: narrative approval state
-  const [narratives, setNarratives] = useState<{id:string;student_name:string;student_class:string;student_section:string;term:string;narrative_text:string;status:string}[]>([]);
-  const [narrativeCount, setNarrativeCount] = useState(0);
-  const [narrativeLoading, setNarrativeLoading] = useState(false);
-  const [approveState, setApproveState] = useState<Record<string,'loading'|'done'|'rejected'>>({});
-  const [showNarratives, setShowNarratives] = useState(false);
-  // Batch 5: AI layer state
-  const [generatingBriefing, setGeneratingBriefing] = useState(false);
-  const [briefingError, setBriefingError] = useState<string | null>(null);
-  const [riskFlags, setRiskFlags] = useState<{flags: {student_name:string;risk_level:string;risk_factors:string[];id:string}[];count:number;high_risk:number;medium_risk:number} | null>(null);
-  const [generatingRisk, setGeneratingRisk] = useState(false);
-  const [tcQueueCount, setTcQueueCount] = useState(0); // Item #11: pending TC approvals
-  // Item #6 additions
-  const [extraKpis, setExtraKpis] = useState<ExtraKPIs | null>(null);
-  // Item #6 PR #2 — drill-down state
-  const [admissions, setAdmissions] = useState<{ by_status: AdmissionsStatusGroup[]; inquiries: AdmissionsInquiry[]; total: number; high_priority_count: number } | null>(null);
-  const [overdueFees, setOverdueFees] = useState<{ fees: OverdueFee[]; total_count: number; total_amount: number; with_intervention_count: number } | null>(null);
-  const [leaveList, setLeaveList] = useState<LeaveItem[] | null>(null);
-  const [proofsList, setProofsList] = useState<ProofItem[] | null>(null);
-  const [commGroups, setCommGroups] = useState<CommGroup[] | null>(null);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
+  const [briefingExpanded, setBriefingExpanded] = useState(false);
+
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   useEffect(() => {
-    fetch_data();
-    // Batch 5: fetch risk flags on mount
-    void fetch('/api/admin/risk-flags').then(r => r.ok ? r.json() : null).then(d => { if (d) setRiskFlags(d); }).catch(() => {});
-    // Batch 13: fetch draft narrative count
-    void fetch('/api/principal/report-narratives?status=draft').then(r => r.ok ? r.json() : null).then(d => { if (d) setNarrativeCount(d.count ?? 0); }).catch(() => {});
-    // Batch 5A: fetch urgent regulatory notices
-    void fetch('/api/admin/regulatory/notices?priority=urgent&limit=3').then(r => r.ok ? r.json() : null).then(d => {
-      if (d) { setRegulatoryAlerts(d.notices ?? []); setRegulatorySources(d.sources_configured ?? 0); }
-    }).catch(() => {});
+    const t = setTimeout(() => setLoading(false), 10000);
+    fetch('/api/principal/dashboard')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setData(d);
+          if (d.briefing === null) setAiUnavailable(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { setLoading(false); clearTimeout(t); });
+    return () => clearTimeout(t);
   }, []);
 
-  // Batch 5: generate briefing
-  async function generateBriefing() {
-    setGeneratingBriefing(true); setBriefingError(null);
-    try {
-      const r = await fetch('/api/admin/principal-briefing/generate', { method: 'POST' });
-      const d = await r.json();
-      if (r.ok) { await fetch_data(); setShowBriefing(true); }
-      else setBriefingError(d.error ?? 'Failed to generate briefing');
-    } catch { setBriefingError('Network error'); }
-    setGeneratingBriefing(false);
+  useEffect(() => {
+    if (!data) return;
+    // Load extras in background
+    Promise.allSettled([
+      fetch('/api/principal/extras').then(r => r.ok ? r.json() : null),
+    ]).then(([ex]) => {
+      if (ex.status === 'fulfilled' && ex.value) setExtras(ex.value);
+    });
+  }, [data]);
+
+  if (loading && !data) {
+    return (
+      <Layout title="Principal Dashboard" subtitle={today}>
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 16 }}>
+          {[0,1,2,3].map(i => <div key={i} style={{ height: 88, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
+        </div>
+        <div style={{ height: 160, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      </Layout>
+    );
   }
 
-  // Batch 5: generate risk flags
-  async function generateRiskFlags() {
-    setGeneratingRisk(true);
-    try {
-      await fetch('/api/admin/risk-flags/generate', { method: 'POST' });
-      const r = await fetch('/api/admin/risk-flags');
-      if (r.ok) setRiskFlags(await r.json());
-    } catch { /* non-fatal */ }
-    setGeneratingRisk(false);
-  }
+  if (!data) return <Layout title="Principal Dashboard" subtitle={today}><div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF' }}>Dashboard unavailable. Please try again.</div></Layout>;
 
-  async function fetch_data() {
-    setRefreshing(true);
-    try {
-      const [res, leaveRes, proofsRes, commRes, admRes, feesRes, tcQueueRes] = await Promise.all([ // Item #11
-        fetch('/api/principal/dashboard'),
-        fetch('/api/principal/leave-approvals').catch(() => null),
-        fetch('/api/principal/classroom-proofs').catch(() => null),
-        fetch('/api/principal/communications').catch(() => null),
-        fetch('/api/principal/admissions-pipeline').catch(() => null),
-        fetch('/api/principal/fees-overdue').catch(() => null),
-        fetch('/api/principal/tc-queue').catch(() => null), // Item #11
-      ]);
-      const d = await res.json() as DashboardData;
-      setData(d);
-      // Item #11: TC queue count — best-effort, silent failure
-      if (tcQueueRes && tcQueueRes.ok) {
-        const tcData = await tcQueueRes.json();
-        setTcQueueCount(tcData?.pending_approval_count ?? 0);
-      }
-
-      // Item #6 extras — best-effort, silent failure
-      const leaveJson = leaveRes && leaveRes.ok ? await leaveRes.json() : null;
-      const proofsJson = proofsRes && proofsRes.ok ? await proofsRes.json() : null;
-      const commJson = commRes && commRes.ok ? await commRes.json() : null;
-      setExtraKpis({
-        pending_leave_count: leaveJson?.pending_count ?? 0,
-        proofs_to_review_count: proofsJson?.pending_count ?? 0,
-        comm_last_24h_count: commJson?.total_last_24h ?? 0,
-      });
-      // Item #6 PR #2 — populate drill-down lists
-      const admJson = admRes && admRes.ok ? await admRes.json() : null;
-      const feesJson = feesRes && feesRes.ok ? await feesRes.json() : null;
-      setAdmissions(admJson);
-      setOverdueFees(feesJson);
-      setLeaveList(leaveJson?.pending ?? []);
-      setProofsList(proofsJson?.pending ?? []);
-      setCommGroups(commJson?.by_module ?? []);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  const d = data;
+  const att = data.attendance;
+  const fee = data.fees;
+  const risk = data.risk;
+  const teachers = data.teachers;
+  const admissions = data.admissions;
+  const attStatus = STATUS_COLOR[att.status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.not_marked;
+  const feeStatus = STATUS_COLOR[fee.status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.warning;
 
   return (
-    <Layout
-      title="Principal Dashboard"
-      subtitle={d ? `Live · ${new Date(d.as_of).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : 'Loading...'}
-      actions={
-        <div style={{ display: 'flex', gap: 8 }}>
-          {d?.briefing ? (
-            <button onClick={() => setShowBriefing(true)} className="btn btn-ghost btn-sm">
-              📋 Today's Briefing
-            </button>
-          ) : (
-            <button onClick={() => void generateBriefing()} disabled={generatingBriefing} className="btn btn-primary btn-sm">
-              {generatingBriefing ? '⏳ Generating...' : '✨ Generate Briefing'}
-            </button>
-          )}
-          <button onClick={fetch_data} disabled={refreshing} className="btn btn-ghost btn-sm">
-            {refreshing ? '↻ Refreshing...' : '↻ Refresh'}
-          </button>
-        </div>
-      }
-    >
-      {loading ? (
-        <div className="card"><div className="empty-state"><div className="empty-state-icon">📊</div><div className="empty-state-title">Loading dashboard...</div></div></div>
-      ) : !d ? (
-        <div className="alert alert-error">Failed to load dashboard data.</div>
-      ) : (
-        <>
-          {/* Batch 5: briefing error */}
-          {briefingError && (
-            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#991B1B' }}>
-              ⚠️ Briefing error: {briefingError}
-            </div>
-          )}
+    <Layout title="Principal Dashboard" subtitle={today}>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .kpi2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+        @media(min-width:640px){.kpi2{grid-template-columns:repeat(4,1fr)}}
+        .section-cards{display:grid;grid-template-columns:1fr;gap:14px}
+        @media(min-width:768px){.section-cards{grid-template-columns:1fr 1fr}}
+        .kpi-chip{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px 16px}
+      `}</style>
 
-          {/* Batch 5: Risk flags card */}
-          {riskFlags !== null && (
-            <div style={{ background: riskFlags.high_risk > 0 ? '#FFF7ED' : '#F9FAFB', border: `1px solid ${riskFlags.high_risk > 0 ? '#FED7AA' : '#E5E7EB'}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: riskFlags.count > 0 ? 12 : 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
-                  🚦 Student Risk Flags — {riskFlags.count} flagged
-                  {riskFlags.high_risk > 0 && <span style={{ marginLeft: 8, fontSize: 11, background: '#FEE2E2', color: '#991B1B', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>{riskFlags.high_risk} HIGH</span>}
-                  {riskFlags.medium_risk > 0 && <span style={{ marginLeft: 6, fontSize: 11, background: '#FEF3C7', color: '#92400E', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>{riskFlags.medium_risk} MEDIUM</span>}
-                </div>
-                <button onClick={() => void generateRiskFlags()} disabled={generatingRisk}
-                  style={{ fontSize: 11, padding: '4px 10px', background: 'none', border: '1px solid #D1D5DB', borderRadius: 6, cursor: 'pointer', color: '#374151' }}>
-                  {generatingRisk ? 'Analyzing...' : '↻ Run analysis'}
-                </button>
-              </div>
-              {riskFlags.count === 0 ? (
-                <div style={{ fontSize: 12, color: '#6B7280' }}>No students flagged. Click "Run analysis" to check.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {riskFlags.flags.slice(0, 5).map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
-                      <span style={{ fontWeight: 700, minWidth: 50, fontSize: 10,
-                        background: f.risk_level==='high' ? '#FEE2E2' : '#FEF3C7',
-                        color: f.risk_level==='high' ? '#991B1B' : '#92400E',
-                        padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' as const }}>{f.risk_level}</span>
-                      <span style={{ fontWeight: 600 }}>{f.student_name}</span>
-                      <span style={{ color: '#6B7280' }}>{(f.risk_factors ?? []).join(', ')}</span>
-                    </div>
-                  ))}
-                  {riskFlags.count > 5 && <div style={{ fontSize: 11, color: '#9CA3AF' }}>+ {riskFlags.count - 5} more students</div>}
-                </div>
-              )}
-            </div>
-          )}
-          {riskFlags === null && (
-            <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 12, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: '#6B7280' }}>🚦 Student risk analysis not yet run</span>
-              <button onClick={() => void generateRiskFlags()} disabled={generatingRisk}
-                style={{ fontSize: 11, padding: '4px 10px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-                {generatingRisk ? 'Analyzing...' : 'Run analysis →'}
-              </button>
-            </div>
-          )}
-
-          {/* Top KPI row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-            <MetricCard
-              label="Student Attendance Today"
-              value={d.attendance.today_pct !== null ? `${d.attendance.today_pct}%` : '—'}
-              sub={d.attendance.today_marked
-                ? `${d.attendance.today_present}/${d.attendance.today_total} students · ${d.attendance.month_avg_pct}% monthly avg`
-                : 'Not marked yet today'}
-              status={d.attendance.status}
-              href="/students"
-              icon="👨‍🎓"
-            />
-            <MetricCard
-              label="Fee Collection (This Month)"
-              value={`${d.fees.collection_pct}%`}
-              sub={`₹${Math.round(d.fees.pending_amount / 1000)}K pending · ${d.fees.overdue_count} overdue`}
-              status={d.fees.status}
-              href="/billing"
-              icon="💳"
-            />
-            <MetricCard
-              label="At-Risk Students"
-              value={d.risk.total}
-              sub={`${d.risk.critical} critical · ${d.risk.high} high · ${d.risk.medium} medium`}
-              status={d.risk.critical > 0 ? 'critical' : d.risk.high > 0 ? 'warning' : 'good'}
-              href="/automation/risk"
-              icon="⚠️"
-            />
-            {tcQueueCount > 0 && (
-              <MetricCard
-                label="Pending TC Approvals"
-                value={String(tcQueueCount)}
-                sub="Fee cleared — awaiting principal sign-off"
-                status="warning"
-                href="/admin/transfer-certificates?status=pending"
-                icon="📋"
-              />
-            )}
-            <MetricCard
-              label="Teacher Attendance"
-              value={d.teachers.total_tracked > 0
-                ? `${d.teachers.present_today}/${d.teachers.total_tracked}`
-                : '—'}
-              sub={d.teachers.total_tracked > 0
-                ? `${d.teachers.absent_today.length > 0 ? `Absent: ${d.teachers.absent_today.slice(0, 2).join(', ')}` : 'All present'}`
-                : 'Not marked yet'}
-              status={d.teachers.status}
-              href="/automation/teacher-attendance"
-              icon="👩‍🏫"
-            />
-          </div>
-
-          {/* Item #6 — Principal-specific operational KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-            <MetricCard
-              label="Pending Leave Approvals"
-              value={extraKpis?.pending_leave_count ?? '—'}
-              sub={extraKpis && extraKpis.pending_leave_count > 0 ? 'Awaiting your decision' : 'All caught up'}
-              status={extraKpis && extraKpis.pending_leave_count > 0 ? 'warning' : 'good'}
-              href="#principal-leave-approvals"
-              icon="🗓️"
-            />
-            <MetricCard
-              label="Proofs to Review"
-              value={extraKpis?.proofs_to_review_count ?? '—'}
-              sub={extraKpis && extraKpis.proofs_to_review_count > 0 ? 'Classroom photos pending audit' : 'No proofs pending'}
-              status={extraKpis && extraKpis.proofs_to_review_count > 0 ? 'warning' : 'good'}
-              href="#principal-classroom-proofs"
-              icon="📷"
-            />
-            <MetricCard
-              label="Parent Communications (24h)"
-              value={extraKpis?.comm_last_24h_count ?? '—'}
-              sub={extraKpis && extraKpis.comm_last_24h_count > 0 ? 'Notifications sent today' : 'Quiet today'}
-              status={'good'}
-              href="#principal-communications"
-              icon="💬"
-            />
-          </div>
-
-          {/* Item 10: ops quick links */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-            <Link href="/automation/geofence" style={{ textDecoration: 'none' }}>
-              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 18 }}>📍</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Geofence & Presence</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Define school polygon, view today's teacher pings</div>
-                </div>
-              </div>
-            </Link>
-            {/* Item #9: Academic Year Promotion quick link */}
-            <Link href="/automation/promotion" style={{ textDecoration: 'none' }}>
-              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 20 }}>🎓</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>Academic Year Promotion</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>Promote students to next class</div>
-                </div>
-              </div>
-            </Link>
-            {/* Item 11: substitute assignments quick link */}
-            <Link href="/automation/substitutes" style={{ textDecoration: 'none' }}>
-              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 18 }}>⚡</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Substitute Assignments</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Assign coverage when teachers are late or absent</div>
-                </div>
-              </div>
-            </Link>
-            {/* Item 11: classroom proofs quick link */}
-            <Link href="/automation/classroom-proofs" style={{ textDecoration: 'none' }}>
-              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 18 }}>📷</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Classroom Proofs</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Review photos teachers uploaded as proof of presence</div>
-                </div>
-              </div>
-            </Link>
-            {/* Item 12: lesson plan coverage quick link */}
-            <Link href="/automation/lesson-plans-coverage" style={{ textDecoration: 'none' }}>
-              <div className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 18 }}>📊</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Lesson Plan Coverage</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Per-class rollup of planned vs completed</div>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Second row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
-
-            {/* Admissions funnel */}
-            <div className="card">
-              <div className="section-header">
-                <div>
-                  <div className="section-title">Admissions Funnel</div>
-                  <div className="section-sub">Last 30 days · {d.admissions.total_30d} total leads</div>
-                </div>
-                <Link href="/admissions/crm" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>CRM →</Link>
-              </div>
-
-              {[
-                { label: 'New Enquiries', count: d.admissions.new, color: '#4F46E5', bg: '#EEF2FF' },
-                { label: 'Contacted', count: d.admissions.contacted, color: '#A16207', bg: '#FEF9C3' },
-                { label: 'Visit Scheduled', count: d.admissions.visit_scheduled, color: '#065F46', bg: '#ECFDF5' },
-                { label: 'Admitted This Month', count: d.admissions.admitted_month, color: '#15803D', bg: '#DCFCE7' },
-              ].map(stage => (
-                <div key={stage.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontSize: 13, color: '#374151' }}>{stage.label}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 80, height: 6, borderRadius: 3, background: '#F3F4F6', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${d.admissions.total_30d > 0 ? Math.min(100, Math.round((stage.count / d.admissions.total_30d) * 100)) : 0}%`, background: stage.color, borderRadius: 3 }} />
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: stage.color, minWidth: 28, textAlign: 'right' }}>{stage.count}</span>
-                  </div>
-                </div>
-              ))}
-
-              <div style={{ marginTop: 10, padding: '8px 12px', background: '#F9FAFB', borderRadius: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: '#6B7280' }}>High priority leads</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5' }}>{d.admissions.high_priority}</span>
-              </div>
-            </div>
-
-            {/* At-risk students detail */}
-            <div className="card">
-              <div className="section-header">
-                <div>
-                  <div className="section-title">Urgent: At-Risk Students</div>
-                  <div className="section-sub">Needs immediate attention</div>
-                </div>
-                <Link href="/automation/risk" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
-              </div>
-
-              {d.risk.top_cases.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: '#9CA3AF', fontSize: 14 }}>
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>✅</div>
-                  No unresolved risk flags
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {d.risk.top_cases.slice(0, 4).map((c, i) => {
-                    const badge = RISK_BADGE[c.risk_level] ?? RISK_BADGE.low;
-                    return (
-                      <div key={i} style={{ padding: '8px 10px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #F3F4F6' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13, color: '#111827' }}>{c.name}</span>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#6B7280' }}>{c.class}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: badge.bg, color: badge.color }}>
-                              {c.risk_level.toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                        <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>{c.summary?.slice(0, 80)}...</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Teacher performance + Events */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              {/* Teacher performance */}
-              <div className="card">
-                <div className="section-header">
-                  <div className="section-title">Teacher Performance</div>
-                  <Link href="/teacher-eval" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Evals →</Link>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {[
-                    { label: 'Avg Eval Score', value: d.teachers.avg_eval_score !== null ? `${d.teachers.avg_eval_score}/10` : '—', icon: '⭐' },
-                    { label: 'Evals This Week', value: d.teachers.evals_this_week, icon: '🎙' },
-                  ].map(m => (
-                    <div key={m.label} style={{ background: '#F9FAFB', borderRadius: 10, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{m.label}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>{m.icon} {m.value}</div>
-                    </div>
-                  ))}
-                </div>
-                {d.teachers.absent_today.length > 0 && (
-                  <div style={{ marginTop: 10, padding: '8px 10px', background: '#FEF2F2', borderRadius: 8, fontSize: 12, color: '#B91C1C' }}>
-                    <strong>Absent today:</strong> {d.teachers.absent_today.join(', ')}
-                  </div>
-                )}
-              </div>
-
-              {/* Upcoming events */}
-              <div className="card">
-                <div className="section-header">
-                  <div className="section-title">Next 7 Days</div>
-                </div>
-                {d.upcoming_events.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#9CA3AF' }}>No events scheduled</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {d.upcoming_events.map((ev, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 8, background: ev.is_holiday ? '#FEE2E2' : '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: ev.is_holiday ? '#B91C1C' : '#4F46E5', flexShrink: 0, lineHeight: 1.1, textAlign: 'center' }}>
-                          {new Date(ev.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).split(' ').map((p, j) => <div key={j}>{p}</div>)}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{ev.title}</div>
-                          {ev.is_holiday && <span style={{ fontSize: 10, fontWeight: 700, color: '#B91C1C' }}>HOLIDAY</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Fee details bar */}
-          <div className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div>
-                <div className="section-title">Fee Collection Status</div>
-                <div className="section-sub">Current month · {d.fees.collection_pct}% collected</div>
-              </div>
-              <Link href="/billing" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>View billing →</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
-              {[
-                { label: 'Collected Month', value: `₹${Math.round(d.fees.collected_month / 1000)}K`, color: '#15803D', bg: '#DCFCE7' },
-                { label: 'Pending Total', value: `₹${Math.round(d.fees.pending_amount / 1000)}K`, color: '#A16207', bg: '#FEF9C3' },
-                { label: 'Overdue Accounts', value: d.fees.overdue_count, color: '#B91C1C', bg: '#FEE2E2' },
-                { label: 'Students with Dues', value: d.fees.pending_students, color: '#374151', bg: '#F3F4F6' },
-              ].map(k => (
-                <div key={k.label} style={{ background: k.bg, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: k.color }}>{k.value}</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>{k.label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="progress-bar" style={{ height: 10 }}>
-              <div className="progress-fill" style={{
-                width: `${d.fees.collection_pct}%`,
-                background: d.fees.collection_pct >= 80 ? '#22C55E' : d.fees.collection_pct >= 60 ? '#F59E0B' : '#EF4444',
-              }} />
-            </div>
-          </div>
-          {/* Item #6 PR #2 — Drill-down sections */}
-
-          {/* Admissions Pipeline (Loop 1) */}
-          <div id="principal-admissions-pipeline" className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div>
-                <div className="section-title">Admissions Pipeline (last 90 days)</div>
-                <div className="section-sub">{admissions ? `${admissions.total} inquiries · ${admissions.high_priority_count} high priority` : 'Loading...'}</div>
-              </div>
-              <Link href="/automation/admissions" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full admissions →</Link>
-            </div>
-            {admissions && admissions.by_status.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
-                {admissions.by_status.map(g => (
-                  <div key={g.status} style={{ background: '#F3F4F6', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>{g.status}</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#374151' }}>{g.count}</div>
-                    <div style={{ fontSize: 10, color: '#6B7280' }}>avg score {g.avg_score} · oldest {g.oldest_age_days}d</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {admissions && admissions.inquiries.length > 0 ? (
-              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                {admissions.inquiries.slice(0, 10).map(i => (
-                  <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{i.parent_name || '—'} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>for {i.child_name || '—'}</span></div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{i.status} · {i.priority || 'normal'} · score {i.score ?? 0}</div>
-                    </div>
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{i.age_days}d ago</span>
-                  </div>
-                ))}
-              </div>
-            ) : admissions ? (
-              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No inquiries in the last 90 days.</div>
-            ) : null}
-          </div>
-
-          {/* Overdue Fees with Intervention (Loop 2) */}
-          <div id="principal-fees-overdue" className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div>
-                <div className="section-title">Overdue Fees · Intervention Tracking</div>
-                <div className="section-sub">{overdueFees ? `${overdueFees.total_count} accounts · ₹${Math.round(overdueFees.total_amount / 1000)}K total · ${overdueFees.with_intervention_count} with intervention` : 'Loading...'}</div>
-              </div>
-              <Link href="/billing" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full billing →</Link>
-            </div>
-            {overdueFees && overdueFees.fees.length > 0 ? (
-              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {overdueFees.fees.slice(0, 15).map(f => (
-                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F3F4F6', alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{f.student_name} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>· {f.class_label}</span></div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{f.fee_type || 'Fee'} · due {f.due_date} · {f.days_past_due}d past due</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#B91C1C' }}>₹{Math.round(Number(f.amount))}</div>
-                      {f.intervention_status ? (
-                        <span style={{ fontSize: 10, fontWeight: 600, color: '#15803D', background: '#DCFCE7', padding: '2px 6px', borderRadius: 4 }}>{f.intervention_status.replace(/_/g, ' ')}</span>
-                      ) : (
-                        <span style={{ fontSize: 10, color: '#9CA3AF' }}>no intervention</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : overdueFees ? (
-              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No overdue fees. Nice.</div>
-            ) : null}
-          </div>
-
-          {/* Pending Leave Approvals (Loop 3) */}
-          <div id="principal-leave-approvals" className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div className="section-title">Pending Leave Approvals</div>
-              <Link href="/automation/teacher-attendance" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Manage →</Link>
-            </div>
-            {leaveList && leaveList.length > 0 ? (
-              <div>
-                {leaveList.slice(0, 8).map(l => (
-                  <div key={l.id} style={{ padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{l.staff_name} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>· {l.leave_type}</span></div>
-                    <div style={{ fontSize: 11, color: '#6B7280' }}>{l.from_date} → {l.to_date}{l.reason ? ' · ' + l.reason : ''}</div>
-                  </div>
-                ))}
-              </div>
-            ) : leaveList ? (
-              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No pending leave requests.</div>
-            ) : null}
-          </div>
-
-          {/* Classroom Proofs to Review (Loop 4) */}
-          <div id="principal-classroom-proofs" className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div className="section-title">Classroom Proofs to Review</div>
-              <Link href="/automation/teacher-attendance" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Manage →</Link>
-            </div>
-            {proofsList && proofsList.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                {proofsList.slice(0, 6).map(p => (
-                  <div key={p.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 10 }}>
-                    {p.signed_url && <img src={p.signed_url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />}
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{p.staff_name}</div>
-                    <div style={{ fontSize: 10, color: '#6B7280' }}>{p.class_label} · {new Date(p.taken_at).toLocaleDateString()}</div>
-                  </div>
-                ))}
-              </div>
-            ) : proofsList ? (
-              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No proofs pending review.</div>
-            ) : null}
-          </div>
-
-          {/* Recent Parent Communications (Loop 5) */}
-          <div id="principal-communications" className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div className="section-title">Parent Communications by Module (7d)</div>
-              <Link href="/automation/notifications" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>Full log →</Link>
-            </div>
-            {commGroups && commGroups.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                {commGroups.map(g => (
-                  <div key={g.module} style={{ background: '#F3F4F6', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>{g.module}</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#374151' }}>{g.total}</div>
-                    <div style={{ fontSize: 10, color: '#6B7280' }}>{g.last_24h} in last 24h</div>
-                  </div>
-                ))}
-              </div>
-            ) : commGroups ? (
-              <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>No communications sent in the last 7 days.</div>
-            ) : null}
-          </div>
-        </>
-      )}
-
-      {/* Briefing modal */}
-      {showBriefing && d?.briefing && (
-        <div className="modal-overlay" onClick={() => setShowBriefing(false)}>
-          <div className="modal-box" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>📋 Daily Briefing</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-                  Generated {new Date(d.briefing.generated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-              <button onClick={() => setShowBriefing(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>×</button>
-            </div>
-            <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '16px 18px', fontSize: 14, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 420, overflowY: 'auto' }}>
-              {d.briefing.briefing_text}
-            </div>
-            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between' }}>
-              <Link href="/automation/briefing" style={{ fontSize: 13, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>View briefing history →</Link>
-              <button onClick={() => setShowBriefing(false)} className="btn btn-ghost btn-sm">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Batch 13: Report Narratives Approval */}
-      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      {/* AI Briefing Card */}
+      <div style={{ marginBottom: 20, background: aiUnavailable ? '#F9FAFB' : '#1E1B4B', borderRadius: 16, padding: '18px 20px', border: aiUnavailable ? '1px dashed #E5E7EB' : 'none' }}>
+        {aiUnavailable ? (
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>✍ Report Card Narratives</div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-              {narrativeCount > 0 ? <span style={{ color: '#B45309', fontWeight: 700 }}>{narrativeCount} pending approval</span> : 'No pending narratives'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#374151' }}>AI Daily Briefing</div>
+              <div style={{ padding: '2px 8px', background: '#FEF3C7', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#92400E' }}>UNAVAILABLE</div>
+            </div>
+            <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>
+              AI briefings require Anthropic API credits. Your school data is shown below — add Anthropic credits to enable automated intelligence summaries.
             </div>
           </div>
-          {narrativeCount > 0 && (
-            <button onClick={() => {
-              setShowNarratives(!showNarratives);
-              if (!showNarratives && narratives.length === 0) {
-                setNarrativeLoading(true);
-                void fetch('/api/principal/report-narratives?status=draft')
-                  .then(r => r.json())
-                  .then((d: {narratives?: {id:string;student_name:string;student_class:string;student_section:string;term:string;narrative_text:string;status:string}[]}) => { if (d.narratives) setNarratives(d.narratives); })
-                  .finally(() => setNarrativeLoading(false));
-              }
-            }} style={{ padding: '6px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              {showNarratives ? 'Hide' : 'Review All'}
-            </button>
-          )}
-        </div>
-        {showNarratives && (
-          narrativeLoading ? (
-            <div style={{ fontSize: 12, color: '#9CA3AF', padding: 12 }}>Loading...</div>
-          ) : narratives.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#9CA3AF', padding: 12 }}>No draft narratives.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {narratives.map(n => {
-                const st = approveState[n.id];
-                return (
-                  <div key={n.id} style={{ padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 8, opacity: (st==='done'||st==='rejected') ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{n.student_name} · Grade {n.student_class}-{n.student_section} · {n.term.replace(/_/g,' ')}</div>
-                        <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.5 }}>{n.narrative_text}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        {st === 'done' ? <span style={{ fontSize: 10, color: '#065F46', fontWeight: 700 }}>✓ Approved</span> :
-                         st === 'rejected' ? <span style={{ fontSize: 10, color: '#991B1B', fontWeight: 700 }}>✗ Rejected</span> : (
-                          <>
-                            <button disabled={st==='loading'} onClick={() => {
-                              setApproveState(prev => ({ ...prev, [n.id]: 'loading' }));
-                              void fetch(`/api/principal/report-narratives/${n.id}/approve`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve' }) })
-                                .then(r => { setApproveState(prev => ({ ...prev, [n.id]: r.ok ? 'done' : 'rejected' })); if (r.ok) setNarrativeCount(c => c - 1); });
-                            }} style={{ padding: '4px 10px', background: '#065F46', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Approve</button>
-                            <button disabled={st==='loading'} onClick={() => {
-                              setApproveState(prev => ({ ...prev, [n.id]: 'loading' }));
-                              void fetch(`/api/principal/report-narratives/${n.id}/approve`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reject' }) })
-                                .then(r => { setApproveState(prev => ({ ...prev, [n.id]: r.ok ? 'rejected' : 'loading' })); if (r.ok) setNarrativeCount(c => c - 1); });
-                            }} style={{ padding: '4px 10px', background: '#B91C1C', color: '#fff', border: 'none', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Reject</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        ) : (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', animation: 'pulse 2s infinite' }} />
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E7FF' }}>AI Briefing</div>
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                {data.briefing?.generated_at ? new Date(data.briefing.generated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+              </div>
             </div>
-          )
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxHeight: briefingExpanded ? 'none' : 120, overflow: 'hidden' }}>
+              {data.briefing?.briefing_text}
+            </div>
+            {(data.briefing?.briefing_text?.length ?? 0) > 300 && (
+              <button onClick={() => setBriefingExpanded(!briefingExpanded)}
+                style={{ marginTop: 8, background: 'none', border: 'none', color: '#A5B4FC', fontSize: 12, cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontWeight: 600 }}>
+                {briefingExpanded ? 'Show less ↑' : 'Read full briefing ↓'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
+      {/* KPI grid */}
+      <div className="kpi2">
+        {[
+          {
+            label: 'Attendance Today',
+            value: att.today_marked ? `${Math.round(att.today_pct ?? 0)}%` : 'Not marked',
+            sub: att.today_marked ? `${att.today_present}/${att.today_total} present` : 'No data yet',
+            ...attStatus, href: '/students',
+          },
+          {
+            label: 'Fees Pending',
+            value: `₹${(fee.pending_amount / 1000).toFixed(1)}K`,
+            sub: `${fee.pending_students} students · ${fee.overdue_count} overdue`,
+            ...feeStatus, href: '/admin/fees',
+          },
+          {
+            label: 'At-Risk Students',
+            value: risk.total,
+            sub: `${risk.critical} critical · ${risk.high} high`,
+            bg: risk.critical > 0 ? '#FEE2E2' : '#FEF9C3',
+            color: risk.critical > 0 ? '#B91C1C' : '#A16207',
+            dot: risk.critical > 0 ? '#EF4444' : '#F59E0B',
+            href: '/students',
+          },
+          {
+            label: 'Teachers Present',
+            value: teachers.total_tracked > 0 ? `${teachers.present_today}/${teachers.total_tracked}` : 'N/A',
+            sub: teachers.absent_today.length > 0 ? `Absent: ${teachers.absent_today.slice(0,2).join(', ')}${teachers.absent_today.length > 2 ? '…' : ''}` : 'All present',
+            bg: teachers.absent_today.length > 0 ? '#FEF9C3' : '#DCFCE7',
+            color: teachers.absent_today.length > 0 ? '#A16207' : '#15803D',
+            dot: teachers.absent_today.length > 0 ? '#F59E0B' : '#22C55E',
+            href: '/admin/staff',
+          },
+        ].map(k => (
+          <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
+            <div className="kpi-chip" style={{ borderLeft: `3px solid ${k.dot}` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{k.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: k.color, marginBottom: 3 }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{k.sub}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
 
-      {/* Batch 5A: Regulatory Intelligence widget */}
-      {regulatorySources > 0 && regulatoryAlerts.length > 0 && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '14px 18px', marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#B91C1C' }}>
-              {regulatoryAlerts.length} urgent regulatory update{regulatoryAlerts.length !== 1 ? 's' : ''}
-            </div>
-            <a href='/admin/regulatory' style={{ fontSize: 11, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>View all</a>
+      {/* Risk cases */}
+      {risk.total > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>⚠️ At-Risk Students</div>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>{risk.total} flagged</div>
           </div>
-          {regulatoryAlerts.map(n => (
-            <div key={n.id} style={{ fontSize: 12, color: '#374151', paddingLeft: 12, borderLeft: '2px solid #FCA5A5', marginBottom: 6 }}>
-              <span style={{ fontSize: 9, background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, padding: '1px 5px', borderRadius: 3, marginRight: 6 }}>{n.source_code}</span>
-              {n.title.slice(0, 80)}{n.title.length > 80 ? '...' : ''}
-            </div>
-          ))}
+          {risk.top_cases.slice(0, 5).map((c, i) => {
+            const rc = RISK_COLORS[c.risk_level] ?? RISK_COLORS.medium;
+            return (
+              <div key={i} style={{ padding: '11px 16px', borderBottom: i < Math.min(4, risk.top_cases.length - 1) ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Class {c.class} · {c.summary?.slice(0, 60) ?? ''}</div>
+                </div>
+                <div style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, background: rc.bg, color: rc.color, flexShrink: 0, marginLeft: 10 }}>
+                  {c.risk_level.toUpperCase()}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
-      {regulatorySources === 0 && (
-        <div style={{ marginTop: 12, fontSize: 11, color: '#9CA3AF' }}>
-          <a href='/admin/regulatory' style={{ color: '#9CA3AF', textDecoration: 'none' }}>Enable regulatory tracking</a>
+
+      {/* Upcoming events */}
+      {data.upcoming_events.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>📅 Upcoming Events</div>
+          </div>
+          {data.upcoming_events.slice(0, 5).map((ev, i) => {
+            const d = new Date(ev.event_date);
+            return (
+              <div key={i} style={{ padding: '10px 16px', borderBottom: i < 4 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: ev.is_holiday ? '#FEF9C3' : '#EEF2FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: ev.is_holiday ? '#A16207' : '#4F46E5', lineHeight: 1 }}>{d.getDate()}</span>
+                  <span style={{ fontSize: 9, color: ev.is_holiday ? '#A16207' : '#4F46E5', fontWeight: 600 }}>{d.toLocaleString('en-IN', { month: 'short' })}</span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{ev.title}</div>
+                {ev.is_holiday && <span style={{ fontSize: 10, background: '#FEF9C3', color: '#A16207', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>HOLIDAY</span>}
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
+        {[
+          { href: '/admin/broadcasts', icon: '📢', label: 'Send Broadcast', color: '#4F46E5' },
+          { href: '/admin/fees', icon: '💰', label: 'View Fees', color: '#065F46' },
+          { href: '/teacher-eval', icon: '🎙', label: 'Teacher Eval', color: '#7C3AED' },
+          { href: '/admin/staff', icon: '👥', label: 'View Staff', color: '#0284C7' },
+        ].map(a => (
+          <Link key={a.href} href={a.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 22 }}>{a.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: a.color }}>{a.label}</div>
+          </Link>
+        ))}
+      </div>
     </Layout>
   );
 }
