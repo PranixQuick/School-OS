@@ -1,10 +1,3 @@
-// lib/admin-auth.ts
-// Admin auth helper for /api/admin/* routes.
-//
-// FIX: Was reading from x-school-id/x-user-role/x-user-email headers that
-// middleware never injects. Now reads from the session cookie via getSession()
-// exactly like requireTeacherSession and requirePrincipalSession do.
-
 import type { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
@@ -20,24 +13,23 @@ export class AdminAuthError extends Error {
 
 export interface AdminContext {
   schoolId: string;
-  userId: string;         // school_users.id
-  staffId: string | null; // null for owner/accountant who may not have staff record
+  userId: string;
+  staffId: string | null;
   userRole: string;
   userEmail: string;
 }
 
-const ALLOWED_ROLES = new Set(['owner', 'principal', 'admin_staff', 'admin', 'accountant']);
+// Roles that can access admin API routes.
+// viewer: read-only access enforced at API level (GET only, no mutations).
+// counsellor: access to student data, leave requests, parent interactions.
+const ALLOWED_ROLES = new Set([
+  'owner', 'principal', 'admin_staff', 'admin',
+  'accountant', 'viewer', 'counsellor',
+]);
 
-/**
- * Resolves the calling admin's context from the session cookie JWT.
- * Throws AdminAuthError 401 if no valid session, 403 if role not permitted.
- */
 export async function requireAdminSession(req: NextRequest): Promise<AdminContext> {
   const session = await getSession(req);
-
-  if (!session) {
-    throw new AdminAuthError('No session', 401);
-  }
+  if (!session) throw new AdminAuthError('No session', 401);
 
   const { schoolId, userId, userRole, userEmail } = session;
 
@@ -45,7 +37,11 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
     throw new AdminAuthError(`Role '${userRole}' is not permitted for this action`, 403);
   }
 
-  // Resolve school_users.id + staff_id for audit trail
+  // Viewer: only allow GET requests
+  if (userRole === 'viewer' && req.method !== 'GET') {
+    throw new AdminAuthError('Viewer role is read-only', 403);
+  }
+
   const { data: schoolUser, error } = await supabaseAdmin
     .from('school_users')
     .select('id, staff_id, is_active')
@@ -53,12 +49,8 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
     .eq('email', userEmail)
     .maybeSingle();
 
-  if (error || !schoolUser) {
-    throw new AdminAuthError('Admin account not found', 403);
-  }
-  if (schoolUser.is_active === false) {
-    throw new AdminAuthError('Admin account is inactive', 403);
-  }
+  if (error || !schoolUser) throw new AdminAuthError('Admin account not found', 403);
+  if (schoolUser.is_active === false) throw new AdminAuthError('Admin account is inactive', 403);
 
   return {
     schoolId,
@@ -67,4 +59,14 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
     userRole,
     userEmail,
   };
+}
+
+// Non-throwing helper for pages that want to check role without error
+export async function getAdminRole(req: NextRequest): Promise<string | null> {
+  try {
+    const ctx = await requireAdminSession(req);
+    return ctx.userRole;
+  } catch {
+    return null;
+  }
 }
