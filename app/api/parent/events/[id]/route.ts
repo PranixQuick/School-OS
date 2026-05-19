@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
 
-  // Verify gallery is published and accessible to parents (tenant-safe)
+  // Verify gallery is published and tenant-safe
   const { data: gallery, error: gErr } = await supabaseAdmin
     .from('event_galleries')
     .select('id, title, description, event_type, event_date, status, photo_count, video_count, featured_image_url, allow_download, audience_type')
@@ -36,13 +36,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     .order('display_order', { ascending: true })
     .order('uploaded_at', { ascending: true });
 
-  // Log view
-  await supabaseAdmin.from('event_media_views').insert({
+  // Log view (fire-and-forget — do not await or chain)
+  void supabaseAdmin.from('event_media_views').insert({
     gallery_id: id,
     school_id: session.schoolId,
     viewer_type: 'parent',
     viewer_id: session.studentId,
-  }).then(() => {}).catch(() => {});
+  });
 
   return NextResponse.json({ gallery, media: mediaItems ?? [] });
 }
