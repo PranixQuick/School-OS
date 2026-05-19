@@ -1,31 +1,27 @@
-// app/api/auth/login/route.ts
-// POST-only endpoint. GET added to return a clear 405 instead of Next.js generic 405.
-// Eliminates noise from bots and misconfigured clients hitting GET /api/auth/login.
-
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
-import { signSession } from '@/lib/session';
+import { issueSession, sessionCookie } from '@/lib/session';
 import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
-import { env } from '@/lib/env';
 
+// GET: return explicit 405 instead of Next.js generic 405 — stops noisy logs
 export async function GET() {
   return NextResponse.json(
-    { error: 'Method Not Allowed. Use POST to login.', hint: 'POST /api/auth/login with { email, password }' },
+    { error: 'Method Not Allowed. Use POST to login.' },
     { status: 405, headers: { Allow: 'POST' } }
   );
 }
 
 export async function POST(req: NextRequest) {
   const ip = clientIpFromRequest(req);
-  
-  // Check if already logged in
+
+  // Already logged in — return redirect target
   const existing = await getSession(req);
   if (existing) {
-    const redirectTo = existing.userRole === 'teacher' ? '/teacher' :
+    const redirectTo =
+      existing.userRole === 'teacher' ? '/teacher' :
       existing.userRole === 'principal' ? '/principal' :
-      existing.userRole === 'accountant' ? '/dashboard' :
       '/dashboard';
     return NextResponse.json({ redirectTo });
   }
@@ -43,27 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
   }
 
-  // Rate limit check
-  const { data: rateCheck } = await supabaseAdmin
-    .from('api_rate_log')
-    .select('id')
-    .eq('identifier', ip)
-    .eq('endpoint', 'login')
-    .gte('created_at', new Date(Date.now() - 60000).toISOString())
-    .limit(10);
-
-  if ((rateCheck?.length ?? 0) >= 10) {
-    await logAuthEvent({ eventType: 'rate_limited', email, ip, metadata: { reason: 'login_attempts' } });
-    return NextResponse.json({ error: 'Too many login attempts. Please wait 1 minute.' }, { status: 429 });
-  }
-
-  // Log this attempt
-  await supabaseAdmin.from('api_rate_log').insert({ identifier: ip, endpoint: 'login' }).then(() => {}, () => {});
-
-  // Look up user
+  // Look up user + school in one join
   const { data: users, error: lookupErr } = await supabaseAdmin
     .from('school_users')
-    .select('id, school_id, email, password_hash, role, is_active, staff_id')
+    .select('id, school_id, email, password_hash, role, is_active, staff_id, schools(name, slug, plan)')
     .eq('email', email)
     .limit(2);
 
@@ -78,7 +57,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account is inactive. Contact your school administrator.' }, { status: 401 });
   }
 
-  // Verify password
   if (!user.password_hash) {
     await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'no_password_set' } });
     return NextResponse.json({ error: 'Password not set.', code: 'USE_MAGIC_LINK' }, { status: 401 });
@@ -90,22 +68,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
-  // Issue session
-  const token = await signSession({
+  // Resolve school details
+  const schoolRow = Array.isArray(user.schools) ? user.schools[0] : user.schools;
+  const schoolName = (schoolRow as { name?: string } | null)?.name ?? '';
+  const schoolSlug = (schoolRow as { slug?: string } | null)?.slug ?? '';
+  const plan = (schoolRow as { plan?: string } | null)?.plan ?? 'starter';
+
+  // Resolve staff name
+  let userName = email.split('@')[0];
+  if (user.staff_id) {
+    const { data: staffRow } = await supabaseAdmin
+      .from('staff').select('name').eq('id', user.staff_id).single();
+    if (staffRow?.name) userName = staffRow.name;
+  }
+
+  // Issue session JWT
+  const token = await issueSession({
     userId: user.id,
     schoolId: user.school_id,
     userEmail: user.email,
     userRole: user.role,
+    schoolName,
+    schoolSlug,
+    plan,
+    userName,
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(env.SESSION_COOKIE_NAME ?? 'school_session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-  });
+  const cookieOpts = sessionCookie(token, process.env.NODE_ENV === 'production');
+  cookieStore.set(cookieOpts.name, cookieOpts.value, cookieOpts);
 
   await logAuthEvent({
     eventType: 'login_success',
@@ -113,15 +104,9 @@ export async function POST(req: NextRequest) {
     ip,
     metadata: { role: user.role, school_id: user.school_id },
   });
-  await supabaseAdmin.from('auth_events').insert({
-    event_type: 'magic_link_sent',
-    email,
-    ip,
-    metadata: { note: 'password_login_success' },
-    school_id: user.school_id,
-  }).then(() => {}, () => {});
 
-  const redirectTo = user.role === 'teacher' ? '/teacher' :
+  const redirectTo =
+    user.role === 'teacher' ? '/teacher' :
     user.role === 'principal' ? '/principal' :
     '/dashboard';
 
