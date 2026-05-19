@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
+import NetworkStatus from '@/components/NetworkStatus';
 import type { ReactNode } from 'react';
 import './globals.css';
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <NetworkStatus />
         <ServiceWorkerRegistration />
       </body>
     </html>
