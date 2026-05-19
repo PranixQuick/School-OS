@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 import { issueSession, sessionCookie } from '@/lib/session';
 import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
 
-// GET: return explicit 405 instead of Next.js generic 405 — stops noisy logs
 export async function GET() {
   return NextResponse.json(
     { error: 'Method Not Allowed. Use POST to login.' },
@@ -16,14 +15,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const ip = clientIpFromRequest(req);
 
-  // Already logged in — return redirect target
   const existing = await getSession(req);
   if (existing) {
-    const redirectTo =
-      existing.userRole === 'teacher' ? '/teacher' :
-      existing.userRole === 'principal' ? '/principal' :
-      '/dashboard';
-    return NextResponse.json({ redirectTo });
+    return NextResponse.json({ redirectTo: roleRedirect(existing.userRole) });
   }
 
   let email: string, password: string;
@@ -39,7 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
   }
 
-  // Look up user + school in one join
   const { data: users, error: lookupErr } = await supabaseAdmin
     .from('school_users')
     .select('id, school_id, email, password_hash, role, is_active, staff_id, schools(name, slug, plan)')
@@ -68,13 +61,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
-  // Resolve school details
   const schoolRow = Array.isArray(user.schools) ? user.schools[0] : user.schools;
   const schoolName = (schoolRow as { name?: string } | null)?.name ?? '';
   const schoolSlug = (schoolRow as { slug?: string } | null)?.slug ?? '';
   const plan = (schoolRow as { plan?: string } | null)?.plan ?? 'starter';
 
-  // Resolve staff name
   let userName = email.split('@')[0];
   if (user.staff_id) {
     const { data: staffRow } = await supabaseAdmin
@@ -82,33 +73,28 @@ export async function POST(req: NextRequest) {
     if (staffRow?.name) userName = staffRow.name;
   }
 
-  // Issue session JWT
   const token = await issueSession({
-    userId: user.id,
-    schoolId: user.school_id,
-    userEmail: user.email,
-    userRole: user.role,
-    schoolName,
-    schoolSlug,
-    plan,
-    userName,
+    userId: user.id, schoolId: user.school_id,
+    userEmail: user.email, userRole: user.role,
+    schoolName, schoolSlug, plan, userName,
   });
 
   const cookieStore = await cookies();
   const cookieOpts = sessionCookie(token, process.env.NODE_ENV === 'production');
   cookieStore.set(cookieOpts.name, cookieOpts.value, cookieOpts);
 
-  await logAuthEvent({
-    eventType: 'login_success',
-    email,
-    ip,
-    metadata: { role: user.role, school_id: user.school_id },
-  });
+  await logAuthEvent({ eventType: 'login_success', email, ip, metadata: { role: user.role, school_id: user.school_id } });
 
-  const redirectTo =
-    user.role === 'teacher' ? '/teacher' :
-    user.role === 'principal' ? '/principal' :
-    '/dashboard';
+  return NextResponse.json({ success: true, redirectTo: roleRedirect(user.role), role: user.role });
+}
 
-  return NextResponse.json({ success: true, redirectTo, role: user.role });
+function roleRedirect(role: string): string {
+  switch (role) {
+    case 'teacher':    return '/teacher';
+    case 'principal':  return '/principal';
+    case 'student':    return '/student';
+    // viewer + counsellor + accountant all go to the dashboard
+    // viewer is read-only enforced at API level, not by routing
+    default:           return '/dashboard';
+  }
 }
