@@ -1,0 +1,1 @@
+User-agent: *\nAllow: /\nAllow: /register\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /teacher\nDisallow: /principal\nDisallow: /owner\nDisallow: /parent\nDisallow: /student\nDisallow: /api/\nDisallow: /settings\nDisallow: /onboarding\n\nSitemap: https://www.edprosys.com/sitemap.xml\n
