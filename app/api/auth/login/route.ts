@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
 import { issueSession, sessionCookie } from '@/lib/session';
 import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
+import { enforceLoginRateLimit, isE2EBypass } from '@/lib/rate-limit';
 
 export async function GET() {
   return NextResponse.json(
@@ -31,6 +32,19 @@ export async function POST(req: NextRequest) {
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+  }
+
+  // Rate limit enforcement — skip only for CI E2E bypass header
+  const bypassHeader = req.headers.get('x-e2e-bypass');
+  if (!isE2EBypass(bypassHeader)) {
+    const rl = await enforceLoginRateLimit({ email, ip });
+    if (!rl.allowed) {
+      await logAuthEvent({ eventType: 'rate_limited', email, ip, metadata: { retryAfterSec: rl.retryAfterSec, source: rl.source } });
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.', retryAfterSec: rl.retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
+      );
+    }
   }
 
   const { data: users, error: lookupErr } = await supabaseAdmin
@@ -92,11 +106,10 @@ export async function POST(req: NextRequest) {
 // Must stay in sync with Layout.tsx NAV_BY_ROLE dashboard hrefs.
 function roleRedirect(role: string): string {
   switch (role) {
-    case 'owner':      return '/owner';       // Owner cross-school dashboard
-    case 'teacher':    return '/teacher';     // Teacher mobile portal
-    case 'principal':  return '/principal';   // Principal briefing dashboard
-    case 'student':    return '/student';     // Student portal
-    // admin, admin_staff, accountant, viewer, counsellor → shared admin dashboard
+    case 'owner':      return '/owner';
+    case 'teacher':    return '/teacher';
+    case 'principal':  return '/principal';
+    case 'student':    return '/student';
     default:           return '/dashboard';
   }
 }
