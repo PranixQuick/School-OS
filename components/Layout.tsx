@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-// Role-based navigation — ONLY routes that have actual pages
 const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href: string; icon: string }[] }[]> = {
   admin: [
     { group: 'Overview', items: [
@@ -20,6 +19,7 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
     ]},
     { group: 'Communication', items: [
       { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
+      { label: 'Events & Gallery', href: '/admin/events', icon: '📸' },
       { label: 'WhatsApp Bot', href: '/whatsapp', icon: '💬' },
       { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
     ]},
@@ -48,6 +48,7 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
     ]},
     { group: 'Communication', items: [
       { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
+      { label: 'Events & Gallery', href: '/admin/events', icon: '📸' },
       { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
     ]},
     { group: 'Records', items: [
@@ -120,14 +121,12 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
   ],
   counsellor: [
     { group: 'Main', items: [
-      // Counsellor lands on admin dashboard, not teacher portal
       { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
       { label: 'Students', href: '/students', icon: '👨‍🎓' },
     ]},
   ],
 };
 
-// Fallback nav for unknown roles
 const DEFAULT_NAV = [
   { group: 'Main', items: [
     { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
@@ -208,7 +207,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
             </div>
           </div>
-          {/* Viewer read-only badge */}
           {role === 'viewer' && (
             <div style={{ marginTop: 8, padding: '3px 8px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 5, fontSize: 10, fontWeight: 700, color: '#92400E', display: 'inline-block' }}>
               👁 READ ONLY
