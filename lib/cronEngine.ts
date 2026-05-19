@@ -456,6 +456,13 @@ Generate the principal daily briefing now.`,
 
   } catch (err) {
     const error = String(err);
+    // ClaudeCreditsError means AI unavailable — not a crash. Mark as skipped, not failed.
+    // This prevents false failure alerts and keeps error_logs clean.
+    const isCreditsError = error.includes('ClaudeCreditsError') || error.includes('credit balance is too low') || error.includes('credit_balance');
+    if (isCreditsError) {
+      await completeRun(runId, { status: 'skipped', result: { reason: 'ai_unavailable', detail: 'Anthropic API credit balance too low' }, startedAt });
+      return { job: 'principal_briefing', schoolId: school.id, success: true, data: { skipped: true, reason: 'ai_unavailable' }, durationMs: Date.now() - startedAt };
+    }
     await logError({ route: '/api/cron/daily:principal_briefing', error, schoolId: school.id });
     await completeRun(runId, { status: 'failed', error, startedAt });
     return { job: 'principal_briefing', schoolId: school.id, success: false, error, durationMs: Date.now() - startedAt };
