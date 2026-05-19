@@ -3,9 +3,8 @@ import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 // GET /api/auth/me
-// Returns current session user identity for UI header population.
-// Called by teacher layout, admin layout, and any component needing user context.
-// Returns 401 (not 404) when session is absent — allows UI to redirect to login.
+// Returns current user identity for UI header/layout population.
+// 401 when no session — allows layout to redirect to login.
 
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
@@ -13,11 +12,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No session' }, { status: 401 });
   }
 
-  // Fetch name + school name in one parallel query
   const [schoolUserRes, schoolRes] = await Promise.allSettled([
     supabaseAdmin
       .from('school_users')
-      .select('id, staff_id, staff(name)')
+      .select('id, staff_id, staff:staff_id(name)')
       .eq('id', session.userId)
       .single(),
     supabaseAdmin
@@ -30,13 +28,18 @@ export async function GET(req: NextRequest) {
   const schoolUser = schoolUserRes.status === 'fulfilled' ? schoolUserRes.value.data : null;
   const school = schoolRes.status === 'fulfilled' ? schoolRes.value.data : null;
 
-  // Extract name: prefer staff.name, fall back to email prefix
-  const staffRow = schoolUser?.staff;
-  const staffName = Array.isArray(staffRow)
-    ? (staffRow[0] as { name: string } | undefined)?.name ?? null
-    : (staffRow as { name: string } | null)?.name ?? null;
+  // Resolve name from staff join — supabase returns joined row as object or array
+  let staffName: string | null = null;
+  if (schoolUser?.staff) {
+    const raw = schoolUser.staff as unknown;
+    if (Array.isArray(raw)) {
+      staffName = (raw[0] as { name?: string } | undefined)?.name ?? null;
+    } else {
+      staffName = (raw as { name?: string } | null)?.name ?? null;
+    }
+  }
 
-  const name = staffName ?? session.userEmail.split('@')[0];
+  const name = staffName ?? session.userName ?? session.userEmail.split('@')[0];
 
   return NextResponse.json({
     id: session.userId,
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
     email: session.userEmail,
     role: session.userRole,
     school_id: session.schoolId,
-    school_name: school?.name ?? '',
-    staff_id: schoolUser?.staff_id ?? null,
+    school_name: school?.name ?? session.schoolName ?? '',
+    staff_id: (schoolUser as { staff_id?: string } | null)?.staff_id ?? null,
   });
 }
