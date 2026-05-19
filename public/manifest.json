@@ -1,26 +1,74 @@
 {
+  "id": "/",
   "name": "EdProSys",
   "short_name": "EdProSys",
-  "description": "EdProSys — Powering Institutions. Empowering Futures.",
+  "description": "AI-powered school management for Indian schools. Attendance, fees, WhatsApp alerts, report cards.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0F172A",
-  "theme_color": "#6366F1",
-  "orientation": "portrait",
+  "background_color": "#1E1B4B",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "business"],
   "icons": [
     {
-      "src": "/icons/icon-192.svg",
-      "sizes": "192x192",
+      "src": "/brand/icon.svg",
       "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.svg",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "productivity"],
-  "lang": "en-IN"
+  "shortcuts": [
+    {
+      "name": "Attendance",
+      "short_name": "Attend",
+      "description": "Mark student attendance",
+      "url": "/teacher/attendance",
+      "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Events Gallery",
+      "short_name": "Gallery",
+      "description": "View school event photos",
+      "url": "/parent/events",
+      "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Fees",
+      "short_name": "Fees",
+      "description": "View fee status",
+      "url": "/parent/fees",
+      "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/teacher-attendance.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mark attendance in 30 seconds"
+    },
+    {
+      "src": "/screenshots/parent-dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Parents stay informed"
+    }
+  ]
 }
