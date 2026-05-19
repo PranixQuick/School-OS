@@ -19,14 +19,23 @@ const PORTAL_ROLES: Record<string, string[]> = {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const method = req.method;
+
+  // Handle POST /login — browser cache replay or misconfigured form.
+  // Next.js App Router doesn't handle POST on page routes (returns 404 with
+  // "Failed to find Server Action"). Redirect to GET /login cleanly.
+  if (pathname === '/login' && method === 'POST') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url, 303); // 303 = redirect to GET
+  }
 
   // Allow public paths
   if (PUBLIC.some(p => pathname.startsWith(p))) return NextResponse.next();
 
   // Allow API routes (auth handled in individual routes)
   if (pathname.startsWith('/api/')) {
-    const res = NextResponse.next();
-    return res;
+    return NextResponse.next();
   }
 
   // Check session cookie
@@ -40,11 +49,20 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Check portal-specific role requirements
+  for (const [path, roles] of Object.entries(PORTAL_ROLES)) {
+    if (pathname.startsWith(path)) {
+      // Role check happens in the page/API itself — middleware just passes through
+      break;
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  // Exclude: Next.js internals, static assets, PWA files (sw.js, offline.html),
-  // icons, manifest — these must be publicly accessible without a session.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons|manifest|sw.js|offline.html).*)'],
+  // Exclude: Next.js internals, static assets, sw.js, offline.html
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest|sw.js|offline.html|robots.txt).*)',
+  ],
 };
