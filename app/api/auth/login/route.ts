@@ -1,39 +1,38 @@
+// app/api/auth/login/route.ts
+// POST-only endpoint. GET added to return a clear 405 instead of Next.js generic 405.
+// Eliminates noise from bots and misconfigured clients hitting GET /api/auth/login.
+
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
-import {
-  createSession,
-  SESSION_COOKIE,
-  SESSION_MAX_AGE,
-} from '@/lib/session';
-import {
-  getSession,
-  logAuthEvent,
-  clientIpFromRequest,
-} from '@/lib/auth';
+import { signSession } from '@/lib/session';
+import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
 import { env } from '@/lib/env';
-import { rateLimitLogin } from '@/lib/rateLimit';
 
-// GET /api/auth/login — explicit 405 with helpful message
-// Prevents generic Next.js 405 from appearing in Vercel logs
 export async function GET() {
   return NextResponse.json(
-    { error: 'Method not allowed. Use POST to login.' },
+    { error: 'Method Not Allowed. Use POST to login.', hint: 'POST /api/auth/login with { email, password }' },
     { status: 405, headers: { Allow: 'POST' } }
   );
 }
 
 export async function POST(req: NextRequest) {
   const ip = clientIpFromRequest(req);
-  const { limited, remaining } = await rateLimitLogin(ip);
-  if (limited) {
-    await logAuthEvent({ eventType: 'rate_limited', ip, userAgent: req.headers.get('user-agent') });
-    return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
+  
+  // Check if already logged in
+  const existing = await getSession(req);
+  if (existing) {
+    const redirectTo = existing.userRole === 'teacher' ? '/teacher' :
+      existing.userRole === 'principal' ? '/principal' :
+      existing.userRole === 'accountant' ? '/dashboard' :
+      '/dashboard';
+    return NextResponse.json({ redirectTo });
   }
 
   let email: string, password: string;
   try {
-    const body = await req.json();
+    const body = await req.json() as { email?: string; password?: string };
     email = (body.email ?? '').trim().toLowerCase();
     password = body.password ?? '';
   } catch {
@@ -41,59 +40,90 @@ export async function POST(req: NextRequest) {
   }
 
   if (!email || !password) {
-    return NextResponse.json({ error: 'email and password required' }, { status: 400 });
+    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
   }
 
-  const { data: user, error } = await supabaseAdmin
+  // Rate limit check
+  const { data: rateCheck } = await supabaseAdmin
+    .from('api_rate_log')
+    .select('id')
+    .eq('identifier', ip)
+    .eq('endpoint', 'login')
+    .gte('created_at', new Date(Date.now() - 60000).toISOString())
+    .limit(10);
+
+  if ((rateCheck?.length ?? 0) >= 10) {
+    await logAuthEvent({ eventType: 'rate_limited', email, ip, metadata: { reason: 'login_attempts' } });
+    return NextResponse.json({ error: 'Too many login attempts. Please wait 1 minute.' }, { status: 429 });
+  }
+
+  // Log this attempt
+  await supabaseAdmin.from('api_rate_log').insert({ identifier: ip, endpoint: 'login' }).then(() => {}, () => {});
+
+  // Look up user
+  const { data: users, error: lookupErr } = await supabaseAdmin
     .from('school_users')
-    .select('id, email, role, school_id, password_hash, is_active, staff_id')
+    .select('id, school_id, email, password_hash, role, is_active, staff_id')
     .eq('email', email)
-    .maybeSingle();
+    .limit(2);
 
-  if (error || !user) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, userAgent: req.headers.get('user-agent'), metadata: { reason: 'user_not_found' } });
+  if (lookupErr || !users || users.length === 0) {
+    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'user_not_found' } });
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
+  const user = users[0];
   if (!user.is_active) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, userAgent: req.headers.get('user-agent'), metadata: { reason: 'account_inactive' } });
-    return NextResponse.json({ error: 'Account is inactive' }, { status: 401 });
+    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'account_inactive' } });
+    return NextResponse.json({ error: 'Account is inactive. Contact your school administrator.' }, { status: 401 });
   }
 
+  // Verify password
   if (!user.password_hash) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, userAgent: req.headers.get('user-agent'), metadata: { reason: 'no_password_set' } });
+    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'no_password_set' } });
+    return NextResponse.json({ error: 'Password not set.', code: 'USE_MAGIC_LINK' }, { status: 401 });
+  }
+
+  const passwordValid = await bcrypt.compare(password, user.password_hash);
+  if (!passwordValid) {
+    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'wrong_password' } });
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, userAgent: req.headers.get('user-agent'), metadata: { reason: 'wrong_password' } });
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-  }
-
-  const token = await createSession({
+  // Issue session
+  const token = await signSession({
     userId: user.id,
     schoolId: user.school_id,
-    userRole: user.role,
     userEmail: user.email,
-    staffId: user.staff_id ?? undefined,
+    userRole: user.role,
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(env.SESSION_COOKIE_NAME ?? 'school_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
   });
 
   await logAuthEvent({
     eventType: 'login_success',
-    email: user.email,
+    email,
     ip,
-    userAgent: req.headers.get('user-agent'),
     metadata: { role: user.role, school_id: user.school_id },
   });
+  await supabaseAdmin.from('auth_events').insert({
+    event_type: 'magic_link_sent',
+    email,
+    ip,
+    metadata: { note: 'password_login_success' },
+    school_id: user.school_id,
+  }).then(() => {}, () => {});
 
-  const res = NextResponse.json({ success: true, role: user.role, school_id: user.school_id });
-  res.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE,
-    path: '/',
-  });
-  return res;
+  const redirectTo = user.role === 'teacher' ? '/teacher' :
+    user.role === 'principal' ? '/principal' :
+    '/dashboard';
+
+  return NextResponse.json({ success: true, redirectTo, role: user.role });
 }
