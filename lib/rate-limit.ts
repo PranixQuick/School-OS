@@ -50,8 +50,6 @@ async function countAuthEvents(params: {
   if (params.ip) q = q.eq('ip', params.ip);
   const { count, error } = await q;
   if (error) {
-    // If DB query fails, surface 0 so we don't hard-block legitimate users.
-    // Memory layer still applies. Error is logged by the caller.
     console.error('[rate-limit] countAuthEvents error:', error.message);
     return 0;
   }
@@ -62,20 +60,21 @@ export const LOGIN_EMAIL_LIMIT = 5;
 export const LOGIN_IP_LIMIT = 10;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
-// Enforce login rate limits per-email and per-IP within a 15 minute sliding window.
-// Counts only FAILURES (login_failure, rate_limited) so a successful login doesn't
-// consume the allowance.
-// Known demo/seed email domains that must never be rate-limited (CI E2E accounts)
-const DEMO_EMAIL_DOMAINS = ['.local', 'suchitracademy.edu.in', 'dpsnadergul.com'];
+// SECURITY: Only .local test domains bypass rate limiting.
+// Real school domains (suchitracademy.edu.in, dpsnadergul.com) are now subject to limits.
+// CI E2E tests must use E2E_BYPASS_SECRET header instead of relying on domain bypass.
+// This fix prevents distributed brute-force via domain whitelist circumvention.
+const EXEMPT_SUFFIXES = ['.local'];
 
 export async function enforceLoginRateLimit(params: {
   email: string;
   ip: string | null;
 }): Promise<RateLimitResult> {
-  // Skip rate limiting for demo/seed accounts so CI E2E tests always work
-  if (DEMO_EMAIL_DOMAINS.some(d => params.email.endsWith(d))) {
+  // Skip rate limiting ONLY for .local test accounts (not real school domains)
+  if (EXEMPT_SUFFIXES.some(d => params.email.endsWith(d))) {
     return { allowed: true, count: 0, remaining: 5, retryAfterSec: 0, source: 'none' };
   }
+
   // E2: fire-and-forget cleanup of expired api_rate_log rows (non-blocking)
   void Promise.resolve(
     supabaseAdmin.from('api_rate_log').delete().lt('expires_at', new Date().toISOString())
