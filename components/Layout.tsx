@@ -3,6 +3,19 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+// i18n: supported languages with their display labels
+const LANG_OPTIONS: { code: string; label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'हिन्दी' },
+  { code: 'te', label: 'తెలుగు' },
+  { code: 'ta', label: 'தமிழ்' },
+  { code: 'kn', label: 'ಕನ್ನಡ' },
+  { code: 'mr', label: 'मराठी' },
+  { code: 'ml', label: 'മലയാളം' },
+];
+const LANG_STORAGE_KEY = 'edprosys_lang';
+const DEFAULT_LANG = 'en';
+
 const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href: string; icon: string }[] }[]> = {
   admin: [
     { group: 'Overview', items: [
@@ -149,7 +162,30 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   const [userName, setUserName] = useState('');
   const [schoolName, setSchoolName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lang, setLang] = useState<string>(DEFAULT_LANG);
+  const [showLangPicker, setShowLangPicker] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate language from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY);
+      if (stored) {
+        setLang(stored);
+        // Expose globally so dashboards can call T(key, window.__edprosys_lang)
+        (window as unknown as Record<string, unknown>).__edprosys_lang = stored;
+      }
+    } catch { /* localStorage not available */ }
+  }, []);
+
+  function handleLangChange(code: string) {
+    setLang(code);
+    setShowLangPicker(false);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, code);
+      (window as unknown as Record<string, unknown>).__edprosys_lang = code;
+    } catch { /* localStorage not available */ }
+  }
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
@@ -159,7 +195,9 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) setSidebarOpen(false);
+      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        setSidebarOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -168,13 +206,16 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   const navGroups = NAV_BY_ROLE[role] ?? DEFAULT_NAV;
+  const currentLang = LANG_OPTIONS.find(l => l.code === lang) ?? LANG_OPTIONS[0];
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   }
 
-  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
+  const isActive = (href: string) =>
+    pathname === href ||
+    (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -232,6 +273,31 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         </nav>
 
         <div style={{ padding: '10px 12px 14px', borderTop: '1px solid #F3F4F6' }}>
+          {/* Language selector */}
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <button
+              onClick={() => setShowLangPicker(!showLangPicker)}
+              style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit' }}
+            >
+              <span>🌐 {currentLang.label}</span>
+              <span style={{ color: '#9CA3AF', fontSize: 10 }}>{showLangPicker ? '▲' : '▼'}</span>
+            </button>
+            {showLangPicker && (
+              <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginBottom: 4, overflow: 'hidden' }}>
+                {LANG_OPTIONS.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => handleLangChange(l.code)}
+                    style={{ width: '100%', padding: '8px 12px', border: 'none', background: l.code === lang ? '#EEF2FF' : '#fff', color: l.code === lang ? '#4F46E5' : '#374151', fontSize: 13, fontWeight: l.code === lang ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* User info + logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#EEF2FF', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#4F46E5', fontSize: 12 }}>
               {userName ? userName[0].toUpperCase() : 'U'}
