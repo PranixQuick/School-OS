@@ -16,21 +16,14 @@ interface Event { id: string; title: string; event_date: string; is_holiday: boo
 function scoreColor(s: number) { return s >= 8 ? '#15803D' : s >= 6 ? '#A16207' : '#B91C1C'; }
 function scoreBg(s: number) { return s >= 8 ? '#DCFCE7' : s >= 6 ? '#FEF9C3' : '#FEE2E2'; }
 
-const PRIORITY_BADGE: Record<string, string> = { high: 'badge badge-high', medium: 'badge badge-medium', low: 'badge badge-low' };
 const SOURCE_LABEL: Record<string, string> = { referral: 'Referral', google: 'Google', website: 'Website', instagram: 'Instagram', facebook: 'Facebook', 'walk-in': 'Walk-in', other: 'Other' };
 
 const MODULES = [
-  { title: 'Report Cards', desc: 'Generate AI narratives for every student. Download as HTML for printing.', href: '/report-cards', btn: 'Generate Reports', color: '#15803D', bg: '#DCFCE7', icon: '📄' },
-  { title: 'Teacher Evaluation', desc: 'Upload classroom audio. Get instant quality scores and coaching feedback.', href: '/teacher-eval', btn: 'Analyse Classroom', color: '#1D4ED8', bg: '#DBEAFE', icon: '🎙' },
-  { title: 'Admissions CRM', desc: 'AI-scored leads sorted by priority. Track from inquiry to admission.', href: '/admissions/crm', btn: 'View CRM', color: '#6D28D9', bg: '#EDE9FE', icon: '👥' },
-  { title: 'WhatsApp Bot', desc: 'Parent assistant deployed and answering attendance, fees, events 24/7.', href: '/whatsapp', btn: 'View Config', color: '#065F46', bg: '#D1FAE5', icon: '💬' },
-];
-
-const KPI_CARDS = [
-  { label: 'Total Students', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
-  { label: 'Pending Fees',   color: '#B91C1C', bg: '#FEF2F2', href: '/admin/fees' },
-  { label: 'Total Leads',   color: '#6D28D9', bg: '#F5F3FF', href: '/admissions/crm' },
-  { label: 'Reports',       color: '#065F46', bg: '#ECFDF5', href: '/report-cards' },
+  { title: 'Report Cards', desc: 'AI narratives for every student.', href: '/report-cards', btn: 'Generate', color: '#15803D', bg: '#DCFCE7', icon: '📄' },
+  { title: 'Teacher Eval', desc: 'Upload recordings, get scores.', href: '/teacher-eval', btn: 'Analyse', color: '#1D4ED8', bg: '#DBEAFE', icon: '🎙' },
+  { title: 'Admissions', desc: 'AI-scored leads, track inquiries.', href: '/admissions/crm', btn: 'View CRM', color: '#6D28D9', bg: '#EDE9FE', icon: '👥' },
+  { title: 'WhatsApp Bot', desc: 'Parent assistant, 24/7.', href: '/whatsapp', btn: 'Configure', color: '#065F46', bg: '#D1FAE5', icon: '💬' },
+  { title: 'Event Gallery', desc: 'Share school event photos.', href: '/admin/events', btn: 'Open', color: '#9333EA', bg: '#F5F3FF', icon: '📸' },
 ];
 
 const EMPTY_KPIS: KPIs = {
@@ -49,29 +42,17 @@ export default function DashboardPage() {
   const [setupIncomplete, setSetupIncomplete] = useState(false);
 
   useEffect(() => {
-    // Safety timeout: never show skeleton beyond 8 seconds
-    const timeout = setTimeout(() => {
-      setLoading(false);
-      if (!kpis) setKpis(EMPTY_KPIS);
-    }, 8000);
-
+    const timeout = setTimeout(() => { setLoading(false); if (!kpis) setKpis(EMPTY_KPIS); }, 8000);
     fetch('/api/dashboard/summary')
       .then(r => r.json())
       .then(d => {
-        // Guard: only use data if it has the expected shape
-        if (d && d.kpis && typeof d.kpis.total_students === 'number') {
-          setKpis(d.kpis);
-          setLeads(d.recent_leads ?? []);
-          setEvals(d.recent_evals ?? []);
-          setEvents(d.upcoming_events ?? []);
-        } else {
-          // API returned error object or unexpected shape — show empty state
-          setKpis(EMPTY_KPIS);
-        }
+        if (d?.kpis && typeof d.kpis.total_students === 'number') {
+          setKpis(d.kpis); setLeads(d.recent_leads ?? []);
+          setEvals(d.recent_evals ?? []); setEvents(d.upcoming_events ?? []);
+        } else { setKpis(EMPTY_KPIS); }
       })
       .catch(() => { setKpis(EMPTY_KPIS); })
       .finally(() => { setLoading(false); clearTimeout(timeout); });
-
     return () => clearTimeout(timeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -92,156 +73,166 @@ export default function DashboardPage() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // Skeleton — only shown while loading AND no kpis yet (max 8s due to timeout)
   if (loading && !kpis) {
     return (
-      <div style={{ padding: 32 }}>
+      <div style={{ padding: 20 }}>
         <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-          {[0,1,2,3].map(i => (
-            <div key={i} style={{ height: 90, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 20 }}>
+          {[0,1,2,3].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
         </div>
-        <div style={{ height: 200, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <div style={{ height: 160, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />
       </div>
     );
   }
 
   const safeKpis = kpis ?? EMPTY_KPIS;
-  const kpiValues = [safeKpis.total_students, safeKpis.pending_fees_count, safeKpis.total_leads, safeKpis.narratives_generated];
-  const kpiSubs = [
-    'Active enrolments',
-    `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K outstanding`,
-    `${safeKpis.high_priority_leads} high priority`,
-    `${safeKpis.evals_done} teacher evals`,
-  ];
+  const hasFeeAlert = safeKpis.pending_fees_amount > 0;
 
   return (
     <Layout title="Dashboard" subtitle={today}
-      actions={<Link href="/admissions" className="btn btn-primary btn-sm">+ New Inquiry</Link>}>
+      actions={<Link href="/admissions" style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>+ New Inquiry</Link>}>
+
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        .kpi-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+        @media(min-width:640px){ .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+        .mod-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+        @media(min-width:640px){ .mod-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media(min-width:900px){ .mod-grid { grid-template-columns: repeat(5, 1fr); } }
+        .bottom-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+        @media(min-width:768px){ .bottom-grid { grid-template-columns: 1fr 1fr 1fr; } }
+        .kpi-card-inner { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 16px; cursor: pointer; transition: transform 0.12s, box-shadow 0.15s; }
+        .kpi-card-inner:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+      `}</style>
 
       {setupIncomplete && (
-        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#1E40AF' }}>🚀 Complete your school setup</div>
-            <div style={{ fontSize: 12, color: '#1E40AF', marginTop: 2 }}>Add staff, classes, and students to fully activate your school.</div>
+            <div style={{ fontSize: 12, color: '#1E40AF', marginTop: 2 }}>Add staff, classes, and students to fully activate.</div>
           </div>
-          <a href="/onboarding" style={{ padding: '7px 14px', background: '#4F46E5', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>Complete setup →</a>
+          <a href="/onboarding" style={{ padding: '7px 14px', background: '#4F46E5', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>Complete →</a>
         </div>
       )}
 
       {legalPendingCount > 0 && (
-        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#92400E' }}>⚠️ Legal documents require re-acceptance</div>
-            <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>{legalPendingCount} document{legalPendingCount !== 1 ? 's' : ''} updated and require review.</div>
-          </div>
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#92400E' }}>⚠️ {legalPendingCount} document{legalPendingCount !== 1 ? 's' : ''} require re-acceptance</div>
           <a href="/onboarding#step7" style={{ padding: '7px 14px', background: '#92400E', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>Review →</a>
         </div>
       )}
 
-      {/* KPI grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
-        {KPI_CARDS.map((k, i) => (
+      {/* Fee urgency banner */}
+      {hasFeeAlert && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#B91C1C' }}>💰 ₹{(safeKpis.pending_fees_amount / 1000).toFixed(1)}K fees outstanding</div>
+            <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>{safeKpis.pending_fees_count} student{safeKpis.pending_fees_count !== 1 ? 's' : ''} with pending fees</div>
+          </div>
+          <a href="/admin/fees" style={{ padding: '7px 14px', background: '#B91C1C', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>View Fees →</a>
+        </div>
+      )}
+
+      {/* KPI grid — 2 col mobile, 4 col desktop */}
+      <div className="kpi-grid" style={{ marginBottom: 24 }}>
+        {[
+          { label: 'Students', value: safeKpis.total_students, sub: 'Active enrolments', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
+          { label: 'Staff', value: safeKpis.total_staff, sub: 'Active staff members', color: '#0284C7', bg: '#E0F2FE', href: '/admin/staff' },
+          { label: 'Pending Fees', value: safeKpis.pending_fees_count, sub: `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K outstanding`, color: hasFeeAlert ? '#B91C1C' : '#15803D', bg: hasFeeAlert ? '#FEF2F2' : '#ECFDF5', href: '/admin/fees' },
+          { label: 'Leads', value: safeKpis.total_leads, sub: `${safeKpis.high_priority_leads} high priority`, color: '#6D28D9', bg: '#F5F3FF', href: '/admissions/crm' },
+        ].map(k => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
-            <div className="kpi-card" style={{ cursor: 'pointer', transition: 'box-shadow 0.15s, transform 0.12s' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="kpi-label">{k.label}</span>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: k.color }} />
+            <div className="kpi-card-inner">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</div>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: k.color }} />
                 </div>
               </div>
-              <div className="kpi-value" style={{ color: k.color }}>{loading ? '—' : kpiValues[i]}</div>
-              <div className="kpi-sub">{kpiSubs[i]}</div>
-              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: k.color, opacity: 0.7 }}>View →</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: k.color, lineHeight: 1, marginBottom: 4 }}>{loading ? '—' : k.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{k.sub}</div>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Module cards */}
-      <div className="section-header" style={{ marginBottom: 14 }}>
-        <div>
-          <div className="section-title">Platform Modules</div>
-          <div className="section-sub">All AI-powered tools in one place</div>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+      {/* Module shortcuts */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Platform</div>
+      <div className="mod-grid" style={{ marginBottom: 24 }}>
         {MODULES.map(mod => (
-          <div key={mod.title} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px 18px', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: mod.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{mod.icon}</div>
-              <span className="badge badge-done" style={{ fontSize: 10 }}>Live</span>
+          <Link key={mod.title} href={mod.href} style={{ textDecoration: 'none' }}>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px 14px', cursor: 'pointer' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: mod.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 10 }}>{mod.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginBottom: 3 }}>{mod.title}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.4 }}>{mod.desc}</div>
             </div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 6 }}>{mod.title}</div>
-            <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55, marginBottom: 16, flex: 1 }}>{mod.desc}</div>
-            <Link href={mod.href} className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center', color: mod.color, borderColor: mod.bg, background: mod.bg }}>{mod.btn}</Link>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* Bottom 3-col */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="section-title" style={{ fontSize: 13 }}>Top Leads</div>
+      {/* Bottom 3-col — leads / evals / events */}
+      <div className="bottom-grid">
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Top Leads</div>
             <Link href="/admissions/crm" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
           </div>
           {leads.length === 0 ? (
-            <div className="empty-state"><div className="empty-state-icon">👥</div><div className="empty-state-title">No leads yet</div></div>
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>👥 No leads yet</div>
           ) : leads.slice(0, 5).map((l, i) => (
-            <div key={l.id} style={{ padding: '10px 18px', borderBottom: i < 4 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div key={l.id} style={{ padding: '10px 16px', borderBottom: i < 4 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: scoreBg(l.score / 10), border: `2px solid ${scoreColor(l.score / 10)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: scoreColor(l.score / 10), flexShrink: 0 }}>{l.score}</div>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: scoreBg(l.score / 10), border: `2px solid ${scoreColor(l.score / 10)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: scoreColor(l.score / 10), flexShrink: 0 }}>{l.score}</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{l.parent_name}</div>
                   <div style={{ fontSize: 11, color: '#9CA3AF' }}>Cl {l.target_class} · {SOURCE_LABEL[l.source] ?? l.source}</div>
                 </div>
               </div>
-              <span className={PRIORITY_BADGE[l.priority] ?? 'badge badge-gray'} style={{ fontSize: 10 }}>{l.priority.toUpperCase()}</span>
+              <div style={{ padding: '2px 7px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: l.priority === 'high' ? '#FEE2E2' : l.priority === 'medium' ? '#FEF9C3' : '#F3F4F6', color: l.priority === 'high' ? '#B91C1C' : l.priority === 'medium' ? '#A16207' : '#6B7280' }}>
+                {l.priority.toUpperCase()}
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="section-title" style={{ fontSize: 13 }}>Teacher Evaluations</div>
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Teacher Evals</div>
             <Link href="/teacher-eval" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
           </div>
           {evals.length === 0 ? (
-            <div className="empty-state"><div className="empty-state-icon">🎙</div><div className="empty-state-title">No evals yet</div></div>
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>🎙 No evaluations yet</div>
           ) : evals.map((ev, i) => {
             const score = ev.coaching_score ?? 0;
             return (
-              <div key={ev.id} style={{ padding: '12px 18px', borderBottom: i < evals.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div key={ev.id} style={{ padding: '12px 16px', borderBottom: i < evals.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{ev.file_name}</div>
                   <div style={{ fontSize: 11, color: '#9CA3AF' }}>{new Date(ev.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
                 </div>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: scoreColor(score) }}>{score}</div>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: scoreColor(score) }}>{score}</div>
               </div>
             );
           })}
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F3F4F6' }}>
-            <div className="section-title" style={{ fontSize: 13 }}>Upcoming Events</div>
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Upcoming Events</div>
           </div>
           {events.length === 0 ? (
-            <div className="empty-state"><div className="empty-state-icon">📅</div><div className="empty-state-title">No events scheduled</div></div>
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>📅 No upcoming events</div>
           ) : events.map((ev, i) => {
             const d = new Date(ev.event_date);
             return (
-              <div key={ev.id} style={{ padding: '11px 18px', borderBottom: i < events.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ minWidth: 38, height: 38, borderRadius: 10, background: ev.is_holiday ? '#FEF9C3' : '#EEF2FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: ev.is_holiday ? '#A16207' : '#4F46E5', lineHeight: 1 }}>{d.getDate()}</span>
+              <div key={ev.id} style={{ padding: '11px 16px', borderBottom: i < events.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ minWidth: 36, height: 36, borderRadius: 8, background: ev.is_holiday ? '#FEF9C3' : '#EEF2FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: ev.is_holiday ? '#A16207' : '#4F46E5', lineHeight: 1 }}>{d.getDate()}</span>
                   <span style={{ fontSize: 9, color: ev.is_holiday ? '#A16207' : '#4F46E5', fontWeight: 600 }}>{d.toLocaleString('en-IN', { month: 'short' })}</span>
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{ev.title}</div>
                   {ev.description && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{ev.description.slice(0, 55)}</div>}
-                  {ev.is_holiday && <span className="badge badge-medium" style={{ fontSize: 9, marginTop: 3, display: 'inline-block' }}>HOLIDAY</span>}
                 </div>
               </div>
             );
