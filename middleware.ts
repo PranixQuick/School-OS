@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Public paths — no auth required
 const PUBLIC = [
-  '/login', '/register', '/forgot-password', '/parent',
+  '/login', '/register', '/onboarding', '/forgot-password', '/parent',
   '/parent/consent', '/student', '/api/auth/', '/api/parent/',
   '/api/student/', '/api/schools/create', '/_next/', '/favicon',
   '/icons/', '/manifest', '/api/notifications/health',
@@ -22,12 +22,12 @@ export function middleware(req: NextRequest) {
   const method = req.method;
 
   // Handle POST /login — browser cache replay or misconfigured form.
-  // Next.js App Router doesn't handle POST on page routes (returns 404 with
-  // "Failed to find Server Action"). Redirect to GET /login cleanly.
+  // Next.js App Router doesn't handle POST on page routes.
+  // Redirect to GET /login cleanly.
   if (pathname === '/login' && method === 'POST') {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url, 303); // 303 = redirect to GET
+    return NextResponse.redirect(url, 303);
   }
 
   // Allow public paths
@@ -50,9 +50,8 @@ export function middleware(req: NextRequest) {
   }
 
   // Check portal-specific role requirements
-  for (const [path, roles] of Object.entries(PORTAL_ROLES)) {
+  for (const [path] of Object.entries(PORTAL_ROLES)) {
     if (pathname.startsWith(path)) {
-      // Role check happens in the page/API itself — middleware just passes through
       break;
     }
   }
