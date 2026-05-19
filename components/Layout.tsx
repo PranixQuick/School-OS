@@ -120,7 +120,8 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
   ],
   counsellor: [
     { group: 'Main', items: [
-      { label: 'Dashboard', href: '/teacher', icon: '🏠' },
+      // Counsellor lands on admin dashboard, not teacher portal
+      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
       { label: 'Students', href: '/students', icon: '👨‍🎓' },
     ]},
   ],
@@ -207,6 +208,12 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
             </div>
           </div>
+          {/* Viewer read-only badge */}
+          {role === 'viewer' && (
+            <div style={{ marginTop: 8, padding: '3px 8px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 5, fontSize: 10, fontWeight: 700, color: '#92400E', display: 'inline-block' }}>
+              👁 READ ONLY
+            </div>
+          )}
         </div>
 
         <nav style={{ flex: 1, padding: '8px 8px 0', overflowY: 'auto' }}>
