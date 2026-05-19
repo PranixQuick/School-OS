@@ -1,10 +1,11 @@
 // lib/parent-auth.ts
 // Parent session management via JWT cookie.
-// Follows same pattern as student-auth.ts.
-// The parent login route issues a parent_session cookie on successful PIN auth.
 // All /api/parent/* routes call getParentSession(req) to validate.
+// AG-5 parity: now checks revoked_sessions denylist on every verification,
+// mirroring the staff session pattern in lib/session.ts.
 
 import { SignJWT, jwtVerify } from 'jose';
+import { createClient } from '@supabase/supabase-js';
 import type { NextRequest } from 'next/server';
 import { env } from '@/lib/env';
 
@@ -25,6 +26,15 @@ function secret() {
   return new TextEncoder().encode(env.SESSION_SECRET);
 }
 
+// Lazy admin client — only created when denylist check is needed.
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
+
 export async function signParentSession(payload: ParentSessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: ALG })
@@ -38,7 +48,29 @@ export async function getParentSession(req: NextRequest): Promise<ParentSessionP
   try {
     const token = req.cookies.get(COOKIE)?.value;
     if (!token) return null;
+
     const { payload } = await jwtVerify(token, secret(), { issuer: ISSUER });
+
+    // AG-5 parity: check revocation denylist.
+    // Uses parentId as the user_id key (consistent with how parent logout writes the denylist).
+    // Fail-open on DB error — a Supabase outage must not lock parents out.
+    if (payload.iat) {
+      const pId = (payload as Record<string, unknown>).parentId as string | undefined;
+      if (pId) {
+        try {
+          const { data } = await adminClient()
+            .from('revoked_sessions')
+            .select('id')
+            .eq('user_id', pId)
+            .eq('issued_at', payload.iat)
+            .maybeSingle();
+          if (data) return null; // token revoked
+        } catch {
+          // Fail-open: denylist check failure must not block parent login
+        }
+      }
+    }
+
     return payload as unknown as ParentSessionPayload;
   } catch {
     return null;
