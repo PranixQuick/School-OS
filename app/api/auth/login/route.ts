@@ -88,13 +88,15 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, redirectTo: roleRedirect(user.role), role: user.role });
 }
 
+// Canonical role → landing route mapping.
+// Must stay in sync with Layout.tsx NAV_BY_ROLE dashboard hrefs.
 function roleRedirect(role: string): string {
   switch (role) {
-    case 'teacher':    return '/teacher';
-    case 'principal':  return '/principal';
-    case 'student':    return '/student';
-    // viewer + counsellor + accountant all go to the dashboard
-    // viewer is read-only enforced at API level, not by routing
+    case 'owner':      return '/owner';       // Owner cross-school dashboard
+    case 'teacher':    return '/teacher';     // Teacher mobile portal
+    case 'principal':  return '/principal';   // Principal briefing dashboard
+    case 'student':    return '/student';     // Student portal
+    // admin, admin_staff, accountant, viewer, counsellor → shared admin dashboard
     default:           return '/dashboard';
   }
 }
