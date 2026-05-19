@@ -34,6 +34,9 @@ jobs:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
+      - name: Create test output directory
+        run: mkdir -p test-results
+
       - name: Run unit tests
         run: npm run test:unit
         env:
@@ -59,3 +62,4 @@ jobs:
           TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
           E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
