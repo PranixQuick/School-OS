@@ -25,8 +25,26 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-tap-highlight-color: transparent; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: #F9FAFB; margin: 0; }
+html {
+  -webkit-tap-highlight-color: transparent;
+  /* Fill the entire screen including status bar area on Android/iOS */
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: #F9FAFB;
+  margin: 0;
+  /* Safe area insets — prevents black bars on Android notch/status bar/nav bar */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  /* Ensure body fills full screen */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
 
 /* ── Shell layout ── */
 .shell { display: flex; height: 100vh; overflow: hidden; }
@@ -132,14 +150,11 @@ input::placeholder { color: #9CA3AF; }
 
 /* ── Mobile / PWA ── */
 @media (max-width: 768px) {
-  .page-content { padding: 16px; padding-bottom: 32px; }
+  .page-content { padding: 16px; }
   .topbar { padding: 12px 16px; }
   .topbar-title { font-size: 16px; }
   .table th, .table td { padding: 10px 12px; }
   .btn-primary, .btn-ghost { padding: 9px 14px; font-size: 13px; }
-  /* Safe area insets for iPhone notch / Android nav bar */
-  .page-content { padding-bottom: env(safe-area-inset-bottom, 24px); }
-  /* Sticky bottom nav affordance */
   .shell { overflow-y: auto; }
 }
 
