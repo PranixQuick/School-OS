@@ -44,6 +44,7 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
     ]},
     { group: 'Records', items: [
       { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
+      { label: 'Vendors', href: '/admin/vendors', icon: '🤝' },
     ]},
     { group: 'Account', items: [
       { label: 'Settings', href: '/settings', icon: '⚙️' },
@@ -67,6 +68,7 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
     ]},
     { group: 'Records', items: [
       { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
+      { label: 'Vendors', href: '/admin/vendors', icon: '🤝' },
     ]},
     { group: 'Account', items: [
       { label: 'Settings', href: '/settings', icon: '⚙️' },
