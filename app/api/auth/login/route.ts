@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import bcrypt from 'bcryptjs';
 import { issueSession, sessionCookie } from '@/lib/session';
 import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
 import { enforceLoginRateLimit, isE2EBypass } from '@/lib/rate-limit';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   return NextResponse.json(
@@ -16,6 +18,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const ip = clientIpFromRequest(req);
 
+  // Already logged in?
   const existing = await getSession(req);
   if (existing) {
     return NextResponse.json({ redirectTo: roleRedirect(existing.userRole) });
@@ -34,12 +37,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
   }
 
-  // Rate limit enforcement — skip only for CI E2E bypass header
+  // Rate limit enforcement — skip only for CI E2E bypass
   const bypassHeader = req.headers.get('x-e2e-bypass');
   if (!isE2EBypass(bypassHeader)) {
     const rl = await enforceLoginRateLimit({ email, ip });
     if (!rl.allowed) {
-      await logAuthEvent({ eventType: 'rate_limited', email, ip, metadata: { retryAfterSec: rl.retryAfterSec, source: rl.source } });
+      await logAuthEvent({
+        eventType: 'rate_limited', email, ip,
+        metadata: { retryAfterSec: rl.retryAfterSec, source: rl.source },
+      });
       return NextResponse.json(
         { error: 'Too many login attempts. Please try again later.', retryAfterSec: rl.retryAfterSec },
         { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
@@ -47,49 +53,66 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: users, error: lookupErr } = await supabaseAdmin
-    .from('school_users')
-    .select('id, school_id, email, password_hash, role, is_active, staff_id, schools(name, slug, plan)')
-    .eq('email', email)
-    .limit(2);
+  // Authenticate via Supabase Auth (passwords are in auth.users.encrypted_password)
+  const authClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
 
-  if (lookupErr || !users || users.length === 0) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'user_not_found' } });
+  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (authError || !authData.user) {
+    await logAuthEvent({
+      eventType: 'login_failure', email, ip,
+      metadata: { reason: authError?.message ?? 'auth_failed' },
+    });
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
-  const user = users[0];
-  if (!user.is_active) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'account_inactive' } });
+  // Look up school_users record by auth_user_id
+  const { data: schoolUser, error: userErr } = await supabaseAdmin
+    .from('school_users')
+    .select('id, school_id, email, role, is_active, staff_id, schools(name, slug, plan)')
+    .eq('auth_user_id', authData.user.id)
+    .maybeSingle();
+
+  if (userErr || !schoolUser) {
+    await logAuthEvent({
+      eventType: 'login_failure', email, ip,
+      metadata: { reason: 'no_school_user', auth_uid: authData.user.id },
+    });
+    return NextResponse.json({ error: 'No school account linked to this login.' }, { status: 403 });
+  }
+
+  if (!schoolUser.is_active) {
+    await logAuthEvent({
+      eventType: 'login_failure', email, ip,
+      metadata: { reason: 'account_inactive' },
+    });
     return NextResponse.json({ error: 'Account is inactive. Contact your school administrator.' }, { status: 401 });
   }
 
-  if (!user.password_hash) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'no_password_set' } });
-    return NextResponse.json({ error: 'Password not set.', code: 'USE_MAGIC_LINK' }, { status: 401 });
-  }
-
-  const passwordValid = await bcrypt.compare(password, user.password_hash);
-  if (!passwordValid) {
-    await logAuthEvent({ eventType: 'login_failure', email, ip, metadata: { reason: 'wrong_password' } });
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-  }
-
-  const schoolRow = Array.isArray(user.schools) ? user.schools[0] : user.schools;
+  const schoolRow = Array.isArray(schoolUser.schools) ? schoolUser.schools[0] : schoolUser.schools;
   const schoolName = (schoolRow as { name?: string } | null)?.name ?? '';
   const schoolSlug = (schoolRow as { slug?: string } | null)?.slug ?? '';
   const plan = (schoolRow as { plan?: string } | null)?.plan ?? 'starter';
 
   let userName = email.split('@')[0];
-  if (user.staff_id) {
+  if (schoolUser.staff_id) {
     const { data: staffRow } = await supabaseAdmin
-      .from('staff').select('name').eq('id', user.staff_id).single();
+      .from('staff').select('name').eq('id', schoolUser.staff_id).single();
     if (staffRow?.name) userName = staffRow.name;
   }
 
   const token = await issueSession({
-    userId: user.id, schoolId: user.school_id,
-    userEmail: user.email, userRole: user.role,
+    userId: schoolUser.id,
+    schoolId: schoolUser.school_id,
+    userEmail: schoolUser.email,
+    userRole: schoolUser.role,
     schoolName, schoolSlug, plan, userName,
   });
 
@@ -97,9 +120,16 @@ export async function POST(req: NextRequest) {
   const cookieOpts = sessionCookie(token, process.env.NODE_ENV === 'production');
   cookieStore.set(cookieOpts.name, cookieOpts.value, cookieOpts);
 
-  await logAuthEvent({ eventType: 'login_success', email, ip, metadata: { role: user.role, school_id: user.school_id } });
+  await logAuthEvent({
+    eventType: 'login_success', email, ip,
+    metadata: { role: schoolUser.role, school_id: schoolUser.school_id },
+  });
 
-  return NextResponse.json({ success: true, redirectTo: roleRedirect(user.role), role: user.role });
+  return NextResponse.json({
+    success: true,
+    redirectTo: roleRedirect(schoolUser.role),
+    role: schoolUser.role,
+  });
 }
 
 // Canonical role → landing route mapping.
