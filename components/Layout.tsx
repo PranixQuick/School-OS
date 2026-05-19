@@ -101,15 +101,27 @@ const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href:
   teacher: [
     { group: 'My Day', items: [
       { label: 'Dashboard', href: '/teacher', icon: '🏠' },
-      { label: 'Attendance', href: '/teacher/checkin', icon: '✅' },
+      { label: 'Check In', href: '/teacher/check-in', icon: '📍' },
     ]},
     { group: 'Classes', items: [
+      { label: 'Attendance', href: '/teacher/attendance', icon: '✅' },
       { label: 'Homework', href: '/teacher/homework', icon: '📚' },
       { label: 'Marks', href: '/teacher/marks', icon: '📝' },
       { label: 'Lesson Plans', href: '/teacher/lesson-plans', icon: '📖' },
     ]},
     { group: 'HR', items: [
       { label: 'Leave', href: '/teacher/leave', icon: '🏖' },
+    ]},
+  ],
+  viewer: [
+    { group: 'Main', items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    ]},
+  ],
+  counsellor: [
+    { group: 'Main', items: [
+      { label: 'Dashboard', href: '/teacher', icon: '🏠' },
+      { label: 'Students', href: '/students', icon: '👨‍🎓' },
     ]},
   ],
 };
@@ -147,7 +159,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
     }).catch(() => {});
   }, []);
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
@@ -158,7 +169,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
     return () => document.removeEventListener('mousedown', handleClick);
   }, [sidebarOpen]);
 
-  // Close sidebar on route change (mobile)
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   const navGroups = NAV_BY_ROLE[role] ?? DEFAULT_NAV;
@@ -172,13 +182,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 39, display: 'block' }} />
       )}
 
-      {/* Sidebar */}
       <div ref={sidebarRef} style={{
         width: 240, background: '#fff', borderRight: '1px solid #E5E7EB',
         display: 'flex', flexDirection: 'column', flexShrink: 0,
@@ -186,12 +194,9 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.22s ease',
         overflowY: 'auto',
-        // Desktop: always visible
-        ...(typeof window !== 'undefined' && window.innerWidth >= 768 ? { transform: 'translateX(0)' } : {}),
       }}
         className="sidebar-desktop-visible">
 
-        {/* Logo */}
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#4F46E5',
@@ -204,7 +209,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </div>
         </div>
 
-        {/* Nav groups */}
         <nav style={{ flex: 1, padding: '8px 8px 0', overflowY: 'auto' }}>
           {navGroups.map(group => (
             <div key={group.group} style={{ marginBottom: 4 }}>
@@ -234,7 +238,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           ))}
         </nav>
 
-        {/* User footer */}
         <div style={{ padding: '10px 12px 14px', borderTop: '1px solid #F3F4F6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#EEF2FF', flexShrink: 0,
@@ -256,17 +259,14 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         </div>
       </div>
 
-      {/* Main content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, marginLeft: 0 }}
         className="main-with-sidebar">
 
-        {/* Top bar */}
         <div style={{
           background: '#fff', borderBottom: '1px solid #E5E7EB',
           padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', gap: 12,
           position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
         }}>
-          {/* Hamburger */}
           <button onClick={() => setSidebarOpen(!sidebarOpen)}
             className="mobile-menu-btn"
             style={{ width: 40, height: 40, borderRadius: 8, border: 'none', background: '#F3F4F6',
@@ -283,13 +283,11 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
 
-        {/* Page content */}
         <main style={{ flex: 1, padding: '20px 16px 80px', maxWidth: 1100, width: '100%', boxSizing: 'border-box' }}>
           {children}
         </main>
       </div>
 
-      {/* CSS for desktop sidebar visibility */}
       <style>{`
         @media (min-width: 768px) {
           .sidebar-desktop-visible { transform: translateX(0) !important; }
