@@ -101,7 +101,7 @@ export default function HomePage() {
             { role: 'Teacher', desc: 'Attendance, marks, homework from their phone', icon: '📝' },
             { role: 'Parent', desc: 'WhatsApp updates, fee tracker, homework alerts', icon: '👨‍👩‍👧' },
             { role: 'Student', desc: 'Timetable, homework, marks — all in one place', icon: '🎒' },
-            { role: 'Accountant', desc: 'Fee collection, reports, payment tracking', icon: '💰' },
+            { role: 'Accountant', desc: 'Fee collection, payroll, reports', icon: '💰' },
           ].map(r => (
             <div key={r.role} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px 14px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 6 }}>{r.icon}</div>
@@ -128,19 +128,25 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ padding: '28px 24px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff' }}>E</div>
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
-          <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
+      {/* FOOTER — updated with legal links */}
+      <footer style={{ padding: '28px 24px 20px', borderTop: '1px solid #F3F4F6' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff' }}>E</div>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
+            <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
+          </div>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <Link href="/login" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Sign In</Link>
+            <Link href="/register" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Register</Link>
+            <a href="mailto:support@pranixailabs.com" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Support</a>
+            <Link href="/privacy" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Privacy</Link>
+            <Link href="/terms" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Terms</Link>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/login" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Sign In</Link>
-          <Link href="/register" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Register</Link>
-          <a href="mailto:support@pranixailabs.com" style={{ color: '#6B7280', fontSize: 13, textDecoration: 'none' }}>Support</a>
+        <div style={{ fontSize: 12, color: '#9CA3AF' }}>
+          © 2026 Pranix AI Labs Pvt Ltd · CIN: U62011TS2026PTC209631 · DIPP241828 · UDYAM-TS-02-0307772
         </div>
-        <div style={{ fontSize: 12, color: '#9CA3AF' }}>© 2026 Pranix AI Labs Pvt Ltd · DIPP241828</div>
       </footer>
 
     </div>
