@@ -3,16 +3,23 @@ import { test, expect, type BrowserContext } from '@playwright/test';
 const BASE = process.env.TEST_BASE_URL || 'https://www.edprosys.com';
 const BYPASS = process.env.E2E_BYPASS_SECRET ?? '';
 
-// Credentials from seeded demo data — only used when bypass secret is present
-const ADMIN = { email: 'admin@suchitracademy.edu.in', password: 'edprosys0000' };
-const TEACHER = { email: 'ravi.kumar@suchitracademy.edu.in', password: 'edprosys0000' };
+// Read credentials from CI secrets, fall back to known demo values.
+// auth.users passwords are set to these values via migration set_demo_passwords_for_ci.
+const ADMIN = {
+  email: process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in',
+  password: process.env.TEST_ADMIN_PASSWORD || 'edprosys0000',
+};
+const TEACHER = {
+  email: process.env.TEST_TEACHER_EMAIL || 'ravi.kumar@suchitracademy.edu.in',
+  password: process.env.TEST_TEACHER_PASSWORD || 'edprosys0000',
+};
 
-// SKIP_AUTH: skip all authenticated tests unless E2E_BYPASS_SECRET is explicitly
-// set AND non-empty. This ensures CI never fails due to missing credentials.
+// Skip all authenticated tests unless E2E_BYPASS_SECRET is set and non-trivial.
+// This prevents CI from hitting rate limits when the secret is absent.
 const SKIP_AUTH = !BYPASS || BYPASS.length < 16;
 
 // ── Login helper ──────────────────────────────────────────────
-// Always sends the bypass header so the rate limiter is skipped cleanly.
+// Always sends x-e2e-bypass so rate limiting is skipped for CI accounts.
 async function loginAs(
   context: BrowserContext,
   creds: { email: string; password: string }
@@ -131,7 +138,7 @@ test.describe('Teacher auth flow', () => {
   });
 });
 
-// ── Session management (no real login needed) ─────────────────
+// ── Session management (always runs — no login needed) ────────
 test.describe('Session management — no credentials required', () => {
   test('No cookie → /api/auth/me returns 401', async ({ browser }) => {
     const context = await browser.newContext();
