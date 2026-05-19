@@ -1,11 +1,7 @@
-import { NextResponse } from 'next/server';
+// This module is intentionally NOT a route handler.
+// Next.js App Router treats route.ts as a route handler ONLY when it exports
+// HTTP method names (GET, POST, PUT, etc.).
+// This file exports nothing to prevent the "parallel pages" build error.
+// POST /login is handled by middleware.ts which intercepts and redirects.
 
-// POST /login handler — runs alongside page.tsx which handles GET.
-// Handles browser cache replay POSTs that cause "Failed to find Server Action" 404.
-// Redirects to GET /login with 303 See Other.
-export function POST() {
-  return NextResponse.redirect(
-    new URL('/login', process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.edprosys.com'),
-    { status: 303 }
-  );
-}
+export const _loginRouteNoop = true;
