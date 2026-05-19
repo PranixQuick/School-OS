@@ -1,7 +1,1 @@
-// This module is intentionally NOT a route handler.
-// Next.js App Router treats route.ts as a route handler ONLY when it exports
-// HTTP method names (GET, POST, PUT, etc.).
-// This file exports nothing to prevent the "parallel pages" build error.
-// POST /login is handled by middleware.ts which intercepts and redirects.
-
-export const _loginRouteNoop = true;
+// This file is intentionally empty. It exists as a remnant from a previous fix attempt.\n// Next.js 15 App Router route handlers require at least one HTTP method export (GET/POST/etc).\n// This file exports nothing, so it is NOT treated as a route handler by Next.js.\n// The login page functionality is in app/login/page.tsx and app/api/auth/login/route.ts.\n
