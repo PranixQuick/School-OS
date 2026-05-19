@@ -44,7 +44,6 @@ export default function PayrollPage() {
   const [newMonth, setNewMonth] = useState(now.getMonth() + 1);
   const [newYear, setNewYear] = useState(now.getFullYear());
 
-  // Salary structure form state
   const [structForm, setStructForm] = useState({
     staff_id: '', basic_salary: '', hra: '', da: '',
     conveyance: '', medical_allowance: '', other_allowance: '',
@@ -52,13 +51,8 @@ export default function PayrollPage() {
     esi_applicable: false, tds_placeholder: '', other_deduction: '',
   });
 
-  function showToast(msg: string, duration = 3000) {
-    setToast(msg); setTimeout(() => setToast(''), duration);
-  }
-
-  function setF(k: keyof typeof structForm, v: string | boolean) {
-    setStructForm(p => ({ ...p, [k]: v }));
-  }
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000); }
+  function setF(k: keyof typeof structForm, v: string | boolean) { setStructForm(p => ({ ...p, [k]: v })); }
 
   const loadData = useCallback(async () => {
     const [runsR, structR, staffR] = await Promise.all([
@@ -94,8 +88,7 @@ export default function PayrollPage() {
       body: JSON.stringify({
         staff_id: structForm.staff_id,
         basic_salary: Number(structForm.basic_salary),
-        hra: Number(structForm.hra) || 0,
-        da: Number(structForm.da) || 0,
+        hra: Number(structForm.hra) || 0, da: Number(structForm.da) || 0,
         conveyance: Number(structForm.conveyance) || 0,
         medical_allowance: Number(structForm.medical_allowance) || 0,
         other_allowance: Number(structForm.other_allowance) || 0,
@@ -120,7 +113,7 @@ export default function PayrollPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      showToast(action === 'mark_paid' ? 'Payroll marked as paid' : action === 'approve' ? 'Payroll approved' : 'Run cancelled');
+      showToast(action === 'mark_paid' ? 'Marked as paid' : action === 'approve' ? 'Approved' : 'Cancelled');
       setSelectedRun(d.run);
       setRuns(p => p.map(r => r.id === runId ? d.run : r));
     } else showToast(d.error ?? 'Action failed');
@@ -133,6 +126,10 @@ export default function PayrollPage() {
     if (res.ok) { const d = await res.json(); setRunPayslips(d.payslips ?? []); }
   }
 
+  function downloadCSV(runId: string) {
+    window.open(`/api/admin/payroll/export?run_id=${runId}`, '_blank');
+  }
+
   const gross = Number(structForm.basic_salary || 0) + Number(structForm.hra || 0) + Number(structForm.da || 0) + Number(structForm.conveyance || 0) + Number(structForm.medical_allowance || 0) + Number(structForm.other_allowance || 0);
   const totalMonthly = structures.reduce((s, st) => s + Number(st.gross_salary || 0), 0);
 
@@ -142,10 +139,8 @@ export default function PayrollPage() {
   return (
     <Layout title="Payroll" subtitle="Staff salary management">
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: '#15803D', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>✓ {toast}</div>}
-
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.skel{background:#F3F4F6;border-radius:8px;animation:pulse 1.5s ease-in-out infinite}`}</style>
 
-      {/* Summary KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Staff on Payroll', value: structures.length, color: '#4F46E5' },
@@ -159,7 +154,6 @@ export default function PayrollPage() {
         ))}
       </div>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {(['runs', 'structures', 'new_structure'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -175,9 +169,8 @@ export default function PayrollPage() {
           <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>{MONTHS[selectedRun.pay_period_month]} {selectedRun.pay_period_year} Payroll</div>
-              <button onClick={() => setSelectedRun(null)} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Close ✕</button>
+              <button onClick={() => setSelectedRun(null)} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>✕</button>
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
               {[
                 { label: 'Gross', value: `₹${(selectedRun.total_gross / 1000).toFixed(1)}K`, color: '#4F46E5' },
@@ -190,14 +183,12 @@ export default function PayrollPage() {
                 </div>
               ))}
             </div>
-
-            {/* Approval actions */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {selectedRun.status === 'draft' && (
                 <>
                   <button onClick={() => approveRun(selectedRun.id, 'approve')} disabled={actionLoading}
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#D1FAE5', color: '#065F46', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                    ✓ Approve Payroll
+                    ✓ Approve
                   </button>
                   <button onClick={() => approveRun(selectedRun.id, 'cancel')} disabled={actionLoading}
                     style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -211,15 +202,19 @@ export default function PayrollPage() {
                   💰 Mark as Paid
                 </button>
               )}
+              <button onClick={() => downloadCSV(selectedRun.id)}
+                style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                ⬇ Export CSV
+              </button>
               <div style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, alignSelf: 'center', ...STATUS_STYLE[selectedRun.status] }}>
                 {selectedRun.status.toUpperCase()}
               </div>
             </div>
-
-            {/* Payslips table */}
             {runPayslips.length > 0 && (
               <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '10px 14px', borderBottom: '1px solid #F3F4F6', fontSize: 13, fontWeight: 700, color: '#111827' }}>Staff Payslips</div>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid #F3F4F6', fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                  Payslips ({runPayslips.length} staff)
+                </div>
                 {runPayslips.map((slip, i) => (
                   <div key={slip.id} style={{ padding: '10px 14px', borderBottom: i < runPayslips.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <div>
@@ -230,9 +225,12 @@ export default function PayrollPage() {
                         Basic ₹{Number(slip.basic_salary).toLocaleString('en-IN')} · PF ₹{Number(slip.pf_employee).toLocaleString('en-IN')} · TDS ₹{Number(slip.tds).toLocaleString('en-IN')}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: '#4F46E5' }}>₹{Number(slip.net_salary).toLocaleString('en-IN')} net</div>
-                      <div style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: slip.payment_status === 'paid' ? '#D1FAE5' : '#FEF9C3', color: slip.payment_status === 'paid' ? '#065F46' : '#92400E', display: 'inline-block', fontWeight: 700 }}>{slip.payment_status.toUpperCase()}</div>
+                      <a href={`/api/admin/payroll/payslip/${slip.id}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 11, padding: '3px 8px', background: '#EEF2FF', color: '#4F46E5', borderRadius: 5, textDecoration: 'none', fontWeight: 700 }}>
+                        Print
+                      </a>
                     </div>
                   </div>
                 ))}
@@ -242,7 +240,6 @@ export default function PayrollPage() {
         </div>
       )}
 
-      {/* RUNS TAB */}
       {tab === 'runs' && (
         <>
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
@@ -273,7 +270,6 @@ export default function PayrollPage() {
               <div style={{ textAlign: 'center', padding: '40px 16px', background: '#F9FAFB', borderRadius: 14 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
                 <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No payroll runs yet</div>
-                <div style={{ fontSize: 13, color: '#9CA3AF' }}>Add salary structures, then run your first payroll.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -300,12 +296,11 @@ export default function PayrollPage() {
         </>
       )}
 
-      {/* STRUCTURES TAB */}
       {tab === 'structures' && (
         <>
           <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1E40AF' }}>
-              💡 Define monthly salary for each staff member. Click &quot;+ Add Structure&quot; to set up or update pay.
+              💡 Click <strong>+ Add Structure</strong> to set staff pay. One structure per staff member (overwrites previous).
             </div>
           </div>
           {loading ? <div className="skel" style={{ height: 80 }} /> :
@@ -313,9 +308,6 @@ export default function PayrollPage() {
               <div style={{ textAlign: 'center', padding: '40px 16px', background: '#F9FAFB', borderRadius: 14 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>💰</div>
                 <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No salary structures yet</div>
-                <div style={{ fontSize: 13, color: '#9CA3AF' }}>
-                  Click <strong>+ Add Structure</strong> above to set up staff pay.
-                </div>
               </div>
             ) : (
               <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
@@ -336,11 +328,9 @@ export default function PayrollPage() {
         </>
       )}
 
-      {/* NEW STRUCTURE TAB */}
       {tab === 'new_structure' && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '20px 18px' }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 16 }}>Set Salary Structure</div>
-
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>STAFF MEMBER *</label>
             <select value={structForm.staff_id} onChange={e => setF('staff_id', e.target.value)} style={inp}>
@@ -348,7 +338,6 @@ export default function PayrollPage() {
               {staffList.map(s => <option key={s.id} value={s.id}>{s.name} — {s.designation}</option>)}
             </select>
           </div>
-
           <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>EARNINGS</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
@@ -367,14 +356,12 @@ export default function PayrollPage() {
               </div>
             ))}
           </div>
-
           {gross > 0 && (
             <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5' }}>Gross Monthly</span>
               <span style={{ fontSize: 15, fontWeight: 900, color: '#4F46E5' }}>₹{gross.toLocaleString('en-IN')}</span>
             </div>
           )}
-
           <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>DEDUCTIONS</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
@@ -391,13 +378,11 @@ export default function PayrollPage() {
               </div>
             ))}
           </div>
-
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, cursor: 'pointer' }}>
             <input type="checkbox" checked={structForm.esi_applicable}
               onChange={e => setF('esi_applicable', e.target.checked)} style={{ width: 16, height: 16 }} />
             <span style={{ fontSize: 13, color: '#374151' }}>ESI Applicable (gross ≤ ₹21,000/month)</span>
           </label>
-
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setTab('structures')}
               style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
