@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { L, type Lang } from '@/lib/i18n-parent';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface StudentInfo { name: string; class: string; section: string; roll_number: string | null; admission_number: string | null; }
 interface Attendance { present_pct: number; total_days: number; present_days: number; }
@@ -22,6 +23,7 @@ const ACTION_KEYS = [
 ];
 
 export default function ParentHomePage() {
+  const { lang } = useLang();
   const router = useRouter();
   const [student, setStudent] = useState<StudentInfo | null>(null);
   const [attendance, setAttendance] = useState<Attendance | null>(null);
@@ -104,7 +106,7 @@ export default function ParentHomePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '12px 14px', borderLeft: `3px solid ${attColor}` }}>
                   <div style={{ fontSize: 22, fontWeight: 900, color: attColor }}>{Math.round(att)}%</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{L('attendance', lang)}</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{T('attendance', lang)}</div>
                   {att < 75 && <div style={{ fontSize: 10, color: '#B91C1C', marginTop: 4, fontWeight: 600 }}>
                     {lang === 'en' ? 'Below minimum' : lang === 'hi' ? 'न्यूनतम से कम' : 'Below minimum'}
                   </div>}
