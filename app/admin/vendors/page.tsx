@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { T, type Lang } from '@/lib/i18n';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Vendor { id: string; name: string; vendor_type: string; contact_name: string | null; contact_phone: string | null; contact_email: string | null; gst_number: string | null; contract_start: string | null; contract_end: string | null; is_active: boolean; notes: string | null; }
 
@@ -9,14 +10,7 @@ const VENDOR_TYPES = ['transport', 'food', 'maintenance', 'it', 'security', 'cle
 const TYPE_ICON: Record<string, string> = { transport: '🚌', food: '🍽', maintenance: '🔧', it: '💻', security: '🔒', cleaning: '🧹', other: '📦' };
 
 export default function VendorsPage() {
-  const [lang, setLang] = useState<Lang>('en');
-  useEffect(() => {
-    const stored = localStorage.getItem('edprosys_lang') as Lang | null;
-    if (stored) setLang(stored);
-    const h = () => { const u = localStorage.getItem('edprosys_lang') as Lang | null; if (u) setLang(u); };
-    window.addEventListener('edprosys_lang_change', h);
-    return () => window.removeEventListener('edprosys_lang_change', h);
-  }, []);
+  const { lang } = useLang();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
