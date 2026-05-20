@@ -146,9 +146,9 @@ export default function PayrollPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Staff on Payroll', value: structures.length, color: '#4F46E5' },
-          { label: 'Monthly Payroll', value: `₹${(totalMonthly / 1000).toFixed(1)}K`, color: '#065F46' },
-          { label: 'Total Runs', value: runs.length, color: '#0284C7' },
+          { label: T('staff_on_payroll', lang as never), value: structures.length, color: '#4F46E5' },
+          { label: T('monthly_payroll', lang as never), value: `₹${(totalMonthly / 1000).toFixed(1)}K`, color: '#065F46' },
+          { label: T('total_runs', lang as never), value: runs.length, color: '#0284C7' },
         ].map(k => (
           <div key={k.label} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{k.label}</div>
@@ -246,16 +246,16 @@ export default function PayrollPage() {
       {tab === 'runs' && (
         <>
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 12 }}>Run New Payroll</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 12 }}>{T('run_new_payroll', lang as never)}</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
-                <label style={lbl}>MONTH</label>
+                <label style={lbl}>{T('month', lang as never)}</label>
                 <select value={newMonth} onChange={e => setNewMonth(Number(e.target.value))} style={{ ...inp, width: 120 }}>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{MONTHS[m]}</option>)}
                 </select>
               </div>
               <div>
-                <label style={lbl}>YEAR</label>
+                <label style={lbl}>{T('year', lang as never)}</label>
                 <select value={newYear} onChange={e => setNewYear(Number(e.target.value))} style={{ ...inp, width: 90 }}>
                   {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -264,7 +264,7 @@ export default function PayrollPage() {
                 style={{ height: 38, padding: '0 18px', borderRadius: 8, border: 'none', background: creating || structures.length === 0 ? '#C7D2FE' : '#4F46E5', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 {creating ? 'Creating…' : `Run ${MONTHS[newMonth]} ${newYear}`}
               </button>
-              {structures.length === 0 && <div style={{ fontSize: 11, color: '#9CA3AF', alignSelf: 'center' }}>Add salary structures first</div>}
+              {structures.length === 0 && <div style={{ fontSize: 11, color: '#9CA3AF', alignSelf: 'center' }}>{T('add_structures_first', lang as never)}</div>}
             </div>
           </div>
 
@@ -272,7 +272,7 @@ export default function PayrollPage() {
             runs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 16px', background: '#F9FAFB', borderRadius: 14 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
-                <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No payroll runs yet</div>
+                <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>{T('no_payroll_runs', lang as never)}</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -310,7 +310,7 @@ export default function PayrollPage() {
             structures.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 16px', background: '#F9FAFB', borderRadius: 14 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>💰</div>
-                <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No salary structures yet</div>
+                <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>{T('no_salary_structures', lang as never)}</div>
               </div>
             ) : (
               <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
@@ -333,15 +333,15 @@ export default function PayrollPage() {
 
       {tab === 'new_structure' && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '20px 18px' }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 16 }}>Set Salary Structure</div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#111827', marginBottom: 16 }}>{T('set_salary_structure', lang as never)}</div>
           <div style={{ marginBottom: 14 }}>
-            <label style={lbl}>STAFF MEMBER *</label>
+            <label style={lbl}>{T('staff', lang as never)} *</label>
             <select value={structForm.staff_id} onChange={e => setF('staff_id', e.target.value)} style={inp}>
-              <option value="">Select staff member…</option>
+              <option value="">{T('select_staff_member', lang as never)}</option>
               {staffList.map(s => <option key={s.id} value={s.id}>{s.name} — {s.designation}</option>)}
             </select>
           </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>EARNINGS</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>{T('earnings', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
               { key: 'basic_salary', label: 'Basic Salary *' },
@@ -361,11 +361,11 @@ export default function PayrollPage() {
           </div>
           {gross > 0 && (
             <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5' }}>Gross Monthly</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5' }}>{T('gross_monthly', lang as never)}</span>
               <span style={{ fontSize: 15, fontWeight: 900, color: '#4F46E5' }}>₹{gross.toLocaleString('en-IN')}</span>
             </div>
           )}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>DEDUCTIONS</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>{T('deductions_section', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
               { key: 'pf_employee_pct', label: 'PF Employee %' },
@@ -393,7 +393,7 @@ export default function PayrollPage() {
             </button>
             <button onClick={saveStructure} disabled={saving || !structForm.staff_id || !structForm.basic_salary}
               style={{ flex: 2, padding: '11px', borderRadius: 9, border: 'none', background: saving ? '#818CF8' : '#4F46E5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-              {saving ? 'Saving…' : 'Save Salary Structure'}
+              {saving ? T('saving_', lang as never) : T('set_salary_structure', lang as never)}
             </button>
           </div>
         </div>
