@@ -6,8 +6,8 @@ import { useLang } from '@/lib/useLang';
 
 interface Slot { id: string; day_of_week: number; period_number: number; class: string; section: string; subject_name?: string; teacher_name?: string; start_time?: string; end_time?: string; }
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAY_SHORT_KEYS = ['mon_short', 'tue_short', 'wed_short', 'thu_short', 'fri_short', 'sat_short'];
 
 export default function TimetablePage() {
   const { lang } = useLang();
@@ -62,7 +62,7 @@ export default function TimetablePage() {
             <thead>
               <tr style={{ background: '#F9FAFB' }}>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>Period</th>
-                {DAYS.map((d, i) => (
+                {DAY_KEYS.map((dk, i) => (
                   <th key={d} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>{DAY_SHORT[i]}</th>
                 ))}
               </tr>
