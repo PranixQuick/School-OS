@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Eval { id: string; file_name: string; coaching_score: number | null; status: string; uploaded_at: string; eval_report?: string; }
 
@@ -16,6 +18,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export default function TeacherEvalPage() {
+  const { lang } = useLang();
   const [evals, setEvals] = useState<Eval[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -48,7 +51,7 @@ export default function TeacherEvalPage() {
   const avgScore = evals.filter(e => e.coaching_score != null).reduce((s, e, _, arr) => s + (e.coaching_score ?? 0) / arr.length, 0);
 
   return (
-    <Layout title="Teacher Evaluation" subtitle="AI-powered classroom quality scoring">
+    <Layout title={T('teacher_eval', lang)} subtitle="AI-powered classroom quality scoring">
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
         {[
