@@ -85,14 +85,14 @@ export default function AdminStaffPage() {
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           style={{ height: 36, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px',
             fontSize: 13, background: '#fff', color: '#374151' }}>
-          {roles.map(r => <option key={r} value={r}>{r === 'all' ? 'All Roles' : (ROLE_LABEL[r] ?? r)}</option>)}
+          {roles.map(r => <option key={r} value={r}>{r === 'all' ? T('all_roles', lang as never) : (ROLE_LABEL[r] ?? r)}</option>)}
         </select>
       </div>
 
       {/* Add form */}
       {showAdd && (
         <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Add New Staff</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{T('add_new_staff', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
               { key: 'name', label: 'Full Name', placeholder: 'Ravi Kumar' },
@@ -124,7 +124,7 @@ export default function AdminStaffPage() {
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
             <button onClick={() => setShowAdd(false)} className="btn btn-ghost btn-sm">Cancel</button>
             <button onClick={addStaff} disabled={saving} className="btn btn-primary btn-sm">
-              {saving ? 'Adding…' : 'Add Staff Member'}
+              {saving ? T('loading', lang as never) : T('add_staff_member_btn', lang as never)}
             </button>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function AdminStaffPage() {
       ) : visible.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">👥</div>
-          <div className="empty-state-title">No staff found</div>
+          <div className="empty-state-title">{T('no_staff_found', lang as never)}</div>
           <div className="empty-state-sub">Add your first staff member to get started.</div>
         </div>
       ) : (
