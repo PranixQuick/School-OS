@@ -3,19 +3,19 @@ import { test, expect, type BrowserContext } from '@playwright/test';
 const BASE = process.env.TEST_BASE_URL || 'https://www.edprosys.com';
 const BYPASS = process.env.E2E_BYPASS_SECRET ?? '';
 
-// Credentials matching accounts that exist in BOTH auth.users (via Admin API)
-// AND school_users (properly linked with auth_user_id).
-// Passwords set via supabase.auth.admin.updateUserById() — the ONLY reliable method.
-// Direct SQL crypt() updates are NOT honoured by Supabase Auth service.
+// Dedicated CI test accounts — created specifically for automated testing.
+// These use @edprosys.internal domain which is not publicly known,
+// preventing brute-force attacks that pollute Supabase Auth rate limits.
+// Passwords are set via the setup-ci-accounts Edge Function.
+// Admin role → redirects to /dashboard
+// Teacher role → redirects to /teacher
 const ADMIN = {
-  email: process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in',
-  password: process.env.TEST_ADMIN_PASSWORD || 'edprosys0000',
+  email:    process.env.TEST_ADMIN_EMAIL    || 'ci.admin@edprosys.internal',
+  password: process.env.TEST_ADMIN_PASSWORD || 'ci_xK9mP2qR7vT4nL6wY1jH3aB5dF8sG0',
 };
-// test.teacher@schoolos.local is the teacher account in school_users.
-// .local suffix also bypasses email-based rate limiting.
 const TEACHER = {
-  email: process.env.TEST_TEACHER_EMAIL || 'test.teacher@schoolos.local',
-  password: process.env.TEST_TEACHER_PASSWORD || 'edprosys0000',
+  email:    process.env.TEST_TEACHER_EMAIL    || 'ci.teacher@edprosys.internal',
+  password: process.env.TEST_TEACHER_PASSWORD || 'ci_mP7vT4nL6wY1xK9R2qjH3aB5dF8sG0',
 };
 
 // Skip all authenticated tests unless E2E_BYPASS_SECRET is set and non-trivial.
