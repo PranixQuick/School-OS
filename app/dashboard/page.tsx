@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import { T, type Lang } from '@/lib/i18n';
 
 interface KPIs {
   total_students: number; total_staff: number; pending_fees_count: number;
@@ -40,6 +41,19 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [legalPendingCount, setLegalPendingCount] = useState(0);
   const [setupIncomplete, setSetupIncomplete] = useState(false);
+  const [lang, setLang] = useState<Lang>('en');
+
+  // Read language from localStorage (set by sidebar selector)
+  useEffect(() => {
+    const stored = localStorage.getItem('edprosys_lang') as Lang | null;
+    if (stored) setLang(stored);
+    const handler = () => {
+      const updated = localStorage.getItem('edprosys_lang') as Lang | null;
+      if (updated) setLang(updated);
+    };
+    window.addEventListener('edprosys_lang_change', handler);
+    return () => window.removeEventListener('edprosys_lang_change', handler);
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setLoading(false); if (!kpis) setKpis(EMPTY_KPIS); }, 8000);
@@ -89,7 +103,7 @@ export default function DashboardPage() {
   const hasFeeAlert = safeKpis.pending_fees_amount > 0;
 
   return (
-    <Layout title="Dashboard" subtitle={today}
+    <Layout title={T('dashboard', lang)} subtitle={today}
       actions={<Link href="/admissions" style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>+ New Inquiry</Link>}>
 
       <style>{`
@@ -122,23 +136,22 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Fee urgency banner */}
       {hasFeeAlert && (
         <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#B91C1C' }}>💰 ₹{(safeKpis.pending_fees_amount / 1000).toFixed(1)}K fees outstanding</div>
-            <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>{safeKpis.pending_fees_count} student{safeKpis.pending_fees_count !== 1 ? 's' : ''} with pending fees</div>
+            <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>{safeKpis.pending_fees_count} student{safeKpis.pending_fees_count !== 1 ? 's' : ''} with {T('pending', lang)} fees</div>
           </div>
-          <a href="/admin/fees" style={{ padding: '7px 14px', background: '#B91C1C', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>View Fees →</a>
+          <a href="/admin/fees" style={{ padding: '7px 14px', background: '#B91C1C', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>View {T('fees', lang)} →</a>
         </div>
       )}
 
       {/* KPI grid — 2 col mobile, 4 col desktop */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Students', value: safeKpis.total_students, sub: 'Active enrolments', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
-          { label: 'Staff', value: safeKpis.total_staff, sub: 'Active staff members', color: '#0284C7', bg: '#E0F2FE', href: '/admin/staff' },
-          { label: 'Pending Fees', value: safeKpis.pending_fees_count, sub: `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K outstanding`, color: hasFeeAlert ? '#B91C1C' : '#15803D', bg: hasFeeAlert ? '#FEF2F2' : '#ECFDF5', href: '/admin/fees' },
+          { label: T('students', lang), value: safeKpis.total_students, sub: 'Active enrolments', color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
+          { label: T('staff', lang), value: safeKpis.total_staff, sub: 'Active staff members', color: '#0284C7', bg: '#E0F2FE', href: '/admin/staff' },
+          { label: T('fees', lang), value: safeKpis.pending_fees_count, sub: `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K outstanding`, color: hasFeeAlert ? '#B91C1C' : '#15803D', bg: hasFeeAlert ? '#FEF2F2' : '#ECFDF5', href: '/admin/fees' },
           { label: 'Leads', value: safeKpis.total_leads, sub: `${safeKpis.high_priority_leads} high priority`, color: '#6D28D9', bg: '#F5F3FF', href: '/admissions/crm' },
         ].map(k => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
@@ -170,7 +183,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Bottom 3-col — leads / evals / events */}
+      {/* Bottom 3-col */}
       <div className="bottom-grid">
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
