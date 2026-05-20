@@ -19,6 +19,7 @@ const ROLE_COLOR: Record<string, string> = {
 };
 
 export default function AdminStaffPage() {
+  const { lang } = useLang();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
