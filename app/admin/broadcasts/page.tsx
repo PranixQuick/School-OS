@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Broadcast {
   id: string; subject: string; message: string;
@@ -8,6 +10,7 @@ interface Broadcast {
 }
 
 export default function BroadcastsPage() {
+  const { lang } = useLang();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -43,7 +46,7 @@ export default function BroadcastsPage() {
   }
 
   return (
-    <Layout title="Broadcasts" subtitle="Send announcements to all parents via WhatsApp">
+    <Layout title={T('broadcasts', lang)} subtitle="Send announcements to all parents via WhatsApp">
       {/* Compose */}
       <div className="card" style={{ padding: 16, marginBottom: 20 }}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#111827' }}>
