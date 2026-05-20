@@ -134,7 +134,7 @@ export default function SettingsPage() {
           <div className="tabs">
             {(['general', 'usage', 'team', 'config'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-btn${activeTab === tab ? ' active' : ''}`}>
-                {tab === 'general' ? 'General' : tab === 'usage' ? 'Usage & Plan' : tab === 'team' ? 'Team' : 'School Config'}
+                {tab === 'general' ? T('general_tab', lang as never) : tab === 'usage' ? T('usage_plan', lang as never) : tab === 'team' ? T('team_tab', lang as never) : T('school_config', lang as never)}
               </button>
             ))}
           </div>
@@ -146,11 +146,11 @@ export default function SettingsPage() {
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 20 }}>School Information</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>SCHOOL NAME</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('school_name_label', lang as never)}</label>
                     <input required style={inputStyle} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>BOARD</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('board_label', lang as never)}</label>
                     <select style={inputStyle} value={form.board} onChange={e => setForm(p => ({ ...p, board: e.target.value }))}>
                       {['CBSE','ICSE','IB','State','Cambridge'].map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
@@ -158,22 +158,22 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>CONTACT EMAIL</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('contact_email_label', lang as never)}</label>
                     <input type="email" style={inputStyle} value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>CONTACT PHONE</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('contact_phone_label', lang as never)}</label>
                     <input style={inputStyle} value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} />
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>ADDRESS</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('address_label', lang as never)}</label>
                   <input style={inputStyle} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} placeholder="School address" />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? T('saving_', lang as never) : T('save_changes', lang as never)}
                 </button>
                 {saved === 'general' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>✓ Saved successfully</span>}
               </div>
@@ -330,7 +330,7 @@ export default function SettingsPage() {
 
               <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button onClick={handleConfigSave} disabled={saving} className="btn btn-primary">
-                  {saving ? 'Saving...' : 'Save Configuration'}
+                  {saving ? T('saving_', lang as never) : T('save_configuration', lang as never)}
                 </button>
                 {saved === 'config' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>✓ Configuration saved</span>}
               </div>
