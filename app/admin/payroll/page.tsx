@@ -78,13 +78,13 @@ export default function PayrollPage() {
       body: JSON.stringify({ pay_period_month: newMonth, pay_period_year: newYear }),
     });
     const d = await res.json();
-    if (res.ok) { setRuns(p => [d.run, ...p]); showToast(`Payroll run created for ${MONTHS[newMonth]} ${newYear}`); }
+    if (res.ok) { setRuns(p => [d.run, ...p]); showToast(T('payroll_run_created', lang as never) + ' — ' + MONTHS[newMonth] + ' ' + newYear); }
     else showToast(d.error ?? 'Failed');
     setCreating(false);
   }
 
   async function saveStructure() {
-    if (!structForm.staff_id || !structForm.basic_salary) { showToast('Staff and basic salary required'); return; }
+    if (!structForm.staff_id || !structForm.basic_salary) { showToast(T('staff_salary_required', lang as never)); return; }
     setSaving(true);
     const res = await fetch('/api/admin/payroll/structures', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -103,7 +103,7 @@ export default function PayrollPage() {
       }),
     });
     const d = await res.json();
-    if (res.ok) { showToast('Salary structure saved'); setTab('structures'); loadData(); }
+    if (res.ok) { showToast(T('structure_saved', lang as never)); setTab('structures'); loadData(); }
     else showToast(d.error ?? 'Failed to save');
     setSaving(false);
   }
@@ -116,7 +116,7 @@ export default function PayrollPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      showToast(action === 'mark_paid' ? 'Marked as paid' : action === 'approve' ? 'Approved' : 'Cancelled');
+      showToast(action === 'mark_paid' ? T('payroll_marked_paid', lang as never) : action === 'approve' ? T('payroll_approved', lang as never) : T('payroll_cancelled', lang as never));
       setSelectedRun(d.run);
       setRuns(p => p.map(r => r.id === runId ? d.run : r));
     } else showToast(d.error ?? 'Action failed');
@@ -171,7 +171,7 @@ export default function PayrollPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>{MONTHS[selectedRun.pay_period_month]} {selectedRun.pay_period_year} Payroll</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>{MONTHS[selectedRun.pay_period_month]} {selectedRun.pay_period_year} {T('payroll', lang as never)}</div>
               <button onClick={() => setSelectedRun(null)} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>✕</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
@@ -284,12 +284,12 @@ export default function PayrollPage() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{MONTHS[r.pay_period_month]} {r.pay_period_year}</div>
                         <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                          {r.total_staff} staff · ₹{(r.total_gross / 1000).toFixed(1)}K gross · ₹{(r.total_net / 1000).toFixed(1)}K net
+                          {r.total_staff} {T('staff', lang as never)} · ₹{(r.total_gross / 1000).toFixed(1)}K {T('basic', lang as never)} · ₹{(r.total_net / 1000).toFixed(1)}K {T('net_payable', lang as never)}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <div style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, ...s }}>{r.status.toUpperCase()}</div>
-                        <div style={{ fontSize: 12, color: '#6B7280' }}>View →</div>
+                        <div style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, ...s }}>{T(r.status === 'draft' ? 'status_draft' : r.status === 'approved' ? 'approved' : r.status === 'paid' ? 'paid' : 'payroll_cancelled', lang as never)}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280' }}>{T('view_arrow', lang as never)}</div>
                       </div>
                     </div>
                   );
@@ -322,7 +322,7 @@ export default function PayrollPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 800, fontSize: 15, color: '#4F46E5' }}>₹{Number(s.gross_salary).toLocaleString('en-IN')}/mo</div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>Basic: ₹{Number(s.basic_salary).toLocaleString('en-IN')}</div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>{T('basic_salary', lang as never)}: ₹{Number(s.basic_salary).toLocaleString('en-IN')}</div>
                     </div>
                   </div>
                 ))}
@@ -344,7 +344,7 @@ export default function PayrollPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>{T('earnings', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
-              { key: 'basic_salary', label: 'Basic Salary *' },
+              { key: 'basic_salary', label: T('basic_salary', lang as never) + ' *' },
               { key: 'hra', label: 'HRA' },
               { key: 'da', label: 'DA' },
               { key: 'conveyance', label: T('conveyance', lang as never) },
@@ -368,10 +368,10 @@ export default function PayrollPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, marginTop: 18 }}>{T('deductions_section', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
             {[
-              { key: 'pf_employee_pct', label: 'PF Employee %' },
-              { key: 'pf_employer_pct', label: 'PF Employer %' },
-              { key: 'tds_placeholder', label: 'TDS (₹/month)' },
-              { key: 'other_deduction', label: 'Other Deduction (₹)' },
+              { key: 'pf_employee_pct', label: T('pf_employee_pct', lang as never) },
+              { key: 'pf_employer_pct', label: T('pf_employer_pct', lang as never) },
+              { key: 'tds_placeholder', label: T('tds_monthly', lang as never) },
+              { key: 'other_deduction', label: T('other_deduction', lang as never) },
             ].map(f => (
               <div key={f.key}>
                 <label style={lbl}>{f.label}</label>
