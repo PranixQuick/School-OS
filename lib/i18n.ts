@@ -222,3 +222,6 @@ export function T(key: string, lang: Lang): string {
 
 /** Deprecated alias — use T() */
 export const t = T;
+
+/** All supported language codes — used by LanguageSelector and useLang */
+export const SUPPORTED_LANGS: Lang[] = ['en', 'hi', 'te', 'ta', 'kn', 'mr', 'ml'];
