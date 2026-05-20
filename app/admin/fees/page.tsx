@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
-import { T, type Lang } from '@/lib/i18n';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface FeeRecord {
   id: string; student_name: string; class: string; section: string;
@@ -14,14 +15,7 @@ const STATUS_COLOR = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C' }
 const STATUS_BG = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2' };
 
 export default function FeesPage() {
-  const [lang, setLang] = useState<Lang>('en');
-  useEffect(() => {
-    const stored = localStorage.getItem('edprosys_lang') as Lang | null;
-    if (stored) setLang(stored);
-    const h = () => { const u = localStorage.getItem('edprosys_lang') as Lang | null; if (u) setLang(u); };
-    window.addEventListener('edprosys_lang_change', h);
-    return () => window.removeEventListener('edprosys_lang_change', h);
-  }, []);
+  const { lang } = useLang();
   const [fees, setFees] = useState<FeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all'|'pending'|'overdue'|'paid'>('all');
@@ -72,7 +66,7 @@ export default function FeesPage() {
   });
 
   return (
-    <Layout title="Fee Management" subtitle="Track collections, send reminders, mark payments"
+    <Layout title={T('fee_management', lang)} subtitle="Track collections, send reminders, mark payments"
       actions={
         <Link href="/admin/fees/templates" className="btn btn-primary btn-sm">+ Fee Template</Link>
       }>
