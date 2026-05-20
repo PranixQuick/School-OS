@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Structure {
   id: string; staff_id: string; gross_salary: number; basic_salary: number;
@@ -28,6 +30,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 export default function PayrollPage() {
+  const { lang } = useLang();
   const [tab, setTab] = useState<'runs' | 'structures' | 'new_structure'>('runs');
   const [structures, setStructures] = useState<Structure[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -137,7 +140,7 @@ export default function PayrollPage() {
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600 as const, color: '#9CA3AF', marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '0.05em' };
 
   return (
-    <Layout title="Payroll" subtitle="Staff salary management">
+    {/* @ts-ignore */}<Layout title={T('payroll', lang)} subtitle={T('payroll_management', lang)}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: '#15803D', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>✓ {toast}</div>}
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.skel{background:#F3F4F6;border-radius:8px;animation:pulse 1.5s ease-in-out infinite}`}</style>
 
@@ -158,7 +161,7 @@ export default function PayrollPage() {
         {(['runs', 'structures', 'new_structure'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: tab === t ? '#4F46E5' : '#F3F4F6', color: tab === t ? '#fff' : '#374151' }}>
-            {t === 'runs' ? 'Payroll Runs' : t === 'structures' ? 'Salary Structures' : '+ Add Structure'}
+            {t === 'runs' ? T('payroll_management', lang) : t === 'structures' ? T('staff_management', lang) : '+ ' + T('add', lang)}
           </button>
         ))}
       </div>
