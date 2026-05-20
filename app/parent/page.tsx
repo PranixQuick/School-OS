@@ -31,6 +31,7 @@ export default function ParentHomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [schoolName, setSchoolName] = useState('');
+
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 6000);
     fetch('/api/parent/dashboard')
