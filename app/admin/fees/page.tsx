@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
-import { T, type Lang } from '@/lib/i18n';
 import Link from 'next/link';
+import { T, type Lang } from '@/lib/i18n';
 
 interface FeeRecord {
   id: string; student_name: string; class: string; section: string;
