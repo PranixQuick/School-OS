@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Parent { id: string; name: string; phone: string; student_name?: string; class?: string; section?: string; last_access?: string; }
 
 export default function AdminParentsPage() {
+  const { lang } = useLang();
   const [parents, setParents] = useState<Parent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -21,7 +24,7 @@ export default function AdminParentsPage() {
   );
 
   return (
-    <Layout title="Parent Directory" subtitle={`${parents.length} registered parents`}>
+    <Layout title={T('parents', lang)} subtitle={`${parents.length} registered parents`}>
       <input value={search} onChange={e => setSearch(e.target.value)}
         placeholder="Search by name, phone, or student…" className="input"
         style={{ width: '100%', height: 36, fontSize: 13, marginBottom: 16, boxSizing: 'border-box' }} />
