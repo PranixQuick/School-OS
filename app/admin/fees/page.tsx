@@ -1,7 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
-import { T, type Lang } from '@/lib/i18n';
 import Link from 'next/link';
 
 interface FeeRecord {
@@ -14,6 +13,14 @@ const STATUS_COLOR = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C' }
 const STATUS_BG = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2' };
 
 export default function FeesPage() {
+  const [lang, setLang] = useState<Lang>('en');
+  useEffect(() => {
+    const stored = localStorage.getItem('edprosys_lang') as Lang | null;
+    if (stored) setLang(stored);
+    const h = () => { const u = localStorage.getItem('edprosys_lang') as Lang | null; if (u) setLang(u); };
+    window.addEventListener('edprosys_lang_change', h);
+    return () => window.removeEventListener('edprosys_lang_change', h);
+  }, []);
   const [fees, setFees] = useState<FeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all'|'pending'|'overdue'|'paid'>('all');
