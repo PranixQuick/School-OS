@@ -42,7 +42,7 @@ export default function AdmissionsPage() {
 
   return (
     <Layout
-      title="New Inquiry"
+      title={T('admissions', lang)}
       subtitle="Add a parent inquiry and AI will score the lead instantly"
       actions={<Link href="/admissions/crm" className="btn btn-ghost btn-sm">View CRM →</Link>}
     >
