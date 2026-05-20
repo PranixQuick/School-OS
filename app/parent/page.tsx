@@ -163,7 +163,7 @@ export default function ParentHomePage() {
 
         {/* School notices */}
         <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
-          {L('announcements', lang)}
+          {T('announcements', lang)}
         </div>
         {loading ? (
           <><div className="skel" style={{ height: 64, marginBottom: 8, borderRadius: 12 }} /><div className="skel" style={{ height: 64, borderRadius: 12 }} /></>
