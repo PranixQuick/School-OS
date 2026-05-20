@@ -36,6 +36,7 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     { groupKey: 'records', items: [
       { key: 'transfer_certs',href: '/admin/transfer-certificates',  icon: '📋' },
       { key: 'vendors',       href: '/admin/vendors',                icon: '🤝' },
+      { key: 'upload',          href: '/admin/import',                   icon: '📥' },
     ]},
     { groupKey: 'account', items: [
       { key: 'settings',      href: '/settings',                     icon: '⚙️' },
@@ -60,6 +61,7 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     { groupKey: 'records', items: [
       { key: 'transfer_certs',href: '/admin/transfer-certificates', icon: '📋' },
       { key: 'vendors',       href: '/admin/vendors', icon: '🤝' },
+      { key: 'upload',          href: '/admin/import',  icon: '📥' },
     ]},
     { groupKey: 'account', items: [
       { key: 'settings',      href: '/settings', icon: '⚙️' },
@@ -99,6 +101,9 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     ]},
     { groupKey: 'finance', items: [
       { key: 'fees',          href: '/admin/fees',  icon: '💰' },
+    ]},
+    { groupKey: 'records', items: [
+      { key: 'upload',          href: '/admin/import',  icon: '📥' },
     ]},
     { groupKey: 'ai_tools', items: [
       { key: 'analytics',     href: '/analytics',   icon: '📊' },
