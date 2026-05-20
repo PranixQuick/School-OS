@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
@@ -9,7 +9,17 @@ import { useLang } from '@/lib/useLang';
 interface StudentInfo { name: string; class: string; section: string; roll_number: string | null; admission_number: string | null; }
 interface Attendance { present_pct: number; total_days: number; present_days: number; }
 interface FeeInfo { pending_amount: number; overdue: boolean; }
-interface Notice { id: string; subject: string; message: string; created_at: string; }
+interface Notice { id: string; subject?: string; message: string; created_at: string; }
+interface ChildSummary { id: string; name: string; class: string; section: string; school_id: string; is_primary: boolean; }
+interface DashData {
+  student: StudentInfo;
+  attendance: Attendance;
+  fee: FeeInfo;
+  notices: Notice[];
+  school_name: string;
+  children?: ChildSummary[];
+  active_child_id?: string;
+}
 
 const ACTION_KEYS = [
   { href: '/parent/attendance', icon: '✅', key: 'attendance', bg: '#F0FDF4' },
@@ -21,7 +31,6 @@ const ACTION_KEYS = [
   { href: '/parent/events',     icon: '📸', key: 'events',     bg: '#FDF4FF' },
 ];
 
-// Compact language labels for the switcher strip
 const LANG_SHORT: Partial<Record<Lang, string>> = {
   en: 'EN', hi: 'हि', te: 'తె', ta: 'த', kn: 'ಕ', mr: 'म', ml: 'മ',
 };
@@ -30,35 +39,51 @@ const LANG_ORDER: Lang[] = ['te', 'en', 'hi', 'ta', 'kn', 'mr', 'ml'];
 export default function ParentHomePage() {
   const { lang, setLang } = useLang();
   const router = useRouter();
-  const [student, setStudent] = useState<StudentInfo | null>(null);
-  const [attendance, setAttendance] = useState<Attendance | null>(null);
-  const [fee, setFee] = useState<FeeInfo | null>(null);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [schoolName, setSchoolName] = useState('');
+  const [data, setData]           = useState<DashData | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+
+  // Fetch data — optionally for a specific child
+  const fetchData = useCallback(async (childId?: string) => {
+    setLoading(true);
+    try {
+      const url = childId
+        ? `/api/parent/dashboard?child_id=${childId}`
+        : '/api/parent/dashboard';
+      const r = await fetch(url);
+      if (r.ok) {
+        const d = await r.json() as DashData;
+        setData(d);
+        // On first load, persist active child from API
+        if (!childId && d.active_child_id) setActiveChildId(d.active_child_id);
+      }
+    } catch {/* ignore */}
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 6000);
-    fetch('/api/parent/dashboard')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d) {
-          setStudent(d.student ?? null);
-          setAttendance(d.attendance ?? null);
-          setFee(d.fee ?? null);
-          setNotices(d.notices ?? []);
-          setSchoolName(d.school_name ?? '');
-        }
-      })
-      .catch(() => {})
-      .finally(() => { setLoading(false); clearTimeout(t); });
+    void fetchData().finally(() => clearTimeout(t));
     return () => clearTimeout(t);
-  }, []);
+  }, [fetchData]);
+
+  const handleChildSwitch = (childId: string) => {
+    setActiveChildId(childId);
+    void fetchData(childId);
+  };
 
   const handleLogout = async () => {
     await fetch('/api/parent/logout', { method: 'POST' }).catch(() => {});
     router.push('/parent/login');
   };
+
+  const student    = data?.student ?? null;
+  const attendance = data?.attendance ?? null;
+  const fee        = data?.fee ?? null;
+  const notices    = data?.notices ?? [];
+  const schoolName = data?.school_name ?? '';
+  const children   = data?.children ?? [];
+  const multiChild = children.length > 1;
 
   const att = attendance?.present_pct ?? 0;
   const attColor = att >= 90 ? '#16A34A' : att >= 75 ? '#D97706' : '#B91C1C';
@@ -74,130 +99,147 @@ export default function ParentHomePage() {
         .p-action:active{transform:scale(0.96)}
         .lang-btn{background:rgba(255,255,255,0.15);border:none;color:#fff;padding:4px 9px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;font-family:inherit}
         .lang-btn.active{background:rgba(255,255,255,0.9);color:#4F46E5}
+        .child-tab{border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap}
+        .child-tab.active{background:#fff;color:#4F46E5;box-shadow:0 2px 8px rgba(79,70,229,0.2)}
+        .child-tab.inactive{background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.85)}
       `}</style>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', padding: '16px 16px 24px' }}>
-        {/* Top row: school name + sign out */}
+      <div style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', padding: '16px 16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
             {loading ? '…' : schoolName}
           </div>
-          <button onClick={handleLogout}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-            {T('sign_out', lang)}
+          <button onClick={() => void handleLogout()}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {T('sign_out', lang as never)}
           </button>
         </div>
 
-        {/* Language selector strip — visible to ALL parent portal visitors */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {/* Language strip */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: multiChild ? 14 : 10 }}>
           {LANG_ORDER.map(l => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`lang-btn${lang === l ? ' active' : ''}`}
-              title={LANG_LABELS[l]}
-              aria-label={LANG_LABELS[l]}
-            >
+            <button key={l} onClick={() => setLang(l)}
+              className={`lang-btn${lang === l ? ' active' : ''}`}>
               {LANG_SHORT[l]}
             </button>
           ))}
         </div>
 
-        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-          {T('parents', lang)}
-        </div>
-      </div>
-
-      <div style={{ padding: '0 16px', marginTop: -16 }}>
-        {/* Student card */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-          {loading ? (
-            <><div className="skel" style={{ height: 24, width: '60%', marginBottom: 8 }} /><div className="skel" style={{ height: 16, width: '40%' }} /></>
-          ) : student ? (
-            <>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 4 }}>{student.name}</div>
-              <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 14 }}>
-                {T('class_', lang)} {student.class}-{student.section}
-                {student.roll_number ? ` · Roll ${student.roll_number}` : ''}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '14px', borderLeft: `3px solid ${attColor}` }}>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: attColor }}>{Math.round(att)}%</div>
-                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3 }}>{T('attendance', lang)}</div>
-                  {att < 75 && <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 4, fontWeight: 600 }}>⚠ {T('overdue', lang)}</div>}
-                </div>
-                <div style={{ background: feeAlert ? '#FEF2F2' : '#F0FDF4', borderRadius: 12, padding: '14px', borderLeft: `3px solid ${feeAlert ? '#B91C1C' : '#16A34A'}` }}>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: feeAlert ? '#B91C1C' : '#16A34A' }}>
-                    {feeAlert ? `₹${fee!.pending_amount >= 1000 ? (fee!.pending_amount / 1000).toFixed(1) + 'K' : fee!.pending_amount}` : '✓'}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3 }}>
-                    {feeAlert ? T('fees', lang) : T('paid', lang)}
-                  </div>
-                  {fee?.overdue && <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 4, fontWeight: 600 }}>{T('overdue', lang)}</div>}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div style={{ color: '#6B7280', fontSize: 14 }}>{T('no_records', lang)}</div>
-          )}
-        </div>
-
-        {/* Fee urgency CTA */}
-        {!loading && feeAlert && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#B91C1C' }}>⚠️ {T('fees', lang)} {T('pending', lang)}</div>
-              <div style={{ fontSize: 13, color: '#B91C1C', marginTop: 2 }}>
-                ₹{fee!.pending_amount} {T('outstanding', lang)}{fee!.overdue ? ' — ' + T('overdue', lang) : ''}
-              </div>
-            </div>
-            <Link href="/parent/fees" style={{ padding: '9px 16px', background: '#B91C1C', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-              →
-            </Link>
+        {/* Multi-child selector — only shown when parent has 2+ children */}
+        {multiChild && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {children.map(child => (
+              <button
+                key={child.id}
+                onClick={() => handleChildSwitch(child.id)}
+                className={`child-tab ${activeChildId === child.id ? 'active' : 'inactive'}`}>
+                {child.name.split(' ')[0]} {/* First name only for compact tabs */}
+                <span style={{ fontSize: 11, opacity: 0.8, marginLeft: 4 }}>
+                  Cl.{child.class}
+                </span>
+              </button>
+            ))}
           </div>
         )}
 
-        {/* Quick actions */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 10 }}>
-          {T('actions', lang)}
+        {/* Student name + class */}
+        {loading ? (
+          <div className="skel" style={{ height: 28, width: '60%', marginTop: 8 }} />
+        ) : student ? (
+          <div style={{ marginTop: multiChild ? 10 : 6 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+              {student.name}
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+              Class {student.class}-{student.section}
+              {student.roll_number ? ` · Roll ${student.roll_number}` : ''}
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 6 }}>
+            {T('parents', lang as never)}
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '16px 16px 0' }}>
+        {/* Attendance + Fee summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {/* Attendance */}
+          <div style={{ background: '#fff', borderRadius: 14, padding: 14, border: '1px solid #F3F4F6' }}>
+            <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, marginBottom: 6 }}>
+              {T('attendance', lang as never)}
+            </div>
+            {loading ? <div className="skel" style={{ height: 32, marginBottom: 4 }} /> : (
+              <>
+                <div style={{ fontSize: 28, fontWeight: 800, color: attColor, lineHeight: 1 }}>
+                  {att}%
+                </div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+                  {attendance?.present_days ?? 0}/{attendance?.total_days ?? 0} days
+                </div>
+              </>
+            )}
+          </div>
+          {/* Fees */}
+          <div style={{ background: feeAlert ? '#FFF7ED' : '#fff', borderRadius: 14, padding: 14, border: `1px solid ${feeAlert ? '#FED7AA' : '#F3F4F6'}` }}>
+            <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, marginBottom: 6 }}>
+              {T('fees', lang as never)}
+            </div>
+            {loading ? <div className="skel" style={{ height: 32, marginBottom: 4 }} /> : (
+              <>
+                {feeAlert ? (
+                  <>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#D97706', lineHeight: 1 }}>
+                      ₹{fee?.pending_amount.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: 11, color: fee?.overdue ? '#B91C1C' : '#D97706', marginTop: 4, fontWeight: 600 }}>
+                      {fee?.overdue ? 'Overdue' : 'Pending'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: '#16A34A', lineHeight: 1 }}>✓</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>All clear</div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
-          {ACTION_KEYS.slice(0, 4).map(a => (
+
+        {/* Quick actions grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+          {ACTION_KEYS.map(a => (
             <Link key={a.href} href={a.href} className="p-action">
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, margin: '0 auto 8px' }}>{a.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{T(a.key, lang)}</div>
-            </Link>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 22 }}>
-          {ACTION_KEYS.slice(4).map(a => (
-            <Link key={a.href} href={a.href} className="p-action">
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, margin: '0 auto 8px' }}>{a.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{T(a.key, lang)}</div>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{a.icon}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>
+                {T(a.key as never, lang as never)}
+              </div>
             </Link>
           ))}
         </div>
 
         {/* Notices */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 10 }}>
-          {T('announcements', lang)}
-        </div>
-        {loading ? (
-          <><div className="skel" style={{ height: 70, marginBottom: 8, borderRadius: 12 }} /><div className="skel" style={{ height: 70, borderRadius: 12 }} /></>
-        ) : notices.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 24, color: '#9CA3AF', fontSize: 14 }}>{T('no_records', lang)}</div>
-        ) : notices.slice(0, 5).map(n => (
-          <div key={n.id} style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', marginBottom: 8, borderLeft: '3px solid #4F46E5' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 5 }}>{n.subject}</div>
-            <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>
-              {n.message.slice(0, 140)}{n.message.length > 140 ? '…' : ''}
+        {notices.length > 0 && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10, letterSpacing: '-0.2px' }}>
+              📢 {T('announcements', lang as never)}
             </div>
-            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>
-              {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {notices.slice(0, 3).map(n => (
+                <div key={n.id} style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', border: '1px solid #F3F4F6' }}>
+                  {n.subject && <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 3 }}>{n.subject}</div>}
+                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>{n.message}</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 5 }}>
+                    {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+          </>
+        )}
       </div>
     </div>
   );
