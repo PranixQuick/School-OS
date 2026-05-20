@@ -43,8 +43,8 @@ export default function ParentLoginPage() {
           <div style={{ width: 48, height: 48, background: '#EEF2FF', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>
             🏫
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Parent Portal</h1>
-          <p style={{ fontSize: 13, color: '#6B7280' }}>Sign in to view your child{"'"}s progress</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Parent Portal</h1>
+          <p style={{ fontSize: 14, color: '#6B7280' }}>Sign in to view your child{"'"}s progress</p>
         </div>
 
         {/* Form */}
@@ -59,7 +59,7 @@ export default function ParentLoginPage() {
               onChange={e => setPhone(e.target.value)}
               placeholder="+91 98765 43210"
               autoComplete="tel"
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '14px 14px', border: '1px solid #D1D5DB', borderRadius: 10, fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
               onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
             />
           </div>
@@ -76,7 +76,7 @@ export default function ParentLoginPage() {
               maxLength={6}
               autoComplete="current-password"
               inputMode="numeric"
-              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 8, fontSize: 14, outline: 'none', letterSpacing: 6, boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '14px 14px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 10, fontSize: 18, outline: 'none', letterSpacing: 6, boxSizing: 'border-box' }}
               onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
             />
           </div>
@@ -90,9 +90,9 @@ export default function ParentLoginPage() {
           <button
             onClick={() => void handleLogin()}
             disabled={loading}
-            style={{ padding: '11px', background: loading ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4 }}
+            style={{ padding: '15px', background: loading ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4 }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign In →'}
           </button>
         </div>
 
@@ -102,6 +102,11 @@ export default function ParentLoginPage() {
             First time? Contact your school admin to get your login PIN.
             PINs are sent to your registered phone number via WhatsApp.
           </p>
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <a href="/parent/register" style={{ fontSize: 13, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>
+              New? Register here →
+            </a>
+          </div>
         </div>
       </div>
     </div>
