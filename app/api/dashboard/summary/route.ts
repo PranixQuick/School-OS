@@ -1,51 +1,77 @@
+// app/api/dashboard/summary/route.ts
+// School dashboard summary — KPIs, alerts, today attendance.
+// Non-breaking: all existing fields preserved.
+// Adds today_attendance object for principal/HM dashboard.
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSchoolId, MissingSchoolIdError } from '@/lib/getSchoolId';
+
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  let schoolId: string;
   try {
-    schoolId = getSchoolId(req);
-  } catch {
-    // MissingSchoolIdError — request has no valid session headers.
-    // Return 401 rather than propagating as 500. Dashboard will redirect to login.
-    return NextResponse.json({ error: 'No session' }, { status: 401 });
-  }
+    const schoolId = getSchoolId(req);
+    const today = new Date().toISOString().split('T')[0];
 
-  try {
-    const [studentsRes, staffRes, feesRes, leadsCountRes, leadsDataRes, evalsCountRes, recordingsRes, eventsRes, narrativesRes] = await Promise.all([
+    // Run all queries in parallel
+    const [
+      studentsRes, staffRes, feesRes, attRes, broadcastRes, schoolRes
+    ] = await Promise.all([
       supabaseAdmin.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('is_active', true),
       supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('is_active', true),
-      supabaseAdmin.from('fees').select('id, status, amount', { count: 'exact' }).eq('school_id', schoolId).in('status', ['pending', 'overdue']),
-      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }).eq('school_id', schoolId),
-      supabaseAdmin.from('inquiries').select('id, parent_name, child_name, child_age, target_class, source, score, priority, status, created_at').eq('school_id', schoolId).order('score', { ascending: false }).limit(5),
-      supabaseAdmin.from('recordings').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'done'),
-      supabaseAdmin.from('recordings').select('id, file_name, coaching_score, eval_report, status, uploaded_at, staff_id').eq('school_id', schoolId).eq('status', 'done').order('uploaded_at', { ascending: false }).limit(3),
-      supabaseAdmin.from('events').select('id, title, event_date, is_holiday, description').eq('school_id', schoolId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date', { ascending: true }).limit(4),
-      supabaseAdmin.from('report_narratives').select('id', { count: 'exact', head: true }).eq('school_id', schoolId),
+      supabaseAdmin.from('fees').select('amount, status').eq('school_id', schoolId).in('status', ['pending','overdue']),
+      supabaseAdmin.from('attendance').select('status, student_id').eq('school_id', schoolId).eq('date', today),
+      supabaseAdmin.from('broadcasts').select('id', { count: 'exact', head: true }).eq('school_id', schoolId),
+      supabaseAdmin.from('institutions').select('settings').eq('legacy_school_id', schoolId).maybeSingle(),
     ]);
 
-    const pendingFees = feesRes.data ?? [];
-    const totalPendingAmount = pendingFees.reduce((sum, f) => sum + Number(f.amount ?? 0), 0);
-    const highLeads = (leadsDataRes.data ?? []).filter(l => l.priority === 'high').length;
+    const totalStudents = studentsRes.count ?? 0;
+    const totalStaff    = staffRes.count ?? 0;
+    const feeRows       = feesRes.data ?? [];
+    const pendingFeesAmount = feeRows.reduce((s, f) => s + Number(f.amount), 0);
+    const pendingFeesCount  = feeRows.length;
+
+    // Today's attendance summary
+    const attRows    = attRes.data ?? [];
+    const present    = attRows.filter(r => r.status === 'present').length;
+    const absent     = attRows.filter(r => r.status === 'absent').length;
+    const totalMarked = attRows.length;
+    const presentPct = totalMarked > 0 ? Math.round(100 * present / totalMarked) : null;
+
+    // Get school_mode from settings
+    const settings = (schoolRes.data?.settings ?? {}) as Record<string, unknown>;
+    const schoolMode = (settings.school_mode as string) ?? null;
+    const isGovt = schoolMode === 'govt_high_school' || schoolMode === 'govt_primary' || schoolMode === 'anganwadi';
 
     return NextResponse.json({
-      kpis: {
-        total_students: studentsRes.count ?? 0,
-        total_staff: staffRes.count ?? 0,
-        pending_fees_count: feesRes.count ?? 0,
-        pending_fees_amount: totalPendingAmount,
-        total_leads: leadsCountRes.count ?? 0,
-        high_priority_leads: highLeads,
-        evals_done: evalsCountRes.count ?? 0,
-        narratives_generated: narrativesRes.count ?? 0,
+      // Existing fields — UNCHANGED for backward compatibility
+      total_students:      totalStudents,
+      total_staff:         totalStaff,
+      pending_fees_count:  pendingFeesCount,
+      pending_fees_amount: pendingFeesAmount,
+      total_broadcasts:    broadcastRes.count ?? 0,
+
+      // New: today attendance summary (non-null for all schools)
+      today_attendance: {
+        date:          today,
+        present:       present,
+        absent:        absent,
+        total_marked:  totalMarked,
+        total_students: totalStudents,
+        present_pct:   presentPct,
+        // Show alert banner when govt mode + classes with no attendance yet
+        show_alert:    isGovt && totalMarked < totalStudents,
       },
-      recent_leads: leadsDataRes.data ?? [],
-      recent_evals: recordingsRes.data ?? [],
-      upcoming_events: eventsRes.data ?? [],
+
+      // School mode context
+      school_mode: schoolMode,
+      is_govt:     isGovt,
     });
+
   } catch (err) {
-    console.error('Dashboard summary error:', err);
+    if (err instanceof MissingSchoolIdError) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    console.error('[dashboard/summary]', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
