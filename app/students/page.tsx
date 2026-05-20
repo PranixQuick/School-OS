@@ -84,6 +84,26 @@ function ActionModal({ student, action, acting, lang, onConfirm, onClose }: Moda
   );
 }
 
+// Gender and category options for Add Student form
+const GENDER_OPTIONS = [
+  { value: '', label: 'Select Gender / లింగం' },
+  { value: 'M', label: 'Male / అబ్బాయి' },
+  { value: 'F', label: 'Female / అమ్మాయి' },
+  { value: 'O', label: 'Other / ఇతర' },
+];
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'Select Category / వర్గం' },
+  { value: 'OC', label: 'OC' },
+  { value: 'BC-A', label: 'BC-A' },
+  { value: 'BC-B', label: 'BC-B' },
+  { value: 'BC-C', label: 'BC-C' },
+  { value: 'BC-D', label: 'BC-D' },
+  { value: 'BC-E', label: 'BC-E' },
+  { value: 'SC', label: 'SC' },
+  { value: 'ST', label: 'ST' },
+  { value: 'Minority', label: 'Minority' },
+];
+
 export default function StudentsPage() {
   const { lang } = useLang();
   const [students, setStudents] = useState<Student[]>([]);
@@ -96,7 +116,11 @@ export default function StudentsPage() {
   const [actionModal, setActionModal] = useState<'transfer' | 'graduate' | 'withdraw' | 'archive' | 'edit' | null>(null);
   const [acting, setActing] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', class: '', section: '', phone_parent: '', parent_name: '' });
+  // Extended form: includes gender + socioeconomic_category for DISE compliance
+  const [addForm, setAddForm] = useState({
+    name: '', class: '', section: '', phone_parent: '', parent_name: '',
+    gender: '', socioeconomic_category: '',
+  });
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
 
@@ -105,12 +129,12 @@ export default function StudentsPage() {
     const params = new URLSearchParams({ status: statusFilter, limit: '500' });
     if (search) params.set('q', search);
     const r = await fetch(`/api/students?${params}`);
-    const d = await r.json();
+    const d = await r.json() as { students?: Student[] };
     setStudents(d.students ?? []);
     setLoading(false);
   }, [statusFilter, search]);
 
-  useEffect(() => { load(); }, [statusFilter]);
+  useEffect(() => { void load(); }, [statusFilter]);
 
   function showToast(msg: string, type: 'ok' | 'err' = 'ok') {
     setToast(msg); setToastType(type); setTimeout(() => setToast(''), 3500);
@@ -122,24 +146,36 @@ export default function StudentsPage() {
     const body: Record<string, unknown> = { id: selected.id, action: actionModal, ...fields };
     if (actionModal === 'graduate' && fields.graduation_year) body.graduation_year = Number(fields.graduation_year);
     const r = await fetch('/api/students', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const d = await r.json(); setActing(false);
+    const d = await r.json() as { error?: string }; setActing(false);
     if (!r.ok) { showToast(d.error ?? T('error', lang as never), 'err'); return; }
     showToast(selected.name + ' — ' + T(actionModal + '_action', lang as never));
-    setActionModal(null); setSelected(null); load();
+    setActionModal(null); setSelected(null); void load();
   }
 
   async function addStudent() {
     if (!addForm.name.trim()) { setAddError(T('required', lang as never)); return; }
     setAdding(true); setAddError('');
-    const r = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addForm) });
-    const d = await r.json(); setAdding(false);
+    // Build body — only include non-empty fields
+    const body: Record<string, string> = { name: addForm.name, class: addForm.class, section: addForm.section };
+    if (addForm.phone_parent)          body.phone_parent          = addForm.phone_parent;
+    if (addForm.parent_name)           body.parent_name           = addForm.parent_name;
+    if (addForm.gender)                body.gender                = addForm.gender;
+    if (addForm.socioeconomic_category) body.socioeconomic_category = addForm.socioeconomic_category;
+    const r = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json() as { error?: string }; setAdding(false);
     if (!r.ok) { setAddError(d.error ?? T('error', lang as never)); return; }
     showToast(T('students', lang as never) + ' ' + T('saved', lang as never));
-    setShowAdd(false); setAddForm({ name: '', class: '', section: '', phone_parent: '', parent_name: '' }); load();
+    setShowAdd(false);
+    setAddForm({ name: '', class: '', section: '', phone_parent: '', parent_name: '', gender: '', socioeconomic_category: '' });
+    void load();
   }
 
   const STATUSES = ['active', 'graduated', 'transferred', 'withdrawn', 'archived', 'all'];
   const STATUS_KEYS: Record<string, string> = { active: 'active', graduated: 'graduated', transferred: 'transferred', withdrawn: 'withdrawn', archived: 'archived', all: 'all_students' };
+
+  const SEL_STYLE = { width: '100%', height: 36, border: '1px solid #D1D5DB', borderRadius: 7, padding: '0 8px', fontSize: 13, boxSizing: 'border-box' as const, background: '#fff' };
+  const INP_STYLE = { width: '100%', height: 36, border: '1px solid #D1D5DB', borderRadius: 7, padding: '0 10px', fontSize: 13, boxSizing: 'border-box' as const };
+  const LBL_STYLE = { fontSize: 11, fontWeight: 600 as const, color: '#6B7280', display: 'block' as const, marginBottom: 3 };
 
   return (
     <Layout title={T('students', lang as never)} subtitle={`${students.length} ${statusFilter === 'all' ? T('all_students', lang as never) : T(STATUS_KEYS[statusFilter] ?? statusFilter, lang as never)} ${T('students', lang as never)}`}>
@@ -165,7 +201,7 @@ export default function StudentsPage() {
 
       {/* Search + Add */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && load()}
+        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && void load()}
           placeholder={T('search_students', lang as never)}
           style={{ flex: 1, minWidth: 180, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14 }} />
         <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -178,23 +214,43 @@ export default function StudentsPage() {
         <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, marginBottom: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{T('add_student', lang as never)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+            {/* Text fields */}
             {([
               { labelKey: 'name', key: 'name' },
               { labelKey: 'class_', key: 'class' },
               { labelKey: 'section', key: 'section' },
               { labelKey: 'parent_phone', key: 'phone_parent' },
-              { labelKey: 'parent_name_label', key: 'parent_name' }
-            ] as {labelKey: string; key: string}[]).map(f => (
+              { labelKey: 'parent_name_label', key: 'parent_name' },
+            ] as { labelKey: string; key: string }[]).map(f => (
               <div key={f.key}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 3 }}>{T(f.labelKey, lang as never)}</label>
-                <input value={(addForm as Record<string, string>)[f.key]} onChange={e => setAddForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  style={{ width: '100%', height: 36, border: '1px solid #D1D5DB', borderRadius: 7, padding: '0 10px', fontSize: 13, boxSizing: 'border-box' }} />
+                <label style={LBL_STYLE}>{T(f.labelKey, lang as never)}</label>
+                <input value={(addForm as Record<string, string>)[f.key]}
+                  onChange={e => setAddForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  style={INP_STYLE} />
               </div>
             ))}
+            {/* Gender — required for DISE export */}
+            <div>
+              <label style={LBL_STYLE}>Gender / లింగం</label>
+              <select value={addForm.gender}
+                onChange={e => setAddForm(prev => ({ ...prev, gender: e.target.value }))}
+                style={SEL_STYLE}>
+                {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            {/* Socioeconomic Category — required for DISE / scholarship reports */}
+            <div>
+              <label style={LBL_STYLE}>Category / వర్గం (DISE)</label>
+              <select value={addForm.socioeconomic_category}
+                onChange={e => setAddForm(prev => ({ ...prev, socioeconomic_category: e.target.value }))}
+                style={SEL_STYLE}>
+                {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
           </div>
           {addError && <div style={{ color: '#991B1B', fontSize: 12, marginTop: 8 }}>{addError}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button onClick={addStudent} disabled={adding} style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => void addStudent()} disabled={adding} style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               {adding ? T('loading', lang as never) : T('add', lang as never)}
             </button>
             <button onClick={() => setShowAdd(false)} style={{ padding: '8px 14px', background: '#fff', border: '1px solid #D1D5DB', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}>{T('cancel', lang as never)}</button>
@@ -244,7 +300,7 @@ export default function StudentsPage() {
                   <div style={{ marginTop: 8 }}>
                     <button onClick={async () => {
                       const r = await fetch('/api/students', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id, action: 'reactivate' }) });
-                      if (r.ok) { showToast(s.name + ' ' + T('reactivate', lang as never)); load(); } else showToast(T('error', lang as never), 'err');
+                      if (r.ok) { showToast(s.name + ' ' + T('reactivate', lang as never)); void load(); } else showToast(T('error', lang as never), 'err');
                     }} style={{ padding: '4px 10px', fontSize: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6, cursor: 'pointer', color: '#065F46' }}>
                       {T('reactivate', lang as never)}
                     </button>
