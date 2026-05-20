@@ -90,22 +90,22 @@ export default function BroadcastsPage() {
           <button onClick={sendBroadcast} disabled={sending || !subject.trim() || !message.trim()}
             className="btn btn-primary"
             style={{ opacity: (sending || !subject.trim() || !message.trim()) ? 0.6 : 1, minWidth: 120 }}>
-            {sending ? 'Sending…' : '📤 Send to All Parents'}
+            {sending ? T('sending_', lang as never) : '📤 ' + T('send_to_all', lang as never)}
           </button>
         </div>
       </div>
 
       {/* History */}
       <div className="section-header" style={{ marginBottom: 12 }}>
-        <div className="section-title">Broadcast History</div>
+        <div className="section-title">{T('broadcast_history', lang as never)}</div>
       </div>
       {loading ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading…</div>
       ) : broadcasts.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📢</div>
-          <div className="empty-state-title">No broadcasts yet</div>
-          <div className="empty-state-sub">Your sent announcements will appear here.</div>
+          <div className="empty-state-title">{T('no_broadcasts', lang as never)}</div>
+          <div className="empty-state-sub">{T('announcements_will_appear', lang as never)}</div>
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
