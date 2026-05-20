@@ -1,7 +1,7 @@
 // app/api/anganwadi/growth/route.ts
 // Anganwadi child growth record API.
 // POST: saves weight/height/MUAC/malnutrition to child_growth_records
-// GET (recent): returns last 20 records with child names
+// GET:  returns recent records with child names
 //
 // School-mode gated: only works for anganwadi institutions.
 
@@ -50,16 +50,20 @@ export async function POST(req: NextRequest) {
 
   // SAM alert: if malnutrition_cat = 'sam', create a health incident for supervisor visibility
   if (body.malnutrition_cat === 'sam') {
-    await supabaseAdmin.from('health_incidents').insert({
-      school_id:      session.schoolId,
-      student_id:     body.student_id,
-      incident_date:  new Date().toISOString().split('T')[0],
-      incident_type:  'malnutrition_sam',
-      description:    `SAM detected. Weight: ${body.weight_kg}kg${body.muac_cm ? `, MUAC: ${body.muac_cm}cm` : ''}. NRC referral required.`,
-      first_aid_given: 'Growth record created. Supervisor alert triggered.',
-      parent_notified: false,
-      referred_to_hospital: false,
-    }).catch(e => console.error('[growth] SAM health incident:', e));
+    try {
+      await supabaseAdmin.from('health_incidents').insert({
+        school_id:            session.schoolId,
+        student_id:           body.student_id,
+        incident_date:        new Date().toISOString().split('T')[0],
+        incident_type:        'malnutrition_sam',
+        description:          `SAM detected. Weight: ${body.weight_kg}kg${body.muac_cm ? `, MUAC: ${body.muac_cm}cm` : ''}. NRC referral required.`,
+        first_aid_given:      'Growth record created. Supervisor alert triggered.',
+        parent_notified:      false,
+        referred_to_hospital: false,
+      });
+    } catch (e) {
+      console.error('[growth] SAM health incident insert failed:', e);
+    }
   }
 
   return NextResponse.json({ success: true, record_id: record?.id });
@@ -79,11 +83,18 @@ export async function GET(req: NextRequest) {
     .order('recorded_date', { ascending: false })
     .limit(20);
 
-  const formatted = (records ?? []).map(r => ({
-    ...r,
-    child_name: (r.students as { name?: string } | null)?.name ?? 'Unknown',
-    students: undefined,
-  }));
+  const formatted = (records ?? []).map(r => {
+    const stu = r.students as { name?: string } | null;
+    return {
+      id:              r.id,
+      recorded_date:   r.recorded_date,
+      weight_kg:       r.weight_kg,
+      height_cm:       r.height_cm,
+      muac_cm:         r.muac_cm,
+      malnutrition_cat: r.malnutrition_cat,
+      child_name:      stu?.name ?? 'Unknown',
+    };
+  });
 
   return NextResponse.json({ records: formatted });
 }
