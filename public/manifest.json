@@ -1,13 +1,13 @@
 {
   "id": "/",
-  "name": "EdProSys",
+  "name": "EdProSys — School Management",
   "short_name": "EdProSys",
   "description": "AI-powered school management for Indian schools. Attendance, fees, WhatsApp alerts, report cards.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1E1B4B",
-  "theme_color": "#4F46E5",
+  "background_color": "#0F172A",
+  "theme_color": "#1E40AF",
   "orientation": "portrait-primary",
   "lang": "en-IN",
   "dir": "ltr",
@@ -30,6 +30,12 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/icon.svg",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -41,18 +47,19 @@
       "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Events Gallery",
-      "short_name": "Gallery",
-      "description": "View school event photos",
-      "url": "/parent/events",
+      "name": "Parent Portal",
+      "short_name": "Parents",
+      "description": "View child's school updates",
+      "url": "/parent",
       "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Fees",
+      "name": "Fee Status",
       "short_name": "Fees",
       "description": "View fee status",
       "url": "/parent/fees",
       "icons": [{ "src": "/brand/icon.svg", "sizes": "96x96" }]
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }
