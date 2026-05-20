@@ -3,23 +3,25 @@ import { test, expect, type BrowserContext } from '@playwright/test';
 const BASE = process.env.TEST_BASE_URL || 'https://www.edprosys.com';
 const BYPASS = process.env.E2E_BYPASS_SECRET ?? '';
 
-// Read credentials from CI secrets, fall back to known demo values.
-// auth.users passwords are set to these values via migration set_demo_passwords_for_ci.
+// Credentials matching accounts that exist in BOTH auth.users (via Admin API)
+// AND school_users (properly linked with auth_user_id).
+// Passwords set via supabase.auth.admin.updateUserById() — the ONLY reliable method.
+// Direct SQL crypt() updates are NOT honoured by Supabase Auth service.
 const ADMIN = {
   email: process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in',
   password: process.env.TEST_ADMIN_PASSWORD || 'edprosys0000',
 };
+// test.teacher@schoolos.local is the teacher account in school_users.
+// .local suffix also bypasses email-based rate limiting.
 const TEACHER = {
-  email: process.env.TEST_TEACHER_EMAIL || 'ravi.kumar@suchitracademy.edu.in',
+  email: process.env.TEST_TEACHER_EMAIL || 'test.teacher@schoolos.local',
   password: process.env.TEST_TEACHER_PASSWORD || 'edprosys0000',
 };
 
 // Skip all authenticated tests unless E2E_BYPASS_SECRET is set and non-trivial.
-// This prevents CI from hitting rate limits when the secret is absent.
 const SKIP_AUTH = !BYPASS || BYPASS.length < 16;
 
 // ── Login helper ──────────────────────────────────────────────
-// Always sends x-e2e-bypass so rate limiting is skipped for CI accounts.
 async function loginAs(
   context: BrowserContext,
   creds: { email: string; password: string }
@@ -39,7 +41,7 @@ async function logout(context: BrowserContext): Promise<void> {
 
 // ── Admin auth flow ───────────────────────────────────────────
 test.describe('Admin auth flow', () => {
-  test.skip(SKIP_AUTH, 'E2E_BYPASS_SECRET not configured — skipping authenticated tests');
+  test.skip(SKIP_AUTH, 'E2E_BYPASS_SECRET not configured');
 
   test('Admin login → 200 + /dashboard redirect', async ({ request }) => {
     const res = await request.post(`${BASE}/api/auth/login`, {
@@ -112,7 +114,7 @@ test.describe('Admin auth flow', () => {
 
 // ── Teacher auth flow ─────────────────────────────────────────
 test.describe('Teacher auth flow', () => {
-  test.skip(SKIP_AUTH, 'E2E_BYPASS_SECRET not configured — skipping authenticated tests');
+  test.skip(SKIP_AUTH, 'E2E_BYPASS_SECRET not configured');
 
   test('Teacher login → 200 + /teacher redirect', async ({ request }) => {
     const res = await request.post(`${BASE}/api/auth/login`, {
