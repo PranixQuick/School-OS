@@ -19,24 +19,28 @@ export async function GET(req: NextRequest) {
   if (!session) return noSession();
   const schoolId = session.schoolId;
 
-  const classFilter = req.nextUrl.searchParams.get('class');
-  const section = req.nextUrl.searchParams.get('section');
-  const search = req.nextUrl.searchParams.get('search');
-  const includeInactive = req.nextUrl.searchParams.get('include_inactive') === 'true';
-  const idFilter = req.nextUrl.searchParams.get('id');
+  const classFilter      = req.nextUrl.searchParams.get('class');
+  const section          = req.nextUrl.searchParams.get('section');
+  const search           = req.nextUrl.searchParams.get('search');
+  const includeInactive  = req.nextUrl.searchParams.get('include_inactive') === 'true';
+  const idFilter         = req.nextUrl.searchParams.get('id');
 
   let query = supabaseAdmin
     .from('students')
-    .select('id, name, class, section, roll_number, admission_number, phone_parent, parent_name, date_of_birth, is_active, created_at, school_id')
+    .select(`
+      id, name, class, section, roll_number, admission_number,
+      phone_parent, parent_name, date_of_birth, is_active, created_at, school_id,
+      gender, socioeconomic_category, rte_category, aadhaar_number
+    `)
     .eq('school_id', schoolId)
     .order('class', { ascending: true })
     .order('name', { ascending: true });
 
   if (!includeInactive) query = query.eq('is_active', true);
-  if (idFilter) query = query.eq('id', idFilter);
-  if (classFilter) query = query.eq('class', classFilter);
-  if (section) query = query.eq('section', section);
-  if (search) query = query.ilike('name', `%${search}%`);
+  if (idFilter)         query = query.eq('id', idFilter);
+  if (classFilter)      query = query.eq('class', classFilter);
+  if (section)          query = query.eq('section', section);
+  if (search)           query = query.ilike('name', `%${search}%`);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -52,21 +56,44 @@ export async function POST(req: NextRequest) {
     name: string; class: string; section?: string;
     roll_number?: string; admission_number?: string;
     phone_parent?: string; parent_name?: string; date_of_birth?: string;
+    // Government fields — optional for all, prominently shown in govt_high_school + govt_primary modes
+    gender?: string;                 // 'M' | 'F' | 'O'
+    socioeconomic_category?: string; // 'OC' | 'BC-A' | 'BC-B' | 'BC-C' | 'BC-D' | 'SC' | 'ST' | 'Minority'
+    rte_category?: string;           // 'rte' | 'regular' | 'ssa_transfer'
+    aadhaar_number?: string;
   } | null;
+
   if (!body || !body.name || !body.class) {
     return NextResponse.json({ error: 'name and class are required' }, { status: 400 });
   }
 
+  // Validate gender if provided
+  if (body.gender && !['M', 'F', 'O'].includes(body.gender)) {
+    return NextResponse.json({ error: 'gender must be M, F, or O' }, { status: 400 });
+  }
+
   const instCtx = await getInstitutionForSchool(schoolId);
   const { data: student, error } = await supabaseAdmin.from('students').insert({
-    school_id: schoolId,
-    institution_id: instCtx.institution_id,
-    academic_year_id: instCtx.academic_year_id,
-    name: body.name, class: body.class, section: body.section ?? 'A',
-    roll_number: body.roll_number ?? null, admission_number: body.admission_number ?? null,
-    phone_parent: body.phone_parent ?? null, parent_name: body.parent_name ?? null,
-    date_of_birth: body.date_of_birth ?? null, is_active: true,
+    school_id:               schoolId,
+    institution_id:          instCtx.institution_id,
+    academic_year_id:        instCtx.academic_year_id,
+    name:                    body.name,
+    class:                   body.class,
+    section:                 body.section ?? 'A',
+    roll_number:             body.roll_number ?? null,
+    admission_number:        body.admission_number ?? null,
+    phone_parent:            body.phone_parent ?? null,
+    parent_name:             body.parent_name ?? null,
+    date_of_birth:           body.date_of_birth ?? null,
+    // Government fields (null if not provided — backward compatible)
+    gender:                  body.gender ?? null,
+    socioeconomic_category:  body.socioeconomic_category ?? null,
+    rte_category:            body.rte_category ?? null,
+    aadhaar_number:          body.aadhaar_number ?? null,
+    is_active:               true,
+    data_source:             'manual',
   }).select().single();
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   let pin: string | null = null;
@@ -80,13 +107,15 @@ export async function POST(req: NextRequest) {
     const normPhone = normalisePhone(body.phone_parent);
     if (normPhone) {
       const { data: school } = await supabaseAdmin.from('schools').select('name').eq('id', schoolId).single();
-      void sendWhatsApp({ to: normPhone,
+      void sendWhatsApp({
+        to: normPhone,
         body: `Welcome to ${school?.name ?? 'School'}!\n\nYour child ${body.name} has been enrolled in Class ${body.class}-${body.section ?? 'A'}.\n\nYour Parent Portal PIN: *${pin}*\n\nPortal: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.edprosys.com'}/parent`,
-        schoolName: school?.name ?? 'School' }).catch(() => {});
+        schoolName: school?.name ?? 'School',
+      }).catch(() => {});
     }
   }
 
-  await logActivity({ schoolId, action: `Added student: ${body.name} (Class ${body.class})`, module: 'import', details: { name: body.name, class: body.class, pin_generated: !!pin } });
+  await logActivity({ schoolId, action: `Added student: ${body.name} (Class ${body.class})`, module: 'import', details: { name: body.name, class: body.class, gender: body.gender, pin_generated: !!pin } });
   return NextResponse.json({ success: true, student, pin_generated: !!pin });
 }
 
@@ -98,29 +127,41 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => null) as {
     id: string; name?: string; class?: string; section?: string;
     roll_number?: string; admission_number?: string;
-    phone_parent?: string; parent_name?: string; date_of_birth?: string; is_active?: boolean;
+    phone_parent?: string; parent_name?: string; date_of_birth?: string;
+    is_active?: boolean;
+    gender?: string; socioeconomic_category?: string; rte_category?: string; aadhaar_number?: string;
   } | null;
+
   if (!body?.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from('students').update({
-    ...(body.name !== undefined && { name: body.name }),
-    ...(body.class !== undefined && { class: body.class }),
-    ...(body.section !== undefined && { section: body.section }),
-    ...(body.roll_number !== undefined && { roll_number: body.roll_number }),
-    ...(body.admission_number !== undefined && { admission_number: body.admission_number }),
-    ...(body.phone_parent !== undefined && { phone_parent: body.phone_parent }),
-    ...(body.parent_name !== undefined && { parent_name: body.parent_name }),
-    ...(body.date_of_birth !== undefined && { date_of_birth: body.date_of_birth }),
-    ...(body.is_active !== undefined && { is_active: body.is_active }),
+    ...(body.name                   !== undefined && { name:                   body.name }),
+    ...(body.class                  !== undefined && { class:                  body.class }),
+    ...(body.section                !== undefined && { section:                body.section }),
+    ...(body.roll_number            !== undefined && { roll_number:            body.roll_number }),
+    ...(body.admission_number       !== undefined && { admission_number:       body.admission_number }),
+    ...(body.phone_parent           !== undefined && { phone_parent:           body.phone_parent }),
+    ...(body.parent_name            !== undefined && { parent_name:            body.parent_name }),
+    ...(body.date_of_birth          !== undefined && { date_of_birth:          body.date_of_birth }),
+    ...(body.is_active              !== undefined && { is_active:              body.is_active }),
+    ...(body.gender                 !== undefined && { gender:                 body.gender }),
+    ...(body.socioeconomic_category !== undefined && { socioeconomic_category: body.socioeconomic_category }),
+    ...(body.rte_category           !== undefined && { rte_category:           body.rte_category }),
+    ...(body.aadhaar_number         !== undefined && { aadhaar_number:         body.aadhaar_number }),
   }).eq('id', body.id).eq('school_id', schoolId).select().single();
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (body.phone_parent !== undefined) {
     const normPhone = normalisePhone(body.phone_parent);
     if (normPhone) {
-      await supabaseAdmin.from('parents').update({ phone: normPhone, ...(body.parent_name && { name: body.parent_name }) }).eq('student_id', body.id).eq('school_id', schoolId).then(null, () => {});
+      await supabaseAdmin.from('parents').update({
+        phone: normPhone,
+        ...(body.parent_name && { name: body.parent_name }),
+      }).eq('student_id', body.id).eq('school_id', schoolId).then(null, () => {});
     }
   }
+
   return NextResponse.json({ success: true, student: data });
 }
 
