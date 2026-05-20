@@ -26,6 +26,7 @@ const PLAN_COLOR: Record<string, { bg: string; color: string }> = {
 };
 
 export default function SettingsPage() {
+  const { lang } = useLang();
   const [school, setSchool] = useState<School | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -108,7 +109,7 @@ export default function SettingsPage() {
   const inputStyle = { width: '100%', height: 42, borderRadius: 9, border: '1px solid #D1D5DB', background: '#F9FAFB', fontSize: 14, padding: '0 14px', outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box' as const };
 
   return (
-    <Layout title="Settings" subtitle="School configuration and account management">
+    <Layout title={T('settings', lang)} subtitle="School configuration and account management">
       {loading ? (
         <div className="card"><div className="empty-state"><div className="empty-state-icon">⚙️</div><div className="empty-state-title">Loading settings...</div></div></div>
       ) : (
