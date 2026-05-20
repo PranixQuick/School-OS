@@ -41,7 +41,7 @@ export default function ReportCardsPage() {
   return (
     <Layout title={T('report_cards', lang)} subtitle="AI-generated narrative reports for every student"
       actions={<button onClick={generateAll} disabled={generating} className="btn btn-primary btn-sm">
-        {generating ? '⏳ Generating…' : '✨ Generate All Reports'}
+        {generating ? T('loading', lang as never) : '✨ ' + T('generate_all_reports', lang as never)}
       </button>}>
 
       {genResult && (
@@ -53,8 +53,8 @@ export default function ReportCardsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Reports Ready', value: ready.length, color: '#15803D', bg: '#DCFCE7' },
-          { label: 'Pending', value: reports.length - ready.length, color: '#A16207', bg: '#FEF9C3' },
+          { label: T('reports_ready', lang as never), value: ready.length, color: '#15803D', bg: '#DCFCE7' },
+          { label: T('pending', lang as never), value: reports.length - ready.length, color: '#A16207', bg: '#FEF9C3' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '12px 14px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -64,11 +64,11 @@ export default function ReportCardsPage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading reports…</div>
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>{T('loading', lang as never)}</div>
       ) : reports.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📄</div>
-          <div className="empty-state-title">No reports generated yet</div>
+          <div className="empty-state-title">{T('no_reports_yet', lang as never)}</div>
           <div className="empty-state-sub">Tap "Generate All Reports" to create AI narratives for all students.</div>
         </div>
       ) : (
