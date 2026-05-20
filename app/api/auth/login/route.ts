@@ -9,6 +9,16 @@ import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
+// Root cause resolution (2026-05-20):
+// CI tests were failing with "Invalid login credentials" because:
+// 1. auth.identities records were missing for accounts created via SQL INSERT
+//    (fixed by migration create_auth_identities_for_ci_demo_accounts)
+// 2. Supabase Auth has its own IP-based rate limiter at the GoTrue layer.
+//    After 300+ failed attempts from GitHub Actions IPs against known accounts
+//    (admin@suchitracademy.edu.in), Supabase blocked those IP ranges externally.
+//    Fixed by switching CI to dedicated ci.admin@edprosys.internal and
+//    ci.teacher@edprosys.internal accounts which have zero attack history.
+
 export async function GET() {
   return NextResponse.json(
     { error: 'Method Not Allowed. Use POST to login.' },
@@ -55,10 +65,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Authenticate via Supabase Auth using anon key.
-  // signInWithPassword requires the anon key (not service role).
-  // Root cause of prior failures: auth.identities records were missing for
-  // accounts created via direct SQL insert rather than proper signup flow.
-  // Migration create_auth_identities_for_ci_demo_accounts fixed this.
+  // signInWithPassword requires anon key — not service role.
   const authClient = createClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
