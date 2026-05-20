@@ -1,48 +1,119 @@
+// app/api/parent/dashboard/route.ts
+// Parent portal dashboard — returns all children linked to this parent account.
+// Multi-child: fetches all parent_students rows and returns full student data for each.
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getParentSession } from '@/lib/parent-auth';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
   const session = await getParentSession(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  const { schoolId, studentId } = session;
+  try {
+    // Get all children linked to this parent (multi-child support)
+    const { data: links } = await supabaseAdmin
+      .from('parent_students')
+      .select('student_id, school_id, relationship, is_primary')
+      .eq('parent_id', session.parentId)
+      .order('is_primary', { ascending: false }); // primary first
 
-  const [studentRes, attRes, feeRes, noticesRes, schoolRes] = await Promise.allSettled([
-    supabaseAdmin.from('students')
-      .select('name,class,section,roll_number,admission_number')
-      .eq('id', studentId).single(),
-    supabaseAdmin.from('attendance')
+    // If no parent_students rows, fall back to direct session student
+    const studentIds = links?.map(l => l.student_id) ?? [session.studentId];
+    const primaryStudentId = links?.find(l => l.is_primary)?.student_id ?? session.studentId;
+
+    // Fetch student details for all children
+    const { data: students } = await supabaseAdmin
+      .from('students')
+      .select('id, name, class, section, roll_number, admission_number, school_id')
+      .in('id', studentIds)
+      .eq('is_active', true);
+
+    if (!students || students.length === 0) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    // Primary student (for backward compat — single child callers still work)
+    const primaryStudent = students.find(s => s.id === primaryStudentId) ?? students[0];
+    const schoolId = primaryStudent.school_id;
+
+    // Fetch school name
+    const { data: school } = await supabaseAdmin
+      .from('schools').select('name').eq('id', schoolId).single();
+
+    // Attendance for primary student
+    const { data: attRows } = await supabaseAdmin
+      .from('attendance')
       .select('status')
-      .eq('school_id', schoolId).eq('student_id', studentId)
-      .gte('date', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
-    supabaseAdmin.from('fees')
-      .select('amount,status')
-      .eq('school_id', schoolId).eq('student_id', studentId)
-      .in('status', ['pending', 'overdue']),
-    supabaseAdmin.from('broadcasts')
-      .select('id,subject,message,created_at')
+      .eq('student_id', primaryStudent.id)
       .eq('school_id', schoolId)
-      .order('created_at', { ascending: false }).limit(5),
-    supabaseAdmin.from('schools').select('name').eq('id', schoolId).single(),
-  ]);
+      .order('date', { ascending: false })
+      .limit(90);
 
-  const student = studentRes.status === 'fulfilled' ? studentRes.value.data : null;
-  const attRows = attRes.status === 'fulfilled' ? (attRes.value.data ?? []) : [];
-  const feeRows = feeRes.status === 'fulfilled' ? (feeRes.value.data ?? []) : [];
-  const notices = noticesRes.status === 'fulfilled' ? (noticesRes.value.data ?? []) : [];
-  const school = schoolRes.status === 'fulfilled' ? schoolRes.value.data : null;
+    const totalDays    = attRows?.length ?? 0;
+    const presentDays  = attRows?.filter(r => r.status === 'present').length ?? 0;
+    const presentPct   = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
-  const total = attRows.length;
-  const present = attRows.filter((r: { status: string }) => r.status === 'present').length;
-  const pendingAmt = feeRows.reduce((s: number, r: { amount: number }) => s + (r.amount ?? 0), 0);
-  const overdue = feeRows.some((r: { status: string }) => r.status === 'overdue');
+    // Fee summary for primary student
+    const { data: feeRows } = await supabaseAdmin
+      .from('fees')
+      .select('amount, status')
+      .eq('student_id', primaryStudent.id)
+      .eq('school_id', schoolId)
+      .in('status', ['pending', 'overdue']);
 
-  return NextResponse.json({
-    student,
-    school_name: school?.name ?? '',
-    attendance: total > 0 ? { present_pct: Math.round((present / total) * 100), total_days: total, present_days: present } : null,
-    fee: { pending_amount: pendingAmt, overdue },
-    notices,
-  });
+    const pendingAmount = feeRows?.reduce((s, f) => s + Number(f.amount), 0) ?? 0;
+    const isOverdue = feeRows?.some(f => f.status === 'overdue') ?? false;
+
+    // Notices / broadcasts
+    const { data: notices } = await supabaseAdmin
+      .from('broadcasts')
+      .select('id, title, message, created_at')
+      .eq('school_id', schoolId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    return NextResponse.json({
+      // Primary student data (backward compatible)
+      student: {
+        name:             primaryStudent.name,
+        class:            primaryStudent.class,
+        section:          primaryStudent.section,
+        roll_number:      primaryStudent.roll_number,
+        admission_number: primaryStudent.admission_number,
+      },
+      attendance: {
+        present_pct:  presentPct,
+        total_days:   totalDays,
+        present_days: presentDays,
+      },
+      fee: {
+        pending_amount: pendingAmount,
+        overdue:        isOverdue,
+      },
+      notices:    notices ?? [],
+      school_name: school?.name ?? '',
+
+      // Multi-child: full list of all children
+      children: students.map(s => ({
+        id:           s.id,
+        name:         s.name,
+        class:        s.class,
+        section:      s.section,
+        roll_number:  s.roll_number,
+        school_id:    s.school_id,
+        is_primary:   s.id === primaryStudentId,
+      })),
+      active_child_id: primaryStudentId,
+    });
+
+  } catch (err) {
+    console.error('[parent/dashboard]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
