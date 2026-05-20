@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface TC {
   id: string; student_name: string; student_id: string;
@@ -18,6 +20,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export default function TransferCertificatesPage() {
+  const { lang } = useLang();
   const [tcs, setTcs] = useState<TC[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all'|TC['status']>('all');
@@ -55,7 +58,7 @@ export default function TransferCertificatesPage() {
   };
 
   return (
-    <Layout title="Transfer Certificates" subtitle="Review and issue student transfer certificates">
+    <Layout title={T('transfer_certs', lang)} subtitle="Review and issue student transfer certificates">
       {/* Stats */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         {([['all', 'All'], ['pending', 'Pending'], ['approved', 'Approved'], ['issued', 'Issued']] as const).map(([s, label]) => (
