@@ -140,7 +140,7 @@ export default function PayrollPage() {
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600 as const, color: '#9CA3AF', marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '0.05em' };
 
   return (
-    {/* @ts-ignore */}<Layout title={T('payroll', lang)} subtitle={T('payroll_management', lang)}>
+    <Layout title={T('payroll', lang)} subtitle={T('payroll_management', lang)}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: '#15803D', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>✓ {toast}</div>}
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.skel{background:#F3F4F6;border-radius:8px;animation:pulse 1.5s ease-in-out infinite}`}</style>
 
