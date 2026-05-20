@@ -1,11 +1,14 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Report { id: string; student_name: string; class: string; section?: string;
   narrative?: string; status: string; generated_at?: string; overall_grade?: string; }
 
 export default function ReportCardsPage() {
+  const { lang } = useLang();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -36,7 +39,7 @@ export default function ReportCardsPage() {
   const ready = reports.filter(r => r.status === 'ready' || r.narrative);
 
   return (
-    <Layout title="Report Cards" subtitle="AI-generated narrative reports for every student"
+    <Layout title={T('report_cards', lang)} subtitle="AI-generated narrative reports for every student"
       actions={<button onClick={generateAll} disabled={generating} className="btn btn-primary btn-sm">
         {generating ? '⏳ Generating…' : '✨ Generate All Reports'}
       </button>}>
