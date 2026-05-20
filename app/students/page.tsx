@@ -1,8 +1,9 @@
 'use client';
-// app/students/page.tsx — Student management with full lifecycle actions
-// Transfer, graduate, withdraw, archive wired to /api/students PATCH
+// app/students/page.tsx
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Student {
   id: string; name: string; class: string | null; section: string | null;
@@ -81,7 +82,9 @@ function ActionModal({ student, action, acting, onConfirm, onClose }: ModalProps
   );
 }
 
-export default function StudentsPage() {
+export default function StudentsPage()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+ {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('active');
