@@ -19,7 +19,7 @@ export default function TeacherPage() {
   const [loading, setLoading] = useState(true);
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingKey = hour < 12 ? 'good_morning' : hour < 17 ? 'good_afternoon' : 'good_evening';
 
   useEffect(() => {
     const t = setTimeout(() => { setLoading(false); }, 6000);
@@ -48,58 +48,68 @@ export default function TeacherPage() {
       <div style={{ background: '#4F46E5', padding: '20px 16px 28px' }}>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{data?.school_name ?? ''}</div>
         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>
-          {loading ? 'Loading…' : `${greeting}, ${data?.name?.split(' ')[0] ?? 'Teacher'} 👋`}
+          {loading ? T('loading', lang as never) : `${T(greetingKey, lang as never)}, ${data?.name?.split(' ')[0] ?? ''} 👋`}
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>{today}</div>
 
-        {/* Today's stats strip */}
+        {/* Stats strip */}
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
           <div style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{loading ? '—' : scheduleCount}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Classes today</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{T('classes_today', lang as never)}</div>
           </div>
           <div style={{ flex: 1, background: hasUnmarkedAttendance && scheduleCount > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center', border: hasUnmarkedAttendance && scheduleCount > 0 ? '1px solid rgba(239,68,68,0.5)' : 'none' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{loading ? '—' : (data?.attendance_today ?? '✓')}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{hasUnmarkedAttendance ? '⚠ Not marked' : 'Marked today'}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+              {hasUnmarkedAttendance ? T('not_marked', lang as never) : T('marked_today', lang as never)}
+            </div>
           </div>
           <div style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{loading ? '—' : (data?.leave_pending ?? 0)}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Leave pending</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{T('leave_pending_label', lang as never)}</div>
           </div>
         </div>
       </div>
 
-      {/* Urgent attendance alert */}
+      {/* Attendance alert */}
       {!loading && hasUnmarkedAttendance && scheduleCount > 0 && (
         <div style={{ margin: '12px 16px 0', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C' }}>⚠️ Attendance not marked today</div>
-          <Link href="/teacher/attendance" style={{ padding: '6px 12px', background: '#B91C1C', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Mark Now</Link>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C' }}>⚠️ {T('attendance_not_marked', lang as never)}</div>
+          <Link href="/teacher/attendance" style={{ padding: '6px 12px', background: '#B91C1C', color: '#fff', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            {T('mark_now', lang as never)}
+          </Link>
         </div>
       )}
 
       <div style={{ padding: '16px 16px 0' }}>
         {/* Quick actions */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Quick Actions</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+          {T('quick_actions', lang as never)}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           {[
-            { href: '/teacher/attendance', icon: '✅', label: 'Attendance', sub: 'Mark student presence', bg: '#F0FDF4', color: '#16A34A', alert: hasUnmarkedAttendance && scheduleCount > 0 },
-            { href: '/teacher/marks', icon: '📊', label: 'Marks', sub: 'Enter student marks', bg: '#FFFBEB', color: '#D97706', alert: false },
-            { href: '/teacher/homework', icon: '📚', label: 'Homework', sub: 'Assign and review', bg: '#FDF4FF', color: '#9333EA', alert: false },
-            { href: '/teacher/lesson-plans', icon: '📄', label: 'Lesson Plans', sub: 'Plan and track', bg: '#F0F9FF', color: '#0284C7', alert: false },
-            { href: '/teacher/check-in', icon: '📍', label: 'Check In', sub: 'Mark yourself present', bg: '#EEF2FF', color: '#4F46E5', alert: false },
-            { href: '/teacher/leave', icon: '📅', label: 'Leave', sub: `${data?.leave_pending ?? 0} pending`, bg: '#FFF7ED', color: '#EA580C', alert: (data?.leave_pending ?? 0) > 0 },
+            { href: '/teacher/attendance', icon: '✅', labelKey: 'attendance', subKey: 'attendance', bg: '#F0FDF4', color: '#16A34A', alert: hasUnmarkedAttendance && scheduleCount > 0 },
+            { href: '/teacher/marks',      icon: '📊', labelKey: 'marks',      subKey: 'reports',    bg: '#FFFBEB', color: '#D97706', alert: false },
+            { href: '/teacher/homework',   icon: '📚', labelKey: 'homework',   subKey: 'homework',   bg: '#FDF4FF', color: '#9333EA', alert: false },
+            { href: '/teacher/lesson-plans', icon: '📄', labelKey: 'lesson_plans', subKey: 'timetable', bg: '#F0F9FF', color: '#0284C7', alert: false },
+            { href: '/teacher/check-in',   icon: '📍', labelKey: 'check_in',  subKey: 'check_in',   bg: '#EEF2FF', color: '#4F46E5', alert: false },
+            { href: '/teacher/leave',      icon: '📅', labelKey: 'leave',     subKey: 'leave',      bg: '#FFF7ED', color: '#EA580C', alert: (data?.leave_pending ?? 0) > 0 },
           ].map(a => (
             <Link key={a.href} href={a.href} className="t-action">
               {a.alert && <div className="t-badge">!</div>}
               <div style={{ width: 36, height: 36, borderRadius: 10, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 8 }}>{a.icon}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{a.label}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2, lineHeight: 1.3 }}>{a.sub}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{T(a.labelKey, lang as never)}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2, lineHeight: 1.3 }}>
+                {a.labelKey === 'leave' ? `${data?.leave_pending ?? 0} ${T('pending', lang as never)}` : T(a.subKey, lang as never)}
+              </div>
             </Link>
           ))}
         </div>
 
         {/* Today's schedule */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Today's Schedule</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+          {T('todays_schedule', lang as never)}
+        </div>
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
           {loading ? (
             <div style={{ padding: 16 }}><div className="skel" style={{ height: 40 }} /></div>
@@ -107,28 +117,34 @@ export default function TeacherPage() {
             data!.schedule.map((s, i) => (
               <div key={i} style={{ padding: '12px 16px', borderBottom: i < data!.schedule.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Class {s.class} — {s.subject}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('class_', lang as never)} {s.class} — {s.subject}</div>
                 </div>
                 <div style={{ fontSize: 12, color: '#6B7280', background: '#F9FAFB', padding: '3px 8px', borderRadius: 6 }}>{s.time}</div>
               </div>
             ))
           ) : (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>No classes scheduled today.</div>
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>
+              {T('no_classes_today', lang as never)}
+            </div>
           )}
         </div>
 
         {/* Recent homework */}
         {(data?.recent_homework?.length ?? 0) > 0 && (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Recent Homework</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+              {T('recent_homework_label', lang as never)}
+            </div>
             <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
               {data!.recent_homework.slice(0, 3).map((h, i) => (
                 <div key={i} style={{ padding: '11px 16px', borderBottom: i < 2 ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{h.title}</div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Class {h.class}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>{T('class_', lang as never)} {h.class}</div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#6B7280', background: '#F9FAFB', padding: '3px 8px', borderRadius: 6 }}>Due {h.due}</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', background: '#F9FAFB', padding: '3px 8px', borderRadius: 6 }}>
+                    {T('due_date', lang as never)}: {h.due}
+                  </div>
                 </div>
               ))}
             </div>
