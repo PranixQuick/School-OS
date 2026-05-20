@@ -1,14 +1,13 @@
 'use client';
 // app/anganwadi/mdm-stock/page.tsx
 // Anganwadi Mid-Day Meal stock management.
-// AWW enters daily stock: rice, dal, eggs, oil, milk powder.
-// Closing stock auto-calculated. Shortage alert when below threshold.
+// Fixed: closing stock type is always number | null.
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 
 interface StockItem {
-  id: string; item_name: string; item_category?: string;
+  id: string; item_name: string;
   opening_stock: number; received_qty: number; consumed_qty: number;
   closing_stock: number; unit: string; min_threshold?: number;
   shortage_alert: boolean; record_date: string;
@@ -45,13 +44,20 @@ export default function AnganwadiMDMStockPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const closing = opening && (Number(opening) + Number(received || 0) - Number(consumed || 0));
+  // Compute closing stock as number | null (null when opening not entered)
+  const openingNum  = opening  ? Number(opening)  : null;
+  const receivedNum = received ? Number(received) : 0;
+  const consumedNum = consumed ? Number(consumed) : 0;
+  const closingNum: number | null = openingNum !== null
+    ? openingNum + receivedNum - consumedNum
+    : null;
+
   const unit = UNITS[item] ?? 'units';
   const threshold = THRESHOLDS[item] ?? 0;
-  const shortage = closing !== false && closing < threshold;
+  const shortage = closingNum !== null && closingNum < threshold;
 
   async function save() {
-    if (!item || !opening) { alert('వస్తువు మరియు ఓపెనింగ్ స్టాక్ అవసరం'); return; }
+    if (!item || openingNum === null) { alert('వస్తువు మరియు ఓపెనింగ్ స్టాక్ అవసరం'); return; }
     setSaving(true);
     try {
       const res = await fetch('/api/anganwadi/mdm-stock', {
@@ -59,9 +65,9 @@ export default function AnganwadiMDMStockPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           item_name:      item,
-          opening_stock:  Number(opening),
-          received_qty:   Number(received || 0),
-          consumed_qty:   Number(consumed || 0),
+          opening_stock:  openingNum,
+          received_qty:   receivedNum,
+          consumed_qty:   consumedNum,
           unit,
           record_date:    today,
           min_threshold:  threshold || null,
@@ -115,35 +121,31 @@ export default function AnganwadiMDMStockPage() {
           </select>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:12 }}>
-          <div>
-            <label style={lbl}>ఓపెనింగ్ ({unit})</label>
-            <input type="number" inputMode="decimal" min="0" value={opening}
-              onChange={e => setOpening(e.target.value)} placeholder="0" style={inp} />
-          </div>
-          <div>
-            <label style={lbl}>వచ్చినది ({unit})</label>
-            <input type="number" inputMode="decimal" min="0" value={received}
-              onChange={e => setReceived(e.target.value)} placeholder="0" style={inp} />
-          </div>
-          <div>
-            <label style={lbl}>వాడినది ({unit})</label>
-            <input type="number" inputMode="decimal" min="0" value={consumed}
-              onChange={e => setConsumed(e.target.value)} placeholder="0" style={inp} />
-          </div>
+          {[
+            { label:`ఓపెనింగ్ (${unit})`, val:opening, set:setOpening, ph:'0' },
+            { label:`వచ్చినది (${unit})`, val:received, set:setReceived, ph:'0' },
+            { label:`వాడినది (${unit})`, val:consumed, set:setConsumed, ph:'0' },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={lbl}>{f.label}</label>
+              <input type="number" inputMode="decimal" min="0" value={f.val}
+                onChange={e => f.set(e.target.value)} placeholder={f.ph} style={inp} />
+            </div>
+          ))}
         </div>
 
         {/* Closing stock preview */}
-        {item && opening && (
+        {item && closingNum !== null && (
           <div style={{ marginBottom:14, padding:'10px 14px', background:shortage ? '#FEF2F2' : '#F0FDF4', borderRadius:10, border:`1px solid ${shortage ? '#FECACA' : '#BBF7D0'}` }}>
             <span style={{ fontSize:14, fontWeight:700, color:shortage ? '#B91C1C' : '#15803D' }}>
-              క్లోజింగ్ స్టాక్: {closing} {unit}
+              క్లోజింగ్ స్టాక్: {closingNum} {unit}
               {shortage ? ` ⚠️ తక్కువగా ఉంది (minimum ${threshold} ${unit})` : ' ✓'}
             </span>
           </div>
         )}
 
-        <button onClick={() => void save()} disabled={saving || !item || !opening}
-          style={{ width:'100%', height:50, borderRadius:12, border:'none', background:saving || !item || !opening ? '#9CA3AF' : '#15803D', color:'#fff', fontSize:15, fontWeight:800, cursor:saving || !item || !opening ? 'not-allowed' : 'pointer', fontFamily:'inherit' }}>
+        <button onClick={() => void save()} disabled={saving || !item || openingNum === null}
+          style={{ width:'100%', height:50, borderRadius:12, border:'none', background:saving || !item || openingNum === null ? '#9CA3AF' : '#15803D', color:'#fff', fontSize:15, fontWeight:800, cursor:saving || !item || openingNum === null ? 'not-allowed' : 'pointer', fontFamily:'inherit' }}>
           {saving ? 'సేవ్ చేస్తోంది…' : '💾 సేవ్ చేయి'}
         </button>
       </div>
