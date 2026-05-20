@@ -7,6 +7,7 @@ import { useLang } from '@/lib/useLang';
 interface StaffMember {
   id: string; name: string; role: string; email?: string; phone?: string;
   subject?: string; is_active: boolean; joined_at?: string; designation?: string;
+  invite_status?: string; auth_verified?: boolean; last_login?: string; first_login_at?: string;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -18,34 +19,45 @@ const ROLE_COLOR: Record<string, string> = {
   accountant: '#B45309', librarian: '#0369A1', owner: '#B91C1C', admin: '#374151',
 };
 
+// invite_status → display config
+const INVITE_BADGE: Record<string, { label: string; bg: string; color: string; icon: string }> = {
+  pending:  { label: 'Not Invited', bg: '#F3F4F6', color: '#6B7280', icon: '⏳' },
+  invited:  { label: 'Invited',     bg: '#FFF7ED', color: '#D97706', icon: '📧' },
+  accepted: { label: 'Setup Done',  bg: '#EFF6FF', color: '#2563EB', icon: '✔' },
+  verified: { label: 'Logged In',   bg: '#F0FDF4', color: '#15803D', icon: '✅' },
+  failed:   { label: 'Failed',      bg: '#FEF2F2', color: '#B91C1C', icon: '❌' },
+};
+
 export default function AdminStaffPage() {
   const { lang } = useLang();
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [staff, setStaff]     = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const [bulkInviting, setBulkInviting]  = useState(false);
+  const [invitingId, setInvitingId]      = useState<string | null>(null);
+  const [bulkResult, setBulkResult]      = useState<string>('');
   const [form, setForm] = useState({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '' });
 
   const loadStaff = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/staff');
-      if (res.ok) { const d = await res.json(); setStaff(d.staff ?? []); }
+      if (res.ok) { const d = await res.json() as { staff?: StaffMember[] }; setStaff(d.staff ?? []); }
     } catch { /* ignore */ }
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadStaff(); }, [loadStaff]);
+  useEffect(() => { void loadStaff(); }, [loadStaff]);
 
   async function addStaff() {
     if (!form.name || !form.email) return;
     setSaving(true);
     try {
       await fetch('/api/admin/staff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
       setForm({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '' });
@@ -58,12 +70,42 @@ export default function AdminStaffPage() {
   async function deactivate(id: string) {
     if (!confirm('Deactivate this staff member?')) return;
     await fetch('/api/admin/staff', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, is_active: false }),
     });
     await loadStaff();
   }
+
+  async function sendInvite(staffUserId: string, email: string) {
+    setInvitingId(staffUserId);
+    try {
+      const res = await fetch('/api/admin/staff/invite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_user_id: staffUserId }),
+      });
+      const d = await res.json() as { message?: string; error?: string };
+      alert(res.ok ? (d.message ?? 'Invitation sent to ' + email) : ('Error: ' + (d.error ?? 'Failed')));
+      await loadStaff();
+    } catch { alert('Network error sending invitation.'); }
+    setInvitingId(null);
+  }
+
+  async function sendAllInvites() {
+    if (!confirm(`Send login invitations to all uninvited staff?`)) return;
+    setBulkInviting(true);
+    setBulkResult('');
+    try {
+      const res = await fetch('/api/admin/staff/invite?bulk=1', { method: 'POST' });
+      const d = await res.json() as { message?: string; invited?: number; failed?: number };
+      setBulkResult(d.message ?? `Invited: ${d.invited ?? 0}, Failed: ${d.failed ?? 0}`);
+      await loadStaff();
+    } catch { setBulkResult('Network error. Please retry.'); }
+    setBulkInviting(false);
+  }
+
+  const uninvitedCount = staff.filter(s =>
+    s.is_active && (!s.invite_status || s.invite_status === 'pending' || s.invite_status === 'failed')
+  ).length;
 
   const roles = ['all', ...Array.from(new Set(staff.map(s => s.role)))];
   const visible = staff.filter(s => {
@@ -73,43 +115,88 @@ export default function AdminStaffPage() {
     return true;
   });
 
+  const headerActions = (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {uninvitedCount > 0 && (
+        <button onClick={() => void sendAllInvites()} disabled={bulkInviting}
+          style={{ padding: '7px 14px', background: bulkInviting ? '#9CA3AF' : '#15803D', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkInviting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+          {bulkInviting ? 'Sending…' : `📧 Send All Invitations (${uninvitedCount})`}
+        </button>
+      )}
+      <button onClick={() => setShowAdd(true)} style={{ padding: '7px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        + Add Staff
+      </button>
+    </div>
+  );
+
   return (
-    <Layout title={T('staff_management', lang)} subtitle={`${staff.length} staff members`}
-      actions={<button onClick={() => setShowAdd(true)} className="btn btn-primary btn-sm">+ Add Staff</button>}>
+    <Layout title={T('staff_management', lang)} subtitle={`${staff.length} staff`}
+      actions={headerActions}>
+
+      {/* Bulk invite result banner */}
+      {bulkResult && (
+        <div style={{ background: '#F0FDF4', border: '1px solid #D1FAE5', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#15803D', fontWeight: 600 }}>
+          ✅ {bulkResult}
+          <button onClick={() => setBulkResult('')} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 14 }}>×</button>
+        </div>
+      )}
+
+      {/* Auth status summary */}
+      {!loading && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {Object.entries(INVITE_BADGE).map(([status, cfg]) => {
+            const count = staff.filter(s => (s.invite_status ?? 'pending') === status).length;
+            if (count === 0) return null;
+            return (
+              <div key={status} style={{ padding: '5px 12px', borderRadius: 8, background: cfg.bg, border: `1px solid ${cfg.color}30`, fontSize: 12, fontWeight: 600, color: cfg.color }}>
+                {cfg.icon} {cfg.label}: {count}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Search + filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name or email…" className="input"
-          style={{ flex: 1, minWidth: 160, height: 36, fontSize: 13 }} />
+          placeholder="Search by name or email…"
+          style={{ flex: 1, minWidth: 160, height: 36, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 12px', outline: 'none', fontFamily: 'inherit' }} />
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
-          style={{ height: 36, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px',
-            fontSize: 13, background: '#fff', color: '#374151' }}>
-          {roles.map(r => <option key={r} value={r}>{r === 'all' ? T('all_roles', lang as never) : (ROLE_LABEL[r] ?? r)}</option>)}
+          style={{ height: 36, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', fontSize: 13, background: '#fff', color: '#374151', fontFamily: 'inherit' }}>
+          {roles.map(r => <option key={r} value={r}>{r === 'all' ? 'All Roles' : (ROLE_LABEL[r] ?? r)}</option>)}
         </select>
       </div>
 
       {/* Add form */}
       {showAdd && (
-        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{T('add_new_staff', lang as never)}</div>
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Add New Staff Member</div>
+          <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#92400E' }}>
+            <strong>Email must be correct</strong> — An invitation will be sent to this email so the staff member can set their password. Type carefully. No spaces allowed.
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { key: 'name', label: 'Full Name', placeholder: 'Ravi Kumar' },
-              { key: 'email', label: 'Email', placeholder: 'ravi@school.edu.in' },
-              { key: 'phone', label: 'Phone', placeholder: '+91 98765 43210' },
+              { key: 'name',        label: 'Full Name',   placeholder: 'Ravi Kumar' },
+              { key: 'email',       label: 'Email',       placeholder: 'ravi@school.edu.in' },
+              { key: 'phone',       label: 'Phone',       placeholder: '+91 98765 43210' },
               { key: 'designation', label: 'Designation', placeholder: 'Class Teacher' },
             ].map(f => (
               <div key={f.key}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{f.label}</label>
-                <input value={form[f.key as keyof typeof form]} onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                  placeholder={f.placeholder} className="input" style={{ width: '100%', height: 34, fontSize: 13, boxSizing: 'border-box' }} />
+                <input
+                  value={form[f.key as keyof typeof form]}
+                  onChange={e => setForm({ ...form, [f.key]: f.key === 'email' ? e.target.value.replace(/\s+/g,'').toLowerCase() : e.target.value })}
+                  placeholder={f.placeholder}
+                  autoCorrect={f.key === 'email' ? 'off' : undefined}
+                  autoCapitalize={f.key === 'email' ? 'none' : undefined}
+                  spellCheck={f.key === 'email' ? false : undefined}
+                  style={{ width: '100%', height: 34, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', outline: 'none', fontFamily: f.key === 'email' ? 'monospace' : 'inherit', boxSizing: 'border-box' }} />
               </div>
             ))}
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Role</label>
               <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
-                style={{ width: '100%', height: 34, borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, padding: '0 8px', boxSizing: 'border-box' }}>
+                style={{ width: '100%', height: 34, borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, padding: '0 8px', boxSizing: 'border-box', fontFamily: 'inherit' }}>
                 {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
@@ -117,14 +204,15 @@ export default function AdminStaffPage() {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Subject</label>
                 <input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })}
-                  placeholder="Mathematics" className="input" style={{ width: '100%', height: 34, fontSize: 13, boxSizing: 'border-box' }} />
+                  placeholder="Mathematics"
+                  style={{ width: '100%', height: 34, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
-            <button onClick={() => setShowAdd(false)} className="btn btn-ghost btn-sm">Cancel</button>
-            <button onClick={addStaff} disabled={saving} className="btn btn-primary btn-sm">
-              {saving ? T('loading', lang as never) : T('add_staff_member_btn', lang as never)}
+            <button onClick={() => setShowAdd(false)} style={{ padding: '7px 14px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={() => void addStaff()} disabled={saving} style={{ padding: '7px 14px', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              {saving ? 'Adding…' : 'Add Staff'}
             </button>
           </div>
         </div>
@@ -134,48 +222,63 @@ export default function AdminStaffPage() {
       {loading ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading staff…</div>
       ) : visible.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">👥</div>
-          <div className="empty-state-title">{T('no_staff_found', lang as never)}</div>
-          <div className="empty-state-sub">Add your first staff member to get started.</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#9CA3AF' }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#374151' }}>No staff found</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Add your first staff member to get started.</div>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          {visible.map((s, i) => (
-            <div key={s.id} style={{
-              padding: '12px 16px', borderBottom: i < visible.length-1 ? '1px solid #F3F4F6' : 'none',
-              display: 'flex', alignItems: 'center', gap: 12
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                background: (ROLE_COLOR[s.role] ?? '#6B7280') + '20',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, fontWeight: 700, color: ROLE_COLOR[s.role] ?? '#6B7280'
-              }}>
-                {s.name[0].toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{s.name}</div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  {s.email}{s.subject ? ` · ${s.subject}` : ''}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
+          {visible.map((s, i) => {
+            const inviteStatus = s.invite_status ?? 'pending';
+            const badge = INVITE_BADGE[inviteStatus] ?? INVITE_BADGE.pending;
+            const canInvite = !s.auth_verified && inviteStatus !== 'accepted';
+            return (
+              <div key={s.id} style={{ padding: '12px 16px', borderBottom: i < visible.length-1 ? '1px solid #F3F4F6' : 'none', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                {/* Avatar */}
+                <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: (ROLE_COLOR[s.role] ?? '#6B7280') + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: ROLE_COLOR[s.role] ?? '#6B7280', marginTop: 2 }}>
+                  {s.name[0].toUpperCase()}
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{s.name}</div>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginTop: 1 }}>
+                    {s.email ? <span style={{ fontFamily: 'monospace' }}>{s.email}</span> : <em>No email</em>}
+                    {s.subject ? ` · ${s.subject}` : ''}
+                  </div>
+                  {/* Invite status badge */}
+                  <div style={{ marginTop: 5, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 6, background: (ROLE_COLOR[s.role] ?? '#6B7280') + '18', color: ROLE_COLOR[s.role] ?? '#6B7280', fontSize: 11, fontWeight: 700 }}>
+                      {ROLE_LABEL[s.role] ?? s.role}
+                    </span>
+                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 6, background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 600 }}>
+                      {badge.icon} {badge.label}
+                    </span>
+                    {s.first_login_at && (
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                        First login: {new Date(s.first_login_at).toLocaleDateString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Actions */}
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                  {canInvite && s.email && (
+                    <button
+                      onClick={() => void sendInvite(s.id, s.email!)}
+                      disabled={invitingId === s.id}
+                      style={{ padding: '5px 10px', background: invitingId === s.id ? '#9CA3AF' : '#EEF2FF', color: invitingId === s.id ? '#fff' : '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: invitingId === s.id ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
+                      {invitingId === s.id ? 'Sending…' : inviteStatus === 'failed' ? '↩ Resend' : '📧 Invite'}
+                    </button>
+                  )}
+                  <button onClick={() => void deactivate(s.id)}
+                    style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 11, cursor: 'pointer', padding: '2px 0', fontFamily: 'inherit' }}>
+                    Remove
+                  </button>
                 </div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                <span style={{
-                  display: 'inline-block', padding: '2px 8px', borderRadius: 6,
-                  background: (ROLE_COLOR[s.role] ?? '#6B7280') + '18',
-                  color: ROLE_COLOR[s.role] ?? '#6B7280', fontSize: 11, fontWeight: 700
-                }}>
-                  {ROLE_LABEL[s.role] ?? s.role}
-                </span>
-                <button onClick={() => deactivate(s.id)}
-                  style={{ display: 'block', marginTop: 4, background: 'none', border: 'none',
-                    color: '#EF4444', fontSize: 11, cursor: 'pointer', padding: 0 }}>
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Layout>
