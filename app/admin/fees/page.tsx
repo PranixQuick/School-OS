@@ -74,9 +74,9 @@ export default function FeesPage() {
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Collected', value: `₹${(stats.collected/1000).toFixed(1)}K`, color: '#15803D', bg: '#DCFCE7' },
-          { label: 'Outstanding', value: `₹${(stats.outstanding/1000).toFixed(1)}K`, color: '#B91C1C', bg: '#FEE2E2' },
-          { label: 'Overdue', value: stats.overdue, color: '#B91C1C', bg: '#FEE2E2' },
+          { label: T('collected_label', lang as never), value: `₹${(stats.collected/1000).toFixed(1)}K`, color: '#15803D', bg: '#DCFCE7' },
+          { label: T('outstanding_label', lang as never), value: `₹${(stats.outstanding/1000).toFixed(1)}K`, color: '#B91C1C', bg: '#FEE2E2' },
+          { label: T('overdue', lang as never), value: stats.overdue, color: '#B91C1C', bg: '#FEE2E2' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '12px 14px', textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -95,8 +95,7 @@ export default function FeesPage() {
             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: filter === s ? '#4F46E5' : '#F3F4F6',
               color: filter === s ? '#fff' : '#374151', fontSize: 12, fontWeight: 600 }}>
-            {s === 'all' ? `All (${stats.total})` : s === 'pending' ? `Pending (${stats.pending})` :
-              s === 'overdue' ? `Overdue (${stats.overdue})` : `Paid (${stats.paid})`}
+            {[T('all_students', lang as never),T('pending', lang as never),T('overdue', lang as never),T('paid', lang as never)][{all:0,pending:1,overdue:2,paid:3}[s] ?? 0] + ' (' + [stats.total,stats.pending,stats.overdue,stats.paid][{all:0,pending:1,overdue:2,paid:3}[s] ?? 0] + ')'}
           </button>
         ))}
       </div>
@@ -107,7 +106,7 @@ export default function FeesPage() {
       ) : visible.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">💰</div>
-          <div className="empty-state-title">No fee records {filter !== 'all' ? `with status "${filter}"` : ''}</div>
+          <div className="empty-state-title">{T('no_fees', lang as never)} {filter !== 'all' ? `with status "${filter}"` : ''}</div>
           <div className="empty-state-sub">Fee records appear here once fee templates are assigned to students.</div>
         </div>
       ) : (
@@ -136,7 +135,7 @@ export default function FeesPage() {
                   style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     background: '#4F46E5', color: '#fff', fontSize: 12, fontWeight: 600,
                     opacity: actionId === fee.id ? 0.6 : 1 }}>
-                  {actionId === fee.id ? '…' : 'Mark Paid'}
+                  {actionId === fee.id ? T('loading', lang as never) : T('mark_paid_btn', lang as never)}
                 </button>
               )}
             </div>
