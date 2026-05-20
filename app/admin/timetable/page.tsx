@@ -6,8 +6,8 @@ import { useLang } from '@/lib/useLang';
 
 interface Slot { id: string; day_of_week: number; period_number: number; class: string; section: string; subject_name?: string; teacher_name?: string; start_time?: string; end_time?: string; }
 
-const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const DAY_SHORT_KEYS = ['mon_short', 'tue_short', 'wed_short', 'thu_short', 'fri_short', 'sat_short'];
+const DAY_KEYS       = ['monday',    'tuesday',  'wednesday', 'thursday', 'friday',    'saturday'];
+const DAY_SHORT_KEYS = ['mon_short', 'tue_short','wed_short', 'thu_short','fri_short', 'sat_short'];
 
 export default function TimetablePage() {
   const { lang } = useLang();
@@ -28,14 +28,14 @@ export default function TimetablePage() {
   slots.forEach(s => { slotMap[`${s.day_of_week}-${s.period_number}`] = s; });
 
   return (
-    <Layout title={T('timetable', lang)} subtitle={T('timetable', lang)}>
+    <Layout title={T('timetable', lang as never)} subtitle={T('timetable', lang as never)}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {(['3','4','5','6','7','8','9','10'] as const).map(c => (
           <button key={c} onClick={() => setClassFilter(c)}
             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               background: classFilter === c ? '#4F46E5' : '#F3F4F6',
               color: classFilter === c ? '#fff' : '#374151' }}>
-            Class {c}
+            {T('class_', lang as never)} {c}
           </button>
         ))}
         {['A','B','C'].map(s => (
@@ -49,21 +49,25 @@ export default function TimetablePage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading timetable…</div>
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>{T('loading', lang as never)}</div>
       ) : slots.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">🗓</div>
-          <div className="empty-state-title">No timetable for Class {classFilter}-{sectionFilter}</div>
-          <div className="empty-state-sub">Periods will appear here once the timetable is configured.</div>
+          <div className="empty-state-title">{T('no_records', lang as never)} — {T('class_', lang as never)} {classFilter}-{sectionFilter}</div>
+          <div className="empty-state-sub">{T('timetable', lang as never)}</div>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#F9FAFB' }}>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>Period</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>
+                  P#
+                </th>
                 {DAY_KEYS.map((dk, i) => (
-                  <th key={d} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>{DAY_SHORT[i]}</th>
+                  <th key={dk} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap' }}>
+                    {T(DAY_SHORT_KEYS[i], lang as never)}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -71,7 +75,7 @@ export default function TimetablePage() {
               {periods.map(p => (
                 <tr key={p} style={{ borderBottom: '1px solid #F3F4F6' }}>
                   <td style={{ padding: '8px 10px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>P{p}</td>
-                  {DAYS.map((_, di) => {
+                  {DAY_KEYS.map((_, di) => {
                     const slot = slotMap[`${di + 1}-${p}`];
                     return (
                       <td key={di} style={{ padding: '6px 8px', textAlign: 'center' }}>
