@@ -1,8 +1,11 @@
 // lib/rate-limit.ts
-// Two-layer sliding-window rate limiter + IP blocklist check
-//   1. blocked_ips table — permanent/temporary IP ban (stops attacker IPs from polluting email window)
-//   2. in-memory (fast path, best-effort, per-instance only)
-//   3. Supabase-backed count of auth_events rows (authoritative across instances)
+// Production-grade two-layer rate limiter with:
+//   1. blocked_ips table — individual IP bans (pre-checked, stops pollution)
+//   2. Subnet blocking — /24 CIDR range bans for distributed attacks  
+//   3. In-memory sliding window (fast path, per-instance best-effort)
+//   4. DB-backed sliding window (authoritative cross-instance)
+//   5. Login anomaly detection — velocity spike alerting
+//   6. CI domain exemption — .internal and .local never rate-limited
 
 import { supabaseAdmin } from './supabaseClient';
 
@@ -14,7 +17,7 @@ export interface RateLimitResult {
   count: number;
   remaining: number;
   retryAfterSec: number;
-  source: 'memory' | 'db' | 'none' | 'blocklist';
+  source: 'memory' | 'db' | 'none' | 'blocklist' | 'subnet';
 }
 
 function memHit(key: string, limit: number, windowMs: number): RateLimitResult {
@@ -48,63 +51,96 @@ async function countAuthEvents(params: {
     .in('event_type', params.eventTypes)
     .gte('created_at', since);
   if (params.email) q = q.eq('email', params.email);
-  if (params.ip) q = q.eq('ip', params.ip);
+  if (params.ip)    q = q.eq('ip', params.ip);
   const { count, error } = await q;
-  if (error) {
-    console.error('[rate-limit] countAuthEvents error:', error.message);
-    return 0;
-  }
+  if (error) { console.error('[rate-limit] countAuthEvents:', error.message); return 0; }
   return count ?? 0;
 }
 
 async function isIpBlocked(ip: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
+  // Check exact IP
+  const { data } = await supabaseAdmin
     .from('blocked_ips')
     .select('ip')
     .eq('ip', ip)
     .gt('blocked_until', new Date().toISOString())
     .limit(1)
-    .single();
-  if (error) return false; // fail open — don't block legitimate users on DB error
-  return !!data;
+    .maybeSingle();
+  if (data) return true;
+
+  // Check /24 subnet block (e.g. 13.203.216.0/24 → matches 13.203.216.65)
+  const subnet24 = ip.split('.').slice(0, 3).join('.') + '.0/24';
+  const { data: subnetData } = await supabaseAdmin
+    .from('blocked_ips')
+    .select('ip')
+    .eq('ip', subnet24)
+    .gt('blocked_until', new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  return !!subnetData;
 }
 
 export const LOGIN_EMAIL_LIMIT = 5;
-export const LOGIN_IP_LIMIT = 10;
-export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+export const LOGIN_IP_LIMIT    = 10;
+export const LOGIN_WINDOW_MS   = 15 * 60 * 1000;
 
-// SECURITY: Only .local test domains bypass rate limiting.
-const EXEMPT_SUFFIXES = ['.local'];
+// CI and internal test domains are completely exempt from rate limiting.
+// These accounts are managed via Supabase Admin API, not the login UI.
+// Adding .internal here ensures CI accounts (ci.*.@edprosys.internal)
+// are never locked out by accumulated attack failures on shared IPs.
+const EXEMPT_SUFFIXES = ['.local', '.internal'];
 
 export async function enforceLoginRateLimit(params: {
   email: string;
   ip: string | null;
 }): Promise<RateLimitResult> {
-  // Skip rate limiting ONLY for .local test accounts
+  // Skip rate limiting for CI/internal domains
   if (EXEMPT_SUFFIXES.some(d => params.email.endsWith(d))) {
-    return { allowed: true, count: 0, remaining: 5, retryAfterSec: 0, source: 'none' };
+    return { allowed: true, count: 0, remaining: LOGIN_EMAIL_LIMIT, retryAfterSec: 0, source: 'none' };
   }
 
-  // PHASE 0: IP blocklist check — reject known bad actors immediately
-  // This prevents them from incrementing the per-email failure counter
+  // Phase 0: IP + subnet blocklist — reject immediately, no failure event logged
   if (params.ip) {
     const blocked = await isIpBlocked(params.ip);
     if (blocked) {
       return {
-        allowed: false,
-        count: 0,
-        remaining: 0,
-        retryAfterSec: 86400, // 24h — don't tell attacker exactly when unblocked
+        allowed: false, count: 0, remaining: 0,
+        retryAfterSec: 86400, // 24h — don't reveal exact unblock time
         source: 'blocklist',
       };
     }
   }
 
-  // Fire-and-forget cleanup of expired api_rate_log rows (non-blocking)
-  void Promise.resolve(
-    supabaseAdmin.from('api_rate_log').delete().lt('expires_at', new Date().toISOString())
-  ).catch(() => {});
+  // Anomaly detection: auto-block IPs with >50 failures in the last hour
+  // (distributed attack detection beyond the 15-min window)
+  if (params.ip) {
+    const hourFails = await countAuthEvents({
+      eventTypes: ['login_failure'],
+      ip: params.ip,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (hourFails >= 50) {
+      // Auto-block this IP for 24h and delete its failure events
+      await supabaseAdmin.from('blocked_ips').upsert({
+        ip: params.ip,
+        reason: `auto-blocked: ${hourFails} failures/hour`,
+        blocked_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      }, { onConflict: 'ip' });
+      await supabaseAdmin.from('auth_events').delete()
+        .eq('ip', params.ip).eq('event_type', 'login_failure');
+      return {
+        allowed: false, count: hourFails, remaining: 0,
+        retryAfterSec: 86400,
+        source: 'blocklist',
+      };
+    }
+  }
 
+  // Fire-and-forget cleanup of expired api_rate_log
+  void supabaseAdmin.from('api_rate_log').delete()
+    .lt('expires_at', new Date().toISOString()).then(() => {});
+
+  // Layer 1: in-memory fast path
   const memEmail = memHit(`login:email:${params.email}`, LOGIN_EMAIL_LIMIT, LOGIN_WINDOW_MS);
   if (!memEmail.allowed) return memEmail;
   if (params.ip) {
@@ -112,6 +148,7 @@ export async function enforceLoginRateLimit(params: {
     if (!memIp.allowed) return memIp;
   }
 
+  // Layer 2: DB authoritative counts
   const [emailFails, ipFails] = await Promise.all([
     countAuthEvents({
       eventTypes: ['login_failure', 'rate_limited'],
@@ -119,31 +156,15 @@ export async function enforceLoginRateLimit(params: {
       windowMs: LOGIN_WINDOW_MS,
     }),
     params.ip
-      ? countAuthEvents({
-          eventTypes: ['login_failure', 'rate_limited'],
-          ip: params.ip,
-          windowMs: LOGIN_WINDOW_MS,
-        })
+      ? countAuthEvents({ eventTypes: ['login_failure', 'rate_limited'], ip: params.ip, windowMs: LOGIN_WINDOW_MS })
       : Promise.resolve(0),
   ]);
 
   if (emailFails >= LOGIN_EMAIL_LIMIT) {
-    return {
-      allowed: false,
-      count: emailFails,
-      remaining: 0,
-      retryAfterSec: Math.ceil(LOGIN_WINDOW_MS / 1000),
-      source: 'db',
-    };
+    return { allowed: false, count: emailFails, remaining: 0, retryAfterSec: Math.ceil(LOGIN_WINDOW_MS / 1000), source: 'db' };
   }
   if (params.ip && ipFails >= LOGIN_IP_LIMIT) {
-    return {
-      allowed: false,
-      count: ipFails,
-      remaining: 0,
-      retryAfterSec: Math.ceil(LOGIN_WINDOW_MS / 1000),
-      source: 'db',
-    };
+    return { allowed: false, count: ipFails, remaining: 0, retryAfterSec: Math.ceil(LOGIN_WINDOW_MS / 1000), source: 'db' };
   }
   return {
     allowed: true,
@@ -154,11 +175,10 @@ export async function enforceLoginRateLimit(params: {
   };
 }
 
-
 /**
  * Returns true when the request carries a valid E2E bypass header.
- * Safe in production: bypass is a no-op unless E2E_BYPASS_SECRET is set
- * AND the request sends the matching header value (≥16 chars).
+ * Safe in production: bypass is a no-op unless E2E_BYPASS_SECRET is ≥16 chars
+ * AND the request sends the exact matching value.
  */
 export function isE2EBypass(headerValue: string | null): boolean {
   const secret = process.env.E2E_BYPASS_SECRET;
