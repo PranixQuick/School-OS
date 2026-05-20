@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
-import { T, type Lang } from '@/lib/i18n';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface StaffMember {
   id: string; name: string; role: string; email?: string; phone?: string;
@@ -72,7 +73,7 @@ export default function AdminStaffPage() {
   });
 
   return (
-    <Layout title="Staff Management" subtitle={`${staff.length} staff members`}
+    <Layout title={T('staff_management', lang)} subtitle={`${staff.length} staff members`}
       actions={<button onClick={() => setShowAdd(true)} className="btn btn-primary btn-sm">+ Add Staff</button>}>
 
       {/* Search + filter */}
