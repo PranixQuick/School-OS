@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface DashData {
   name: string; school_name: string; today_day: string;
@@ -12,6 +14,7 @@ interface DashData {
 }
 
 export default function TeacherPage() {
+  const { lang } = useLang();
   const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
