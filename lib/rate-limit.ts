@@ -1,7 +1,8 @@
 // lib/rate-limit.ts
-// Phase 0 Task 0.1. Two-layer sliding-window rate limiter:
-//   1. in-memory (fast path, best-effort, per-instance only)
-//   2. Supabase-backed count of auth_events rows (authoritative across instances)
+// Two-layer sliding-window rate limiter + IP blocklist check
+//   1. blocked_ips table — permanent/temporary IP ban (stops attacker IPs from polluting email window)
+//   2. in-memory (fast path, best-effort, per-instance only)
+//   3. Supabase-backed count of auth_events rows (authoritative across instances)
 
 import { supabaseAdmin } from './supabaseClient';
 
@@ -13,7 +14,7 @@ export interface RateLimitResult {
   count: number;
   remaining: number;
   retryAfterSec: number;
-  source: 'memory' | 'db' | 'none';
+  source: 'memory' | 'db' | 'none' | 'blocklist';
 }
 
 function memHit(key: string, limit: number, windowMs: number): RateLimitResult {
@@ -56,26 +57,50 @@ async function countAuthEvents(params: {
   return count ?? 0;
 }
 
+async function isIpBlocked(ip: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('blocked_ips')
+    .select('ip')
+    .eq('ip', ip)
+    .gt('blocked_until', new Date().toISOString())
+    .limit(1)
+    .single();
+  if (error) return false; // fail open — don't block legitimate users on DB error
+  return !!data;
+}
+
 export const LOGIN_EMAIL_LIMIT = 5;
 export const LOGIN_IP_LIMIT = 10;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 // SECURITY: Only .local test domains bypass rate limiting.
-// Real school domains (suchitracademy.edu.in, dpsnadergul.com) are now subject to limits.
-// CI E2E tests must use E2E_BYPASS_SECRET header instead of relying on domain bypass.
-// This fix prevents distributed brute-force via domain whitelist circumvention.
 const EXEMPT_SUFFIXES = ['.local'];
 
 export async function enforceLoginRateLimit(params: {
   email: string;
   ip: string | null;
 }): Promise<RateLimitResult> {
-  // Skip rate limiting ONLY for .local test accounts (not real school domains)
+  // Skip rate limiting ONLY for .local test accounts
   if (EXEMPT_SUFFIXES.some(d => params.email.endsWith(d))) {
     return { allowed: true, count: 0, remaining: 5, retryAfterSec: 0, source: 'none' };
   }
 
-  // E2: fire-and-forget cleanup of expired api_rate_log rows (non-blocking)
+  // PHASE 0: IP blocklist check — reject known bad actors immediately
+  // This prevents them from incrementing the per-email failure counter
+  if (params.ip) {
+    const blocked = await isIpBlocked(params.ip);
+    if (blocked) {
+      return {
+        allowed: false,
+        count: 0,
+        remaining: 0,
+        retryAfterSec: 86400, // 24h — don't tell attacker exactly when unblocked
+        source: 'blocklist',
+      };
+    }
+  }
+
+  // Fire-and-forget cleanup of expired api_rate_log rows (non-blocking)
   void Promise.resolve(
     supabaseAdmin.from('api_rate_log').delete().lt('expires_at', new Date().toISOString())
   ).catch(() => {});
@@ -132,12 +157,11 @@ export async function enforceLoginRateLimit(params: {
 
 /**
  * Returns true when the request carries a valid E2E bypass header.
- * Used only in /api/auth/login to skip rate-limiting for CI test accounts.
  * Safe in production: bypass is a no-op unless E2E_BYPASS_SECRET is set
- * AND the request sends the matching header value.
+ * AND the request sends the matching header value (≥16 chars).
  */
 export function isE2EBypass(headerValue: string | null): boolean {
   const secret = process.env.E2E_BYPASS_SECRET;
-  if (!secret || secret.length < 16) return false; // secret must be set and non-trivial
+  if (!secret || secret.length < 16) return false;
   return headerValue === secret;
 }
