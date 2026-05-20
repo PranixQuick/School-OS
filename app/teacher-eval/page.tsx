@@ -55,9 +55,9 @@ export default function TeacherEvalPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Total Evaluations', value: evals.length },
-          { label: 'Avg Score', value: evals.length ? avgScore.toFixed(1) + '/10' : '—' },
-          { label: 'Excellent (8+)', value: evals.filter(e => (e.coaching_score ?? 0) >= 8).length },
+          { label: T('total_evaluations', lang as never), value: evals.length },
+          { label: T('avg_score', lang as never), value: evals.length ? avgScore.toFixed(1) + '/10' : '—' },
+          { label: T('excellent_label', lang as never), value: evals.filter(e => (e.coaching_score ?? 0) >= 8).length },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '12px 14px', textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#4F46E5' }}>{s.value}</div>
@@ -68,7 +68,7 @@ export default function TeacherEvalPage() {
 
       {/* Upload */}
       <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>🎙 Upload Classroom Recording</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{T('upload_recording', lang as never)}</div>
         <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
           Upload an audio file from a classroom session. Our AI analyses teaching quality and gives a score with coaching suggestions.
         </div>
@@ -77,7 +77,7 @@ export default function TeacherEvalPage() {
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
           className="btn btn-primary"
           style={{ opacity: uploading ? 0.6 : 1, width: '100%' }}>
-          {uploading ? '⏳ Analysing recording…' : '📁 Choose Audio File'}
+          {uploading ? T('loading', lang as never) : '📁 ' + T('upload_recording', lang as never)}
         </button>
       </div>
 
@@ -87,7 +87,7 @@ export default function TeacherEvalPage() {
       ) : evals.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">🎙</div>
-          <div className="empty-state-title">No evaluations yet</div>
+          <div className="empty-state-title">{T('no_evaluations_yet', lang as never)}</div>
           <div className="empty-state-sub">Upload a classroom audio file to get your first AI evaluation score.</div>
         </div>
       ) : (
