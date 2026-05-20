@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 import Link from 'next/link';
 
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error';
@@ -17,6 +19,7 @@ const P_STYLES: Record<string, { bg: string; color: string; border: string; labe
 };
 
 export default function AdmissionsPage() {
+  const { lang } = useLang();
   const [form, setForm] = useState<FormData>(INITIAL);
   const [status, setStatus] = useState<FormStatus>('idle');
   const [result, setResult] = useState<SubmitResult | null>(null);
