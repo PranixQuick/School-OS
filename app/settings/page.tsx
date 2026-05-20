@@ -111,7 +111,7 @@ export default function SettingsPage() {
   return (
     <Layout title={T('settings', lang)} subtitle="School configuration and account management">
       {loading ? (
-        <div className="card"><div className="empty-state"><div className="empty-state-icon">⚙️</div><div className="empty-state-title">Loading settings...</div></div></div>
+        <div className="card"><div className="empty-state"><div className="empty-state-icon">⚙️</div><div className="empty-state-title">{T('loading', lang as never)}</div></div></div>
       ) : (
         <>
           {/* School header */}
@@ -143,7 +143,7 @@ export default function SettingsPage() {
           {activeTab === 'general' && (
             <form onSubmit={handleSave}>
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 20 }}>School Information</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 20 }}>{T('school_information', lang as never)}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>{T('school_name_label', lang as never)}</label>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                 <button type="submit" disabled={saving} className="btn btn-primary">
                   {saving ? T('saving_', lang as never) : T('save_changes', lang as never)}
                 </button>
-                {saved === 'general' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>✓ Saved successfully</span>}
+                {saved === 'general' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>{T('saved_success', lang as never)}</span>}
               </div>
             </form>
           )}
@@ -185,10 +185,10 @@ export default function SettingsPage() {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 20 }}>
                 {[
-                  { label: 'Reports Generated', used: usage.reports_generated, max: usage.max_reports_per_month, icon: '📄' },
-                  { label: 'Teacher Evaluations', used: usage.evaluations_done, max: usage.max_evaluations_per_month, icon: '🎙' },
-                  { label: 'Broadcasts Sent', used: usage.broadcasts_sent, max: usage.max_broadcasts_per_month, icon: '📢' },
-                  { label: 'Leads Scored', used: usage.leads_scored, max: -1, icon: '👥' },
+                  { label: T('reports_generated_label', lang as never), used: usage.reports_generated, max: usage.max_reports_per_month, icon: '📄' },
+                  { label: T('evaluations_done_label', lang as never), used: usage.evaluations_done, max: usage.max_evaluations_per_month, icon: '🎙' },
+                  { label: T('broadcasts_sent_label', lang as never), used: usage.broadcasts_sent, max: usage.max_broadcasts_per_month, icon: '📢' },
+                  { label: T('leads_scored_label', lang as never), used: usage.leads_scored, max: -1, icon: '👥' },
                 ].map(item => {
                   const p = pct(item.used, item.max);
                   const isUnlimited = item.max === -1;
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                   Current Plan: <span style={{ color: '#4F46E5', textTransform: 'capitalize' }}>{school?.plan}</span>
                 </div>
                 <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
-                  Usage resets on {usage.reset_at ? new Date(usage.reset_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'next month'}.
+                  {T('usage_resets_on', lang as never)} {usage.reset_at ? new Date(usage.reset_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'next month'}.
                 </div>
                 <a href="/billing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#4F46E5', fontWeight: 600, textDecoration: 'none' }}>
                   View billing & upgrade →
@@ -230,7 +230,7 @@ export default function SettingsPage() {
           {activeTab === 'team' && (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Team Members ({users.length})</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{T('team_members', lang as never)} ({users.length})</div>
               </div>
               <table className="table">
                 <thead><tr><th>{T('name_col', lang as never)}</th><th>{T('email_col', lang as never)}</th><th>{T('role_col', lang as never)}</th><th>{T('last_login_col', lang as never)}</th><th>{T('status_col', lang as never)}</th></tr></thead>
@@ -245,8 +245,8 @@ export default function SettingsPage() {
                       </td>
                       <td style={{ fontSize: 13, color: '#6B7280' }}>{u.email}</td>
                       <td><span className="badge badge-indigo" style={{ fontSize: 11 }}>{u.role.toUpperCase()}</span></td>
-                      <td style={{ fontSize: 13, color: '#9CA3AF' }}>{u.last_login ? new Date(u.last_login).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Never'}</td>
-                      <td><span className={`badge ${u.is_active ? 'badge-done' : 'badge-gray'}`} style={{ fontSize: 11 }}>{u.is_active ? 'ACTIVE' : 'INACTIVE'}</span></td>
+                      <td style={{ fontSize: 13, color: '#9CA3AF' }}>{u.last_login ? new Date(u.last_login).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : T('never_logged_in', lang as never)}</td>
+                      <td><span className={`badge ${u.is_active ? 'badge-done' : 'badge-gray'}`} style={{ fontSize: 11 }}>{u.is_active ? T('active_badge', lang as never) : T('inactive_badge', lang as never)}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
 
                 {/* Classes */}
                 <div className="card">
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Classes / Grades</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{T('classes_grades_s', lang as never)}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                     {configForm.class_list.map(c => (
                       <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#EEF2FF', color: '#4F46E5', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
                 <button onClick={handleConfigSave} disabled={saving} className="btn btn-primary">
                   {saving ? T('saving_', lang as never) : T('save_configuration', lang as never)}
                 </button>
-                {saved === 'config' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>✓ Configuration saved</span>}
+                {saved === 'config' && <span style={{ fontSize: 14, color: '#15803D', fontWeight: 600 }}>{T('config_saved', lang as never)}</span>}
               </div>
             </div>
           )}
