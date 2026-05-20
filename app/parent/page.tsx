@@ -11,7 +11,7 @@ interface Attendance { present_pct: number; total_days: number; present_days: nu
 interface FeeInfo { pending_amount: number; overdue: boolean; }
 interface Notice { id: string; subject: string; message: string; created_at: string; }
 
-// Quick actions — labels come from i18n-parent L() after hydration
+// Quick actions — labels come from i18n-parent T() after hydration
 const ACTION_KEYS = [
   { href: '/parent/attendance', icon: '✅', key: 'attendance', color: '#16A34A', bg: '#F0FDF4' },
   { href: '/parent/homework',   icon: '📚', key: 'homework',   color: '#9333EA', bg: '#FDF4FF' },
@@ -31,6 +31,16 @@ export default function ParentHomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [schoolName, setSchoolName] = useState('');
+  // lang: read from window.__edprosys_lang (set by Layout language selector) or localStorage
+  const [lang, setLang] = useState<Lang>('en');
+
+  // Hydrate language safely after mount — no SSR mismatch
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('edprosys_lang') as Lang | null;
+      if (stored && ['en','hi','te','ta','kn'].includes(stored)) setLang(stored);
+    } catch { /* localStorage unavailable */ }
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 6000);
@@ -106,7 +116,7 @@ export default function ParentHomePage() {
                     {feeAlert ? `₹${fee!.pending_amount >= 1000 ? (fee!.pending_amount / 1000).toFixed(1) + 'K' : fee!.pending_amount}` : '✓'}
                   </div>
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                    {feeAlert ? L('fees', lang) : (lang === 'en' ? 'Fees paid' : lang === 'hi' ? 'शुल्क भुगतान' : L('fees', lang))}
+                    {feeAlert ? T('fees', lang) : (lang === 'en' ? 'Fees paid' : lang === 'hi' ? 'शुल्क भुगतान' : T('fees', lang))}
                   </div>
                   {fee?.overdue && <div style={{ fontSize: 10, color: '#B91C1C', marginTop: 4, fontWeight: 600 }}>OVERDUE</div>}
                 </div>
