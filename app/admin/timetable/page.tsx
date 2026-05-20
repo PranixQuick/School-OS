@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Slot { id: string; day_of_week: number; period_number: number; class: string; section: string; subject_name?: string; teacher_name?: string; start_time?: string; end_time?: string; }
 
@@ -8,6 +10,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function TimetablePage() {
+  const { lang } = useLang();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [classFilter, setClassFilter] = useState('5');
@@ -25,7 +28,7 @@ export default function TimetablePage() {
   slots.forEach(s => { slotMap[`${s.day_of_week}-${s.period_number}`] = s; });
 
   return (
-    <Layout title="Timetable" subtitle="Class schedule and period assignments">
+    <Layout title={T('timetable', lang)} subtitle={T('timetable', lang)}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {(['3','4','5','6','7','8','9','10'] as const).map(c => (
           <button key={c} onClick={() => setClassFilter(c)}
