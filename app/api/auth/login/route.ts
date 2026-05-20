@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { issueSession, sessionCookie } from '@/lib/session';
 import { getSession, logAuthEvent, clientIpFromRequest } from '@/lib/auth';
@@ -53,19 +52,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Authenticate via Supabase Auth (passwords are in auth.users.encrypted_password)
-  const authClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-
-  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+  // Authenticate via Supabase Auth Admin API
+  // Using admin client (SERVICE_ROLE_KEY) to verify password since ANON_KEY
+  // may not be consistently available in all serverless instances.
+  const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
     email,
     password,
   });
 
   if (authError || !authData.user) {
+    console.error('[login] signInWithPassword failed:', authError?.message ?? 'no user', 'email:', email);
     await logAuthEvent({
       eventType: 'login_failure', email, ip,
       metadata: { reason: authError?.message ?? 'auth_failed' },
@@ -81,6 +77,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (userErr || !schoolUser) {
+    console.error('[login] school_users lookup failed:', userErr?.message, 'auth_uid:', authData.user.id);
     await logAuthEvent({
       eventType: 'login_failure', email, ip,
       metadata: { reason: 'no_school_user', auth_uid: authData.user.id },
@@ -132,8 +129,6 @@ export async function POST(req: NextRequest) {
   });
 }
 
-// Canonical role → landing route mapping.
-// Must stay in sync with Layout.tsx NAV_BY_ROLE dashboard hrefs.
 function roleRedirect(role: string): string {
   switch (role) {
     case 'owner':      return '/owner';
