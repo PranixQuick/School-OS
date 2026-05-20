@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface Gallery {
   id: string; title: string; description?: string;
@@ -43,6 +45,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export default function AdminEventsPage() {
+  const { lang } = useLang();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -104,7 +107,7 @@ export default function AdminEventsPage() {
   const input = { width: '100%', height: 40, borderRadius: 8, border: '1px solid #D1D5DB', background: '#F9FAFB', fontSize: 14, padding: '0 12px', outline: 'none', fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box' as const };
 
   return (
-    <Layout title="Event Gallery" subtitle="Share school moments with parents">
+    <Layout title={T('events_gallery', lang)} subtitle={T('events_gallery', lang)}>
       {toast && (
         <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: '#15803D', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
           ✓ {toast}
