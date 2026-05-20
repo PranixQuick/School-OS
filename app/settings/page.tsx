@@ -233,7 +233,7 @@ export default function SettingsPage() {
                 <div style={{ fontWeight: 700, fontSize: 15 }}>Team Members ({users.length})</div>
               </div>
               <table className="table">
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th></tr></thead>
+                <thead><tr><th>{T('name_col', lang as never)}</th><th>{T('email_col', lang as never)}</th><th>{T('role_col', lang as never)}</th><th>{T('last_login_col', lang as never)}</th><th>{T('status_col', lang as never)}</th></tr></thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id}>
@@ -278,7 +278,7 @@ export default function SettingsPage() {
 
                 {/* Academic Terms */}
                 <div className="card">
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Academic Terms</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{T('academic_terms_label', lang as never)}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                     {configForm.academic_terms.map(t => (
                       <div key={t} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F9FAFB', borderRadius: 8, padding: '6px 10px' }}>
@@ -295,7 +295,7 @@ export default function SettingsPage() {
 
                 {/* Fee Categories */}
                 <div className="card">
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Fee Categories</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{T('fee_categories_config', lang as never)}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                     {configForm.fee_categories.map(f => (
                       <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#FEF9C3', color: '#A16207', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, textTransform: 'capitalize' }}>
@@ -312,15 +312,15 @@ export default function SettingsPage() {
 
                 {/* School Timings */}
                 <div className="card">
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>School Timings</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>{T('school_timings', lang as never)}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>START TIME</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>{T('start_time', lang as never)}</label>
                       <input type="time" style={inputStyle} value={configForm.school_timings.start}
                         onChange={e => setConfigForm(p => p ? { ...p, school_timings: { ...p.school_timings, start: e.target.value } } : p)} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>END TIME</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>{T('end_time', lang as never)}</label>
                       <input type="time" style={inputStyle} value={configForm.school_timings.end}
                         onChange={e => setConfigForm(p => p ? { ...p, school_timings: { ...p.school_timings, end: e.target.value } } : p)} />
                     </div>
