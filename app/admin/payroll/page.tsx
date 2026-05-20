@@ -176,9 +176,9 @@ export default function PayrollPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Gross', value: `₹${(selectedRun.total_gross / 1000).toFixed(1)}K`, color: '#4F46E5' },
-                { label: 'Deductions', value: `₹${(selectedRun.total_deductions / 1000).toFixed(1)}K`, color: '#B91C1C' },
-                { label: 'Net Pay', value: `₹${(selectedRun.total_net / 1000).toFixed(1)}K`, color: '#065F46' },
+                { label: T('basic', lang as never), value: `₹${(selectedRun.total_gross / 1000).toFixed(1)}K`, color: '#4F46E5' },
+                { label: T('deductions_section', lang as never), value: `₹${(selectedRun.total_deductions / 1000).toFixed(1)}K`, color: '#B91C1C' },
+                { label: T('net_payable', lang as never), value: `₹${(selectedRun.total_net / 1000).toFixed(1)}K`, color: '#065F46' },
               ].map(k => (
                 <div key={k.label} style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, textAlign: 'center' }}>
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{k.label}</div>
@@ -347,9 +347,9 @@ export default function PayrollPage() {
               { key: 'basic_salary', label: 'Basic Salary *' },
               { key: 'hra', label: 'HRA' },
               { key: 'da', label: 'DA' },
-              { key: 'conveyance', label: 'Conveyance' },
-              { key: 'medical_allowance', label: 'Medical Allowance' },
-              { key: 'other_allowance', label: 'Other Allowance' },
+              { key: 'conveyance', label: T('conveyance', lang as never) },
+              { key: 'medical_allowance', label: T('medical_allowance', lang as never) },
+              { key: 'other_allowance', label: T('other_allowance', lang as never) },
             ].map(f => (
               <div key={f.key}>
                 <label style={lbl}>{f.label}</label>
@@ -384,7 +384,7 @@ export default function PayrollPage() {
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, cursor: 'pointer' }}>
             <input type="checkbox" checked={structForm.esi_applicable}
               onChange={e => setF('esi_applicable', e.target.checked)} style={{ width: 16, height: 16 }} />
-            <span style={{ fontSize: 13, color: '#374151' }}>ESI Applicable (gross ≤ ₹21,000/month)</span>
+            <span style={{ fontSize: 13, color: '#374151' }}>{T('esi_applicable', lang as never)} (≤ ₹21,000)</span>
           </label>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setTab('structures')}
