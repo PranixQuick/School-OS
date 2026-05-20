@@ -50,31 +50,31 @@ export default function AdmissionsPage() {
         <form onSubmit={handleSubmit}>
           <div className="card" style={{ marginBottom: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div><label className="label">PARENT NAME *</label><input required className="input" value={form.parent_name} onChange={e => set('parent_name', e.target.value)} placeholder="e.g. Ramesh Kumar" /></div>
-              <div><label className="label">PHONE NUMBER *</label><input required className="input" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+91 98765 43210" /></div>
+              <div><label className="label">{T('parent_name_field', lang as never)}</label><input required className="input" value={form.parent_name} onChange={e => set('parent_name', e.target.value)} placeholder="e.g. Ramesh Kumar" /></div>
+              <div><label className="label">{T('phone_number_field', lang as never)}</label><input required className="input" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+91 98765 43210" /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div><label className="label">CHILD NAME</label><input className="input" value={form.child_name} onChange={e => set('child_name', e.target.value)} placeholder="Child's name" /></div>
-              <div><label className="label">CHILD AGE *</label><input required type="number" min="3" max="18" className="input" value={form.child_age} onChange={e => set('child_age', e.target.value)} placeholder="e.g. 6" /></div>
+              <div><label className="label">{T('child_name_field', lang as never)}</label><input className="input" value={form.child_name} onChange={e => set('child_name', e.target.value)} placeholder="Child's name" /></div>
+              <div><label className="label">{T('child_age_field', lang as never)}</label><input required type="number" min="3" max="18" className="input" value={form.child_age} onChange={e => set('child_age', e.target.value)} placeholder="e.g. 6" /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
-                <label className="label">GRADE INTERESTED IN *</label>
+                <label className="label">{T('grade_interested', lang as never)}</label>
                 <select required className="input" value={form.target_class} onChange={e => set('target_class', e.target.value)}>
                   {['1','2','3','4','5','6','7','8','9','10'].map(g => <option key={g} value={g}>Class {g}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">HOW DID THEY FIND US *</label>
+                <label className="label">{T('how_they_found', lang as never)}</label>
                 <select required className="input" value={form.source} onChange={e => set('source', e.target.value)}>
                   {[{ v: 'referral', l: 'Parent Referral' }, { v: 'google', l: 'Google Search' }, { v: 'website', l: 'School Website' }, { v: 'instagram', l: 'Instagram' }, { v: 'facebook', l: 'Facebook' }, { v: 'walk-in', l: 'Walk-in' }, { v: 'other', l: 'Other' }].map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{ marginBottom: 16 }}><label className="label">EMAIL ADDRESS</label><input type="email" className="input" value={form.email} onChange={e => set('email', e.target.value)} placeholder="parent@email.com (optional)" /></div>
+            <div style={{ marginBottom: 16 }}><label className="label">{T('email_address', lang as never)}</label><input type="email" className="input" value={form.email} onChange={e => set('email', e.target.value)} placeholder="parent@email.com (optional)" /></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: '#F9FAFB', borderRadius: 10, border: '1px solid #F3F4F6' }}>
               <input type="checkbox" id="sibling" checked={form.has_sibling} onChange={e => set('has_sibling', e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4F46E5' }} />
-              <label htmlFor="sibling" style={{ fontSize: 14, color: '#374151', cursor: 'pointer', fontWeight: 500, flex: 1 }}>Sibling already enrolled at this school</label>
+              <label htmlFor="sibling" style={{ fontSize: 14, color: '#374151', cursor: 'pointer', fontWeight: 500, flex: 1 }}>{T('sibling_enrolled', lang as never)}</label>
               <span className="badge badge-high">+20 pts</span>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function AdmissionsPage() {
             <div className="card" style={{ marginTop: 16, border: `1.5px solid ${ps.border}`, padding: 0, overflow: 'hidden' }}>
               <div style={{ background: ps.bg, padding: '16px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: ps.color, letterSpacing: '0.05em', marginBottom: 4 }}>LEAD SCORED</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: ps.color, letterSpacing: '0.05em', marginBottom: 4 }}>{T('lead_scored', lang as never)}</div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>{ps.label}</div>
                 </div>
                 <div className="score-circle" style={{ width: 64, height: 64, background: '#fff', border: `3px solid ${ps.border}` }}>
@@ -100,9 +100,9 @@ export default function AdmissionsPage() {
                   <div style={{ fontSize: 10, color: ps.color, fontWeight: 600 }}>/ 100</div>
                 </div>
               </div>
-              {result.aiNote && <div style={{ padding: '12px 22px', borderTop: `1px solid ${ps.bg}` }}><span style={{ fontSize: 11, fontWeight: 700, color: ps.color }}>AI INSIGHT: </span><span style={{ fontSize: 14, color: '#374151' }}>{result.aiNote}</span></div>}
+              {result.aiNote && <div style={{ padding: '12px 22px', borderTop: `1px solid ${ps.bg}` }}><span style={{ fontSize: 11, fontWeight: 700, color: ps.color }}>{T('ai_insight', lang as never)}: </span><span style={{ fontSize: 14, color: '#374151' }}>{result.aiNote}</span></div>}
               <div style={{ padding: '12px 22px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#9CA3AF' }}>Lead saved to CRM</span>
+                <span style={{ fontSize: 13, color: '#9CA3AF' }}>{T('lead_saved_to_crm', lang as never)}</span>
                 <Link href="/admissions/crm" style={{ fontSize: 13, fontWeight: 700, color: '#4F46E5', textDecoration: 'none' }}>View in CRM →</Link>
               </div>
             </div>
