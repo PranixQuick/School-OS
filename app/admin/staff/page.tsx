@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { T, type Lang } from '@/lib/i18n';
 
 interface StaffMember {
   id: string; name: string; role: string; email?: string; phone?: string;
