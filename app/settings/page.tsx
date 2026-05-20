@@ -2,6 +2,8 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface School { id: string; name: string; plan: string; contact_email: string; contact_phone: string | null; address: string | null; board: string; slug: string; }
 interface Usage { reports_generated: number; evaluations_done: number; broadcasts_sent: number; leads_scored: number; max_reports_per_month: number; max_evaluations_per_month: number; max_broadcasts_per_month: number; max_students: number; reset_at: string; }
