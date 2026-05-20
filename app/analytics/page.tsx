@@ -1,6 +1,8 @@
 'use client';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 const COMING_SOON_MODULES = [
   { title: 'Attendance Analytics', desc: 'Class-wise and student-wise attendance trends over time.', eta: 'Next sprint', icon: '📊' },
@@ -10,8 +12,9 @@ const COMING_SOON_MODULES = [
 ];
 
 export default function AnalyticsPage() {
+  const { lang } = useLang();
   return (
-    <Layout title="Analytics" subtitle="School performance data at a glance">
+    <Layout title={T('analytics', lang)} subtitle="School performance data at a glance">
       <div style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 12, padding: '16px 20px', marginBottom: 24 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: '#4338CA', marginBottom: 4 }}>🚧 Analytics Dashboard — Coming Soon</div>
         <div style={{ fontSize: 13, color: '#4338CA' }}>We are building detailed analytics views. In the meantime, use module-specific reports available inside each section.</div>
