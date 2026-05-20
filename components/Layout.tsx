@@ -2,152 +2,140 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
-// i18n: supported languages with their display labels
-const LANG_OPTIONS: { code: string; label: string }[] = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'हिन्दी' },
-  { code: 'te', label: 'తెలుగు' },
-  { code: 'ta', label: 'தமிழ்' },
-  { code: 'kn', label: 'ಕನ್ನಡ' },
-  { code: 'mr', label: 'मराठी' },
-  { code: 'ml', label: 'മലയാളം' },
-];
-const LANG_STORAGE_KEY = 'edprosys_lang';
-const DEFAULT_LANG = 'en';
-
-const NAV_BY_ROLE: Record<string, { group: string; items: { label: string; href: string; icon: string }[] }[]> = {
+// NAV_BY_ROLE uses i18n keys (from lib/i18n.ts STRINGS) instead of English strings.
+// Groups use the group key; items use the nav item key.
+const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href: string; icon: string }[] }[]> = {
   admin: [
-    { group: 'Overview', items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
-      { label: 'Admissions', href: '/admissions', icon: '🚀' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/dashboard',                    icon: '🏠' },
+      { key: 'admissions',    href: '/admissions',                   icon: '🚀' },
     ]},
-    { group: 'School', items: [
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
-      { label: 'Staff', href: '/admin/staff', icon: '👥' },
-      { label: 'Timetable', href: '/admin/timetable', icon: '🗓' },
+    { groupKey: 'school', items: [
+      { key: 'students',      href: '/students',                     icon: '👨‍🎓' },
+      { key: 'staff',         href: '/admin/staff',                  icon: '👥' },
+      { key: 'timetable',     href: '/admin/timetable',              icon: '🗓' },
     ]},
-    { group: 'Finance', items: [
-      { label: 'Fees', href: '/admin/fees', icon: '💰' },
-      { label: 'Payroll', href: '/admin/payroll', icon: '💼' },
+    { groupKey: 'finance', items: [
+      { key: 'fees',          href: '/admin/fees',                   icon: '💰' },
+      { key: 'payroll',       href: '/admin/payroll',                icon: '💼' },
     ]},
-    { group: 'Communication', items: [
-      { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
-      { label: 'Events & Gallery', href: '/admin/events', icon: '📸' },
-      { label: 'WhatsApp Bot', href: '/whatsapp', icon: '💬' },
-      { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
+    { groupKey: 'communication', items: [
+      { key: 'broadcasts',    href: '/admin/broadcasts',             icon: '📢' },
+      { key: 'events_gallery',href: '/admin/events',                 icon: '📸' },
+      { key: 'whatsapp_bot',  href: '/whatsapp',                     icon: '💬' },
+      { key: 'parents',       href: '/admin/parents',                icon: '👨‍👩‍👧' },
     ]},
-    { group: 'AI Tools', items: [
-      { label: 'Report Cards', href: '/report-cards', icon: '📄' },
-      { label: 'Teacher Eval', href: '/teacher-eval', icon: '🎙' },
-      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    { groupKey: 'ai_tools', items: [
+      { key: 'report_cards',  href: '/report-cards',                 icon: '📄' },
+      { key: 'teacher_eval',  href: '/teacher-eval',                 icon: '🎙' },
+      { key: 'analytics',     href: '/analytics',                    icon: '📊' },
     ]},
-    { group: 'Records', items: [
-      { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
-      { label: 'Vendors', href: '/admin/vendors', icon: '🤝' },
+    { groupKey: 'records', items: [
+      { key: 'transfer_certs',href: '/admin/transfer-certificates',  icon: '📋' },
+      { key: 'vendors',       href: '/admin/vendors',                icon: '🤝' },
     ]},
-    { group: 'Account', items: [
-      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings',                     icon: '⚙️' },
     ]},
   ],
   admin_staff: [
-    { group: 'Overview', items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/dashboard',   icon: '🏠' },
     ]},
-    { group: 'School', items: [
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
-      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    { groupKey: 'school', items: [
+      { key: 'students',      href: '/students',    icon: '👨‍🎓' },
+      { key: 'staff',         href: '/admin/staff', icon: '👥' },
     ]},
-    { group: 'Finance', items: [
-      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+    { groupKey: 'finance', items: [
+      { key: 'fees',          href: '/admin/fees',  icon: '💰' },
     ]},
-    { group: 'Communication', items: [
-      { label: 'Broadcasts', href: '/admin/broadcasts', icon: '📢' },
-      { label: 'Events & Gallery', href: '/admin/events', icon: '📸' },
-      { label: 'Parents', href: '/admin/parents', icon: '👨‍👩‍👧' },
+    { groupKey: 'communication', items: [
+      { key: 'broadcasts',    href: '/admin/broadcasts', icon: '📢' },
+      { key: 'events_gallery',href: '/admin/events',     icon: '📸' },
+      { key: 'parents',       href: '/admin/parents',    icon: '👨‍👩‍👧' },
     ]},
-    { group: 'Records', items: [
-      { label: 'Transfer Certs', href: '/admin/transfer-certificates', icon: '📋' },
-      { label: 'Vendors', href: '/admin/vendors', icon: '🤝' },
+    { groupKey: 'records', items: [
+      { key: 'transfer_certs',href: '/admin/transfer-certificates', icon: '📋' },
+      { key: 'vendors',       href: '/admin/vendors', icon: '🤝' },
     ]},
-    { group: 'Account', items: [
-      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
     ]},
   ],
   accountant: [
-    { group: 'Finance', items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
-      { label: 'Fees', href: '/admin/fees', icon: '💰' },
-      { label: 'Payroll', href: '/admin/payroll', icon: '💼' },
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+    { groupKey: 'finance', items: [
+      { key: 'dashboard',     href: '/dashboard',   icon: '🏠' },
+      { key: 'fees',          href: '/admin/fees',  icon: '💰' },
+      { key: 'payroll',       href: '/admin/payroll', icon: '💼' },
+      { key: 'students',      href: '/students',    icon: '👨‍🎓' },
     ]},
-    { group: 'Account', items: [
-      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
     ]},
   ],
   principal: [
-    { group: 'Overview', items: [
-      { label: 'Dashboard', href: '/principal', icon: '🏠' },
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
-      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/principal',   icon: '🏠' },
+      { key: 'students',      href: '/students',    icon: '👨‍🎓' },
+      { key: 'staff',         href: '/admin/staff', icon: '👥' },
     ]},
-    { group: 'AI Tools', items: [
-      { label: 'Teacher Eval', href: '/teacher-eval', icon: '🎙' },
-      { label: 'Report Cards', href: '/report-cards', icon: '📄' },
-      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    { groupKey: 'ai_tools', items: [
+      { key: 'teacher_eval',  href: '/teacher-eval',  icon: '🎙' },
+      { key: 'report_cards',  href: '/report-cards',  icon: '📄' },
+      { key: 'analytics',     href: '/analytics',     icon: '📊' },
     ]},
-    { group: 'Account', items: [
-      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
     ]},
   ],
   owner: [
-    { group: 'Overview', items: [
-      { label: 'Dashboard', href: '/owner', icon: '🏠' },
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
-      { label: 'Staff', href: '/admin/staff', icon: '👥' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/owner',       icon: '🏠' },
+      { key: 'students',      href: '/students',    icon: '👨‍🎓' },
+      { key: 'staff',         href: '/admin/staff', icon: '👥' },
     ]},
-    { group: 'Finance', items: [
-      { label: 'Fees', href: '/admin/fees', icon: '💰' },
+    { groupKey: 'finance', items: [
+      { key: 'fees',          href: '/admin/fees',  icon: '💰' },
     ]},
-    { group: 'AI Tools', items: [
-      { label: 'Analytics', href: '/analytics', icon: '📊' },
+    { groupKey: 'ai_tools', items: [
+      { key: 'analytics',     href: '/analytics',   icon: '📊' },
     ]},
-    { group: 'Account', items: [
-      { label: 'Settings', href: '/settings', icon: '⚙️' },
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings',    icon: '⚙️' },
     ]},
   ],
   teacher: [
-    { group: 'My Day', items: [
-      { label: 'Dashboard', href: '/teacher', icon: '🏠' },
-      { label: 'Check In', href: '/teacher/check-in', icon: '📍' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/teacher',          icon: '🏠' },
+      { key: 'checkin',       href: '/teacher/check-in', icon: '📍' },
     ]},
-    { group: 'Classes', items: [
-      { label: 'Attendance', href: '/teacher/attendance', icon: '✅' },
-      { label: 'Homework', href: '/teacher/homework', icon: '📚' },
-      { label: 'Marks', href: '/teacher/marks', icon: '📝' },
-      { label: 'Lesson Plans', href: '/teacher/lesson-plans', icon: '📖' },
-    ]},
-    { group: 'HR', items: [
-      { label: 'Leave', href: '/teacher/leave', icon: '🏖' },
+    { groupKey: 'my_classes', items: [
+      { key: 'attendance',    href: '/teacher/attendance',    icon: '✅' },
+      { key: 'homework',      href: '/teacher/homework',      icon: '📚' },
+      { key: 'reports',       href: '/teacher/marks',         icon: '📝' },
+      { key: 'timetable',     href: '/teacher/lesson-plans',  icon: '📖' },
     ]},
   ],
   viewer: [
-    { group: 'Main', items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/dashboard', icon: '🏠' },
     ]},
   ],
   counsellor: [
-    { group: 'Main', items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
-      { label: 'Students', href: '/students', icon: '👨‍🎓' },
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/dashboard', icon: '🏠' },
+      { key: 'students',      href: '/students',  icon: '👨‍🎓' },
     ]},
   ],
 };
 
 const DEFAULT_NAV = [
-  { group: 'Main', items: [
-    { label: 'Dashboard', href: '/dashboard', icon: '🏠' },
-    { label: 'Settings', href: '/settings', icon: '⚙️' },
+  { groupKey: 'overview', items: [
+    { key: 'dashboard', href: '/dashboard', icon: '🏠' },
+    { key: 'settings',  href: '/settings',  icon: '⚙️' },
   ]},
 ];
 
@@ -160,34 +148,13 @@ interface LayoutProps {
 
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
   const pathname = usePathname();
+  const { lang, setLang } = useLang();
   const [role, setRole] = useState<string>('admin');
   const [userName, setUserName] = useState('');
   const [schoolName, setSchoolName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [lang, setLang] = useState<string>(DEFAULT_LANG);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-
-  // Hydrate language from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LANG_STORAGE_KEY);
-      if (stored) {
-        setLang(stored);
-        // Expose globally so dashboards can call T(key, window.__edprosys_lang)
-        (window as unknown as Record<string, unknown>).__edprosys_lang = stored;
-      }
-    } catch { /* localStorage not available */ }
-  }, []);
-
-  function handleLangChange(code: string) {
-    setLang(code);
-    setShowLangPicker(false);
-    try {
-      localStorage.setItem(LANG_STORAGE_KEY, code);
-      (window as unknown as Record<string, unknown>).__edprosys_lang = code;
-    } catch { /* localStorage not available */ }
-  }
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
@@ -197,9 +164,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
-        setSidebarOpen(false);
-      }
+      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) setSidebarOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -208,16 +173,15 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   const navGroups = NAV_BY_ROLE[role] ?? DEFAULT_NAV;
-  const currentLang = LANG_OPTIONS.find(l => l.code === lang) ?? LANG_OPTIONS[0];
+
+  const isActive = (href: string) =>
+    pathname === href ||
+    (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   }
-
-  const isActive = (href: string) =>
-    pathname === href ||
-    (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -234,6 +198,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         transition: 'transform 0.22s ease', overflowY: 'auto',
       }} className="sidebar-desktop-visible">
 
+        {/* School branding */}
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff', flexShrink: 0 }}>E</div>
@@ -242,17 +207,15 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
             </div>
           </div>
-          {role === 'viewer' && (
-            <div style={{ marginTop: 8, padding: '3px 8px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 5, fontSize: 10, fontWeight: 700, color: '#92400E', display: 'inline-block' }}>
-              👁 READ ONLY
-            </div>
-          )}
         </div>
 
+        {/* Navigation — fully translated */}
         <nav style={{ flex: 1, padding: '8px 8px 0', overflowY: 'auto' }}>
           {navGroups.map(group => (
-            <div key={group.group} style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', padding: '8px 10px 4px', textTransform: 'uppercase' }}>{group.group}</div>
+            <div key={group.groupKey} style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', padding: '8px 10px 4px', textTransform: 'uppercase' }}>
+                {T(group.groupKey, lang)}
+              </div>
               {group.items.map(item => {
                 const active = isActive(item.href);
                 return (
@@ -265,7 +228,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
                     fontWeight: active ? 700 : 500, fontSize: 13,
                   }}>
                     <span style={{ fontSize: 16, flexShrink: 0, width: 20, textAlign: 'center' }}>{item.icon}</span>
-                    <span>{item.label}</span>
+                    <span>{T(item.key, lang)}</span>
                     {active && <span style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: '#4F46E5' }} />}
                   </Link>
                 );
@@ -274,32 +237,34 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           ))}
         </nav>
 
+        {/* Bottom: language picker + user + sign out */}
         <div style={{ padding: '10px 12px 14px', borderTop: '1px solid #F3F4F6' }}>
           {/* Language selector */}
           <div style={{ position: 'relative', marginBottom: 8 }}>
             <button
               onClick={() => setShowLangPicker(!showLangPicker)}
               style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit' }}
+              aria-label={T('change_language', lang)}
             >
-              <span>🌐 {currentLang.label}</span>
+              <span>🌐 {LANG_LABELS[lang as Lang] ?? 'English'}</span>
               <span style={{ color: '#9CA3AF', fontSize: 10 }}>{showLangPicker ? '▲' : '▼'}</span>
             </button>
             {showLangPicker && (
               <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginBottom: 4, overflow: 'hidden' }}>
-                {LANG_OPTIONS.map(l => (
+                {(Object.entries(LANG_LABELS) as [Lang, string][]).map(([code, label]) => (
                   <button
-                    key={l.code}
-                    onClick={() => handleLangChange(l.code)}
-                    style={{ width: '100%', padding: '8px 12px', border: 'none', background: l.code === lang ? '#EEF2FF' : '#fff', color: l.code === lang ? '#4F46E5' : '#374151', fontSize: 13, fontWeight: l.code === lang ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}
+                    key={code}
+                    onClick={() => { setLang(code); setShowLangPicker(false); }}
+                    style={{ width: '100%', padding: '8px 12px', border: 'none', background: code === lang ? '#EEF2FF' : '#fff', color: code === lang ? '#4F46E5' : '#374151', fontSize: 13, fontWeight: code === lang ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}
                   >
-                    {l.label}
+                    {label}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* User info + logout */}
+          {/* User row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#EEF2FF', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#4F46E5', fontSize: 12 }}>
               {userName ? userName[0].toUpperCase() : 'U'}
@@ -310,11 +275,12 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             </div>
           </div>
           <button onClick={handleLogout} style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
-            Sign out →
+            {T('sign_out', lang)} →
           </button>
         </div>
       </div>
 
+      {/* Main content area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, marginLeft: 0 }} className="main-with-sidebar">
         <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 30, flexShrink: 0 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="mobile-menu-btn"
@@ -327,7 +293,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </div>
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
-
         <main style={{ flex: 1, padding: '20px 16px 80px', maxWidth: 1100, width: '100%', boxSizing: 'border-box' }}>
           {children}
         </main>
