@@ -31,17 +31,6 @@ export default function ParentHomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [schoolName, setSchoolName] = useState('');
-  // lang: read from window.__edprosys_lang (set by Layout language selector) or localStorage
-  const [lang, setLang] = useState<Lang>('en');
-
-  // Hydrate language safely after mount — no SSR mismatch
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('edprosys_lang') as Lang | null;
-      if (stored && ['en','hi','te','ta','kn'].includes(stored)) setLang(stored);
-    } catch { /* localStorage unavailable */ }
-  }, []);
-
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 6000);
     fetch('/api/parent/dashboard')
