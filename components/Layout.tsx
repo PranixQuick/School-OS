@@ -5,8 +5,6 @@ import { usePathname } from 'next/navigation';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
-// NAV_BY_ROLE uses i18n keys (from lib/i18n.ts STRINGS) instead of English strings.
-// Groups use the group key; items use the nav item key.
 const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href: string; icon: string }[] }[]> = {
   admin: [
     { groupKey: 'overview', items: [
@@ -36,7 +34,7 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     { groupKey: 'records', items: [
       { key: 'transfer_certs',href: '/admin/transfer-certificates',  icon: '📋' },
       { key: 'vendors',       href: '/admin/vendors',                icon: '🤝' },
-      { key: 'upload',          href: '/admin/import',                   icon: '📥' },
+      { key: 'upload',        href: '/admin/import',                 icon: '📥' },
     ]},
     { groupKey: 'account', items: [
       { key: 'settings',      href: '/settings',                     icon: '⚙️' },
@@ -61,7 +59,7 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     { groupKey: 'records', items: [
       { key: 'transfer_certs',href: '/admin/transfer-certificates', icon: '📋' },
       { key: 'vendors',       href: '/admin/vendors', icon: '🤝' },
-      { key: 'upload',          href: '/admin/import',  icon: '📥' },
+      { key: 'upload',        href: '/admin/import',  icon: '📥' },
     ]},
     { groupKey: 'account', items: [
       { key: 'settings',      href: '/settings', icon: '⚙️' },
@@ -103,7 +101,7 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
       { key: 'fees',          href: '/admin/fees',  icon: '💰' },
     ]},
     { groupKey: 'records', items: [
-      { key: 'upload',          href: '/admin/import',  icon: '📥' },
+      { key: 'upload',        href: '/admin/import', icon: '📥' },
     ]},
     { groupKey: 'ai_tools', items: [
       { key: 'analytics',     href: '/analytics',   icon: '📊' },
@@ -203,10 +201,14 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         transition: 'transform 0.22s ease', overflowY: 'auto',
       }} className="sidebar-desktop-visible">
 
-        {/* School branding */}
+        {/* School branding — official EdProSys SVG logo */}
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff', flexShrink: 0 }}>E</div>
+            <img
+              src="/brand/icon.svg"
+              alt="EdProSys"
+              style={{ width: 40, height: 25, objectFit: 'contain', flexShrink: 0, display: 'block' }}
+            />
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: '#111827', lineHeight: 1.2 }}>EdProSys</div>
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
