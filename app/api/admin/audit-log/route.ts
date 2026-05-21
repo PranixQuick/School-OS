@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!['admin','owner'].includes(session.userRole)) return NextResponse.json({ error: 'Admin required' }, { status: 403 });
 
-  const module = req.nextUrl.searchParams.get('module');
+  const moduleFilter = req.nextUrl.searchParams.get('module');
   const limit  = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '50'), 100);
   const offset = parseInt(req.nextUrl.searchParams.get('offset') ?? '0');
 
@@ -20,16 +20,13 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // activity_logs has module field; audit_log uses resource field
-  // Map module filter to resource prefix for audit_log
-  if (module && module !== 'all') q = q.ilike('resource', `${module}%`);
+  if (moduleFilter && moduleFilter !== 'all') q = q.ilike('resource', `${moduleFilter}%`);
 
   const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Merge with activity_logs for richer module coverage
   let actLogs: unknown[] = [];
-  if (!module || module === 'all') {
+  if (!moduleFilter || moduleFilter === 'all') {
     const { data: al } = await supabaseAdmin
       .from('activity_logs')
       .select('id, action, module, actor_email, details, created_at')
