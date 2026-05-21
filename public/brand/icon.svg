@@ -1,45 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" fill="none" role="img" aria-label="EdProSys">
   <defs>
-    <linearGradient id="teal_blue" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#0EA5E9"/>
       <stop offset="100%" stop-color="#1E40AF"/>
     </linearGradient>
-    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#22D3EE"/>
       <stop offset="100%" stop-color="#3B82F6"/>
     </linearGradient>
   </defs>
-  <!-- Infinity symbol base path -->
-  <path d="M100 60 C100 60 80 20 50 20 C20 20 20 100 50 100 C80 100 100 60 100 60 C100 60 120 20 150 20 C180 20 180 100 150 100 C120 100 100 60 100 60Z"
-    stroke="url(#teal_blue)" stroke-width="6" fill="none" stroke-linecap="round"/>
-  <!-- Books on left loop -->
-  <g transform="translate(38,38)">
-    <rect x="-8" y="0" width="5" height="18" rx="1" fill="url(#teal_blue)" opacity="0.9"/>
-    <rect x="-2" y="2" width="5" height="16" rx="1" fill="url(#glow)" opacity="0.8"/>
-    <rect x="4" y="1" width="5" height="17" rx="1" fill="url(#teal_blue)" opacity="0.9"/>
-    <rect x="10" y="3" width="4" height="15" rx="1" fill="url(#glow)" opacity="0.7"/>
+
+  <!-- Infinity loop — left lobe (books) + right lobe (circuit P) -->
+  <path d="M80 50 C80 50 64 16 40 16 C16 16 16 84 40 84 C64 84 80 50 80 50 C80 50 96 16 120 16 C144 16 144 84 120 84 C96 84 80 50 80 50Z"
+    stroke="url(#g1)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Books in left lobe — vertical rects like spines of books -->
+  <rect x="28" y="33" width="5"  height="22" rx="1.5" fill="url(#g1)" opacity="0.9"/>
+  <rect x="34" y="35" width="5"  height="20" rx="1.5" fill="url(#g2)" opacity="0.85"/>
+  <rect x="40" y="34" width="5"  height="21" rx="1.5" fill="url(#g1)" opacity="0.9"/>
+  <rect x="46" y="36" width="4"  height="19" rx="1.5" fill="url(#g2)" opacity="0.75"/>
+
+  <!-- Circuit ring in right lobe -->
+  <circle cx="120" cy="50" r="16" stroke="url(#g1)" stroke-width="2" fill="none" opacity="0.55"/>
+  <!-- Circuit connector dots -->
+  <circle cx="104" cy="50" r="2.5" fill="#0EA5E9"/>
+  <circle cx="136" cy="50" r="2.5" fill="#0EA5E9"/>
+  <circle cx="120" cy="34" r="2.5" fill="#3B82F6"/>
+  <circle cx="120" cy="66" r="2.5" fill="#3B82F6"/>
+  <!-- P letterform inside circuit -->
+  <path d="M113 42 L113 58 M113 42 L121 42 Q127 42 127 47 Q127 52 121 52 L113 52"
+    stroke="url(#g2)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Pencil crossing the center of the infinity -->
+  <g transform="translate(66,46) rotate(-18)">
+    <rect x="0" y="0" width="28" height="5" rx="2.5" fill="url(#g1)" opacity="0.8"/>
+    <polygon points="28,0 28,5 33,2.5" fill="#22D3EE"/>
+    <rect x="0" y="0" width="5" height="5" rx="1.5" fill="#1E40AF"/>
   </g>
-  <!-- Circuit P glyph on right loop -->
-  <g transform="translate(138,38)">
-    <!-- Circuit circle -->
-    <circle cx="12" cy="12" r="14" stroke="url(#teal_blue)" stroke-width="2" fill="none" opacity="0.6"/>
-    <!-- Circuit dots -->
-    <circle cx="0" cy="12" r="2" fill="#0EA5E9"/>
-    <circle cx="24" cy="12" r="2" fill="#0EA5E9"/>
-    <circle cx="12" cy="0" r="2" fill="#3B82F6"/>
-    <circle cx="12" cy="24" r="2" fill="#3B82F6"/>
-    <!-- P letterform -->
-    <path d="M7 6 L7 18 M7 6 L14 6 Q18 6 18 10 Q18 14 14 14 L7 14" stroke="url(#glow)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <!-- Pencil/pen through center crossing point -->
-  <g transform="translate(87,52) rotate(-20)">
-    <rect x="0" y="0" width="26" height="4" rx="2" fill="url(#teal_blue)" opacity="0.85"/>
-    <polygon points="26,0 26,4 30,2" fill="#22D3EE"/>
-    <rect x="0" y="0" width="4" height="4" rx="1" fill="#1E40AF"/>
-  </g>
-  <!-- edprosys wordmark -->
-  <text x="100" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="14"
-    font-weight="700" fill="url(#teal_blue)" text-anchor="middle" letter-spacing="0.5">
-    edprosys
-  </text>
 </svg>
