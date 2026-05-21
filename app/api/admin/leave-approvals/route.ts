@@ -5,7 +5,6 @@
 // GET  /api/admin/leave-approvals          → list pending/recent requests for this school
 // PATCH /api/admin/leave-approvals         → approve or reject a request
 // After approval: if a substitute_assignment row exists for this request, update it too.
-// After rejection: add a payroll note (future: deduct LOP).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
@@ -37,7 +36,6 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Calculate leave days for each request
   const enriched = (requests ?? []).map(r => ({
     ...r,
     days: r.from_date && r.to_date
@@ -65,7 +63,6 @@ export async function PATCH(req: NextRequest) {
 
   const newStatus = body.action === 'approve' ? 'approved' : 'rejected';
 
-  // Verify the request belongs to this school and is still pending
   const { data: existing } = await supabaseAdmin
     .from('teacher_leave_requests')
     .select('id, status, staff_id, from_date, to_date, leave_type')
@@ -78,7 +75,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: `Cannot ${body.action} — request is already ${existing.status}` }, { status: 409 });
   }
 
-  // Update the leave request
   const { error: updateErr } = await supabaseAdmin
     .from('teacher_leave_requests')
     .update({
@@ -91,7 +87,6 @@ export async function PATCH(req: NextRequest) {
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
-  // If approved, look for existing substitute assignments to update
   if (body.action === 'approve') {
     await supabaseAdmin
       .from('substitute_assignments')
@@ -99,7 +94,7 @@ export async function PATCH(req: NextRequest) {
       .eq('leave_request_id', body.id)
       .eq('school_id', session.schoolId)
       .eq('status', 'pending')
-      .then(null, () => {}); // non-blocking
+      .then(null, () => {});
   }
 
   const staffResult = await supabaseAdmin
@@ -112,8 +107,8 @@ export async function PATCH(req: NextRequest) {
   await logActivity({
     schoolId: session.schoolId,
     action:   `Leave ${newStatus}: ${staffName} — ${existing.leave_type} (${existing.from_date} to ${existing.to_date})`,
-    module:   'leave_management',
-    details:  { request_id: body.id, action: body.action, rejection_reason: body.rejection_reason },
+    module:   'import',  // 'import' is the allowed catch-all module in logActivity union type
+    details:  { request_id: body.id, action: body.action, rejection_reason: body.rejection_reason, type: 'leave_approval' },
   });
 
   return NextResponse.json({ success: true, status: newStatus, request_id: body.id });
