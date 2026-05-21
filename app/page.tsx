@@ -27,13 +27,26 @@ export default function HomePage() {
     <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#fff', minHeight: '100vh' }}>
 
       {/* NAV */}
-      <nav style={{ padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Official EdProSys logo */}
-          <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 44, height: 28, objectFit: 'contain', display: 'block' }} />
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px' }}>EdProSys</span>
+      <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          {/* Official EdProSys logo — flexShrink:0 prevents mobile compression */}
+          <img
+            src="/brand/icon.svg"
+            alt="EdProSys logo"
+            width={48}
+            height={30}
+            style={{
+              width: 48,
+              height: 30,
+              objectFit: 'contain',
+              objectPosition: 'center',
+              display: 'block',
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>EdProSys</span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <Link href="/login" style={{ padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', background: '#F3F4F6' }}>Sign In</Link>
           <Link href="/register" style={{ padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#fff', textDecoration: 'none', background: '#4F46E5' }}>Get Started Free →</Link>
         </div>
@@ -44,8 +57,9 @@ export default function HomePage() {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #E0E7FF', borderRadius: 20, padding: '5px 14px', marginBottom: 24, fontSize: 12, fontWeight: 700, color: '#4F46E5' }}>
           🇮🇳 Built for Indian Schools
         </div>
+        {/* HEADLINE — updated to reflect full platform scope */}
         <h1 style={{ fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 900, color: '#111827', letterSpacing: '-1.5px', lineHeight: 1.1, margin: '0 auto 20px', maxWidth: 700 }}>
-          The Operating System<br />for Indian Education
+          One Platform to Run<br />the Entire Education System
         </h1>
         <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: '#6B7280', maxWidth: 520, margin: '0 auto 36px', lineHeight: 1.6 }}>
           WhatsApp parent communication, AI report cards, automated attendance — all in one platform designed for how Indian schools actually work.
@@ -133,8 +147,13 @@ export default function HomePage() {
       <footer style={{ padding: '28px 24px 20px', borderTop: '1px solid #F3F4F6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Official logo in footer */}
-            <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 32, height: 20, objectFit: 'contain', display: 'block' }} />
+            <img
+              src="/brand/icon.svg"
+              alt="EdProSys"
+              width={36}
+              height={22}
+              style={{ width: 36, height: 22, objectFit: 'contain', display: 'block', flexShrink: 0 }}
+            />
             <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
             <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
           </div>
