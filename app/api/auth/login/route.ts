@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (userCheck && !userCheck.auth_user_id) {
-    // Row exists but no Supabase Auth account — invitation not sent or not accepted
     return NextResponse.json({
       error: 'Your login is not yet active. Please check your email for an EdProSys setup invitation and click "Set Password". If you have not received it, ask your school admin.',
       code: 'AUTH_NOT_PROVISIONED',
@@ -175,7 +174,6 @@ export async function POST(req: NextRequest) {
   const cookieOpts = sessionCookie(token, process.env.NODE_ENV === 'production');
   cookieStore.set(cookieOpts.name, cookieOpts.value, cookieOpts);
 
-  // Update first_login tracking
   const isFirstLogin = !schoolUser.last_login;
   await supabaseAdmin.from('school_users').update({
     last_login:     new Date().toISOString(),
@@ -192,12 +190,28 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, redirectTo: roleRedirect(schoolUser.role), role: schoolUser.role });
 }
 
+// roleRedirect — maps role to correct dashboard route
+// All roles must be mapped; unknown roles default to /dashboard
 function roleRedirect(role: string): string {
   switch (role) {
-    case 'owner':     return '/owner';
-    case 'teacher':   return '/teacher';
-    case 'principal': return '/principal';
-    case 'student':   return '/student';
-    default:          return '/dashboard';
+    case 'owner':        return '/owner';
+    case 'teacher':
+    case 'aww':          return '/teacher';
+    case 'principal':
+    case 'supervisor':   return '/principal';
+    case 'student':      return '/student';
+    case 'meo':          return '/meo/dashboard';
+    case 'deo':          return '/deo/dashboard';
+    case 'hod':          return '/hod/dashboard';
+    case 'registrar':
+    case 'dean':         return '/registrar/dashboard';
+    case 'accountant':   return '/dashboard';
+    case 'counsellor':   return '/dashboard';
+    case 'librarian':    return '/dashboard';
+    case 'transport_staff': return '/dashboard';
+    case 'hostel_warden':
+    case 'hostel_admin': return '/dashboard';
+    case 'placement_officer': return '/admin/placement';
+    default:             return '/dashboard';
   }
 }
