@@ -29,7 +29,8 @@ export default function HomePage() {
       {/* NAV */}
       <nav style={{ padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>E</div>
+          {/* Official EdProSys logo */}
+          <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 44, height: 28, objectFit: 'contain', display: 'block' }} />
           <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px' }}>EdProSys</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -128,11 +129,12 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* FOOTER — updated with legal links */}
+      {/* FOOTER */}
       <footer style={{ padding: '28px 24px 20px', borderTop: '1px solid #F3F4F6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 6, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff' }}>E</div>
+            {/* Official logo in footer */}
+            <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 32, height: 20, objectFit: 'contain', display: 'block' }} />
             <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
             <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
           </div>
