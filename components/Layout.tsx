@@ -20,19 +20,41 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
       { key: 'fees',          href: '/admin/fees',                   icon: '💰' },
       { key: 'payroll',       href: '/admin/payroll',                icon: '💼' },
     ]},
+    { groupKey: 'operations', items: [
+      { key: 'leave',         href: '/principal/leave-approvals',    icon: '📅' },
+      { key: 'complaints',    href: '/admin/complaints',             icon: '📩' },
+      { key: 'health',        href: '/admin/health-incidents',       icon: '🏥' },
+      { key: 'sanitary',      href: '/admin/sanitary-inventory',     icon: '🧼' },
+      { key: 'transport',     href: '/admin/transport',              icon: '🚌' },
+      { key: 'scholarships',  href: '/admin/scholarships',           icon: '🏅' },
+    ]},
+    { groupKey: 'facilities', items: [
+      { key: 'library',       href: '/admin/library',                icon: '📚' },
+      { key: 'hostel',        href: '/admin/hostel',                 icon: '🏠' },
+      { key: 'infrastructure',href: '/admin/infrastructure',         icon: '🏗️' },
+      { key: 'safety',        href: '/admin/safety-compliance',      icon: '🔒' },
+    ]},
+    { groupKey: 'academics', items: [
+      { key: 'assessments',   href: '/admin/assessments',            icon: '📝' },
+      { key: 'report_cards',  href: '/report-cards',                 icon: '📄' },
+      { key: 'rte',           href: '/admin/rte',                    icon: '⚖️' },
+      { key: 'promotion',     href: '/admin/promotion',              icon: '🎓' },
+    ]},
     { groupKey: 'communication', items: [
       { key: 'broadcasts',    href: '/admin/broadcasts',             icon: '📢' },
       { key: 'events_gallery',href: '/admin/events',                 icon: '📸' },
       { key: 'whatsapp_bot',  href: '/whatsapp',                     icon: '💬' },
       { key: 'parents',       href: '/admin/parents',                icon: '👨‍👩‍👧' },
+      { key: 'ptm',           href: '/admin/ptm',                    icon: '🤝' },
     ]},
     { groupKey: 'ai_tools', items: [
-      { key: 'report_cards',  href: '/report-cards',                 icon: '📄' },
       { key: 'teacher_eval',  href: '/teacher-eval',                 icon: '🎙' },
       { key: 'analytics',     href: '/analytics',                    icon: '📊' },
+      { key: 'audit_log',     href: '/admin/audit-log',              icon: '🔍' },
     ]},
     { groupKey: 'records', items: [
       { key: 'transfer_certs',href: '/admin/transfer-certificates',  icon: '📋' },
+      { key: 'vacancies',     href: '/admin/vacancies',              icon: '🧑‍🏫' },
       { key: 'vendors',       href: '/admin/vendors',                icon: '🤝' },
       { key: 'upload',        href: '/admin/import',                 icon: '📥' },
     ]},
@@ -82,6 +104,11 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
       { key: 'students',      href: '/students',    icon: '👨‍🎓' },
       { key: 'staff',         href: '/admin/staff', icon: '👥' },
     ]},
+    { groupKey: 'operations', items: [
+      { key: 'leave',         href: '/principal/leave-approvals', icon: '📅' },
+      { key: 'complaints',    href: '/admin/complaints',          icon: '📩' },
+      { key: 'health',        href: '/admin/health-incidents',    icon: '🏥' },
+    ]},
     { groupKey: 'ai_tools', items: [
       { key: 'teacher_eval',  href: '/teacher-eval',  icon: '🎙' },
       { key: 'report_cards',  href: '/report-cards',  icon: '📄' },
@@ -99,12 +126,13 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
     ]},
     { groupKey: 'finance', items: [
       { key: 'fees',          href: '/admin/fees',  icon: '💰' },
-    ]},
-    { groupKey: 'records', items: [
-      { key: 'upload',        href: '/admin/import', icon: '📥' },
+      { key: 'payroll',       href: '/admin/payroll', icon: '💼' },
     ]},
     { groupKey: 'ai_tools', items: [
       { key: 'analytics',     href: '/analytics',   icon: '📊' },
+    ]},
+    { groupKey: 'records', items: [
+      { key: 'upload',        href: '/admin/import', icon: '📥' },
     ]},
     { groupKey: 'account', items: [
       { key: 'settings',      href: '/settings',    icon: '⚙️' },
@@ -120,6 +148,55 @@ const NAV_BY_ROLE: Record<string, { groupKey: string; items: { key: string; href
       { key: 'homework',      href: '/teacher/homework',      icon: '📚' },
       { key: 'reports',       href: '/teacher/marks',         icon: '📝' },
       { key: 'timetable',     href: '/teacher/lesson-plans',  icon: '📖' },
+      { key: 'meal_attendance',href: '/teacher/meal-attendance',icon: '🍽️' },
+    ]},
+    { groupKey: 'operations', items: [
+      { key: 'leave',         href: '/teacher/leave',     icon: '📅' },
+    ]},
+  ],
+  meo: [
+    { groupKey: 'governance', items: [
+      { key: 'dashboard',     href: '/meo/dashboard',     icon: '🏛️' },
+      { key: 'inspections',   href: '/meo/inspections',   icon: '🔍' },
+    ]},
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  deo: [
+    { groupKey: 'governance', items: [
+      { key: 'district',      href: '/deo/dashboard',     icon: '🏛️' },
+      { key: 'meo_view',      href: '/meo/dashboard',     icon: '📊' },
+    ]},
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  hod: [
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/hod/dashboard',     icon: '🏠' },
+      { key: 'students',      href: '/students',           icon: '👨‍🎓' },
+    ]},
+    { groupKey: 'higher_ed', items: [
+      { key: 'assessments',   href: '/admin/assessments',  icon: '📝' },
+      { key: 'internships',   href: '/admin/internships',  icon: '🏭' },
+      { key: 'placement',     href: '/admin/placement',    icon: '💼' },
+      { key: 'accreditation', href: '/admin/accreditation',icon: '🏛️' },
+    ]},
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
+    ]},
+  ],
+  registrar: [
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',     href: '/registrar/dashboard', icon: '🏠' },
+    ]},
+    { groupKey: 'examinations', items: [
+      { key: 'assessments',   href: '/admin/assessments',   icon: '📅' },
+      { key: 'results',       href: '/admin/results',        icon: '📊' },
+    ]},
+    { groupKey: 'account', items: [
+      { key: 'settings',      href: '/settings', icon: '⚙️' },
     ]},
   ],
   viewer: [
@@ -179,7 +256,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   const isActive = (href: string) =>
     pathname === href ||
-    (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && pathname.startsWith(href));
+    (href !== '/dashboard' && href !== '/teacher' && href !== '/principal' && href !== '/owner' && href !== '/hod/dashboard' && href !== '/registrar/dashboard' && href !== '/meo/dashboard' && href !== '/deo/dashboard' && pathname.startsWith(href));
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -201,14 +278,10 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         transition: 'transform 0.22s ease', overflowY: 'auto',
       }} className="sidebar-desktop-visible">
 
-        {/* School branding — official EdProSys SVG logo */}
+        {/* School branding */}
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img
-              src="/brand/icon.svg"
-              alt="EdProSys"
-              style={{ width: 40, height: 25, objectFit: 'contain', flexShrink: 0, display: 'block' }}
-            />
+            <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 40, height: 25, objectFit: 'contain', flexShrink: 0, display: 'block' }} />
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: '#111827', lineHeight: 1.2 }}>EdProSys</div>
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
@@ -216,7 +289,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           </div>
         </div>
 
-        {/* Navigation — fully translated */}
         <nav style={{ flex: 1, padding: '8px 8px 0', overflowY: 'auto' }}>
           {navGroups.map(group => (
             <div key={group.groupKey} style={{ marginBottom: 4 }}>
@@ -226,7 +298,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
               {group.items.map(item => {
                 const active = isActive(item.href);
                 return (
-                  <Link key={item.href} href={item.href} style={{
+                  <Link key={item.href + item.key} href={item.href} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '9px 10px', borderRadius: 9, marginBottom: 2,
                     textDecoration: 'none', minHeight: 40,
@@ -244,34 +316,25 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           ))}
         </nav>
 
-        {/* Bottom: language picker + user + sign out */}
         <div style={{ padding: '10px 12px 14px', borderTop: '1px solid #F3F4F6' }}>
-          {/* Language selector */}
           <div style={{ position: 'relative', marginBottom: 8 }}>
-            <button
-              onClick={() => setShowLangPicker(!showLangPicker)}
+            <button onClick={() => setShowLangPicker(!showLangPicker)}
               style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit' }}
-              aria-label={T('change_language', lang)}
-            >
+              aria-label={T('change_language', lang)}>
               <span>🌐 {LANG_LABELS[lang as Lang] ?? 'English'}</span>
               <span style={{ color: '#9CA3AF', fontSize: 10 }}>{showLangPicker ? '▲' : '▼'}</span>
             </button>
             {showLangPicker && (
               <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginBottom: 4, overflow: 'hidden' }}>
                 {(Object.entries(LANG_LABELS) as [Lang, string][]).map(([code, label]) => (
-                  <button
-                    key={code}
-                    onClick={() => { setLang(code); setShowLangPicker(false); }}
-                    style={{ width: '100%', padding: '8px 12px', border: 'none', background: code === lang ? '#EEF2FF' : '#fff', color: code === lang ? '#4F46E5' : '#374151', fontSize: 13, fontWeight: code === lang ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}
-                  >
+                  <button key={code} onClick={() => { setLang(code); setShowLangPicker(false); }}
+                    style={{ width: '100%', padding: '8px 12px', border: 'none', background: code === lang ? '#EEF2FF' : '#fff', color: code === lang ? '#4F46E5' : '#374151', fontSize: 13, fontWeight: code === lang ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}>
                     {label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          {/* User row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#EEF2FF', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#4F46E5', fontSize: 12 }}>
               {userName ? userName[0].toUpperCase() : 'U'}
@@ -287,7 +350,6 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         </div>
       </div>
 
-      {/* Main content area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, marginLeft: 0 }} className="main-with-sidebar">
         <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 30, flexShrink: 0 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="mobile-menu-btn"
