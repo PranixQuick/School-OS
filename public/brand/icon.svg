@@ -1,33 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" fill="none">
   <defs>
-    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1E40AF"/>
-      <stop offset="50%" stop-color="#2563EB"/>
-      <stop offset="100%" stop-color="#0EA5E9"/>
-    </linearGradient>
-    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="teal_blue" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#0EA5E9"/>
-      <stop offset="100%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
   </defs>
-  <!-- Infinity path — left lobe (books/education side) -->
-  <path d="M 60 60 C 60 35 20 20 10 45 C 0 70 20 90 45 80 C 65 72 75 60 100 60" stroke="url(#g1)" stroke-width="7" stroke-linecap="round" fill="none" filter="url(#glow)"/>
-  <!-- Infinity path — right lobe (circuit/tech side) -->
-  <path d="M 100 60 C 125 60 135 72 155 80 C 180 90 200 70 190 45 C 180 20 140 35 140 60 C 140 35 160 20 190 45" stroke="url(#g2)" stroke-width="7" stroke-linecap="round" fill="none" filter="url(#glow)"/>
-  <!-- Pen/pencil nib at crossover -->
-  <ellipse cx="100" cy="60" rx="6" ry="4" fill="url(#g1)" opacity="0.9"/>
-  <!-- Circuit nodes on right lobe -->
-  <circle cx="150" cy="45" r="3.5" fill="#0EA5E9" opacity="0.9"/>
-  <circle cx="165" cy="55" r="2.5" fill="#06B6D4" opacity="0.8"/>
-  <circle cx="170" cy="70" r="3" fill="#0EA5E9" opacity="0.9"/>
-  <!-- P letterform inside right circle -->
-  <text x="172" y="63" font-family="Arial" font-weight="900" font-size="18" fill="url(#g2)" opacity="0.9">P</text>
-  <!-- Book stack hint on left lobe -->
-  <rect x="22" y="47" width="22" height="4" rx="1" fill="#2563EB" opacity="0.7"/>
-  <rect x="20" y="52" width="22" height="4" rx="1" fill="#3B82F6" opacity="0.6"/>
-  <rect x="24" y="57" width="18" height="4" rx="1" fill="#60A5FA" opacity="0.5"/>
+  <!-- Infinity symbol base path -->
+  <path d="M100 60 C100 60 80 20 50 20 C20 20 20 100 50 100 C80 100 100 60 100 60 C100 60 120 20 150 20 C180 20 180 100 150 100 C120 100 100 60 100 60Z"
+    stroke="url(#teal_blue)" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- Books on left loop -->
+  <g transform="translate(38,38)">
+    <rect x="-8" y="0" width="5" height="18" rx="1" fill="url(#teal_blue)" opacity="0.9"/>
+    <rect x="-2" y="2" width="5" height="16" rx="1" fill="url(#glow)" opacity="0.8"/>
+    <rect x="4" y="1" width="5" height="17" rx="1" fill="url(#teal_blue)" opacity="0.9"/>
+    <rect x="10" y="3" width="4" height="15" rx="1" fill="url(#glow)" opacity="0.7"/>
+  </g>
+  <!-- Circuit P glyph on right loop -->
+  <g transform="translate(138,38)">
+    <!-- Circuit circle -->
+    <circle cx="12" cy="12" r="14" stroke="url(#teal_blue)" stroke-width="2" fill="none" opacity="0.6"/>
+    <!-- Circuit dots -->
+    <circle cx="0" cy="12" r="2" fill="#0EA5E9"/>
+    <circle cx="24" cy="12" r="2" fill="#0EA5E9"/>
+    <circle cx="12" cy="0" r="2" fill="#3B82F6"/>
+    <circle cx="12" cy="24" r="2" fill="#3B82F6"/>
+    <!-- P letterform -->
+    <path d="M7 6 L7 18 M7 6 L14 6 Q18 6 18 10 Q18 14 14 14 L7 14" stroke="url(#glow)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Pencil/pen through center crossing point -->
+  <g transform="translate(87,52) rotate(-20)">
+    <rect x="0" y="0" width="26" height="4" rx="2" fill="url(#teal_blue)" opacity="0.85"/>
+    <polygon points="26,0 26,4 30,2" fill="#22D3EE"/>
+    <rect x="0" y="0" width="4" height="4" rx="1" fill="#1E40AF"/>
+  </g>
+  <!-- edprosys wordmark -->
+  <text x="100" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="14"
+    font-weight="700" fill="url(#teal_blue)" text-anchor="middle" letter-spacing="0.5">
+    edprosys
+  </text>
 </svg>
