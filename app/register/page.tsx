@@ -29,13 +29,10 @@ const OWNERSHIP_TYPES = [
   { value: 'franchise',  label: 'Franchise' },
 ];
 
-// Board/affiliation options by institution category
 const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE', 'Other'];
 const HIGHER_ED_AFFILIATIONS = ['UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
 
-// Govt types that require district/block/mandal (for DISE/UDISE reporting)
 const GOVT_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi'];
-// Higher-ed types where school board is irrelevant
 const HIGHER_ED_TYPES = ['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
 
 export default function RegisterPage() {
@@ -139,15 +136,14 @@ export default function RegisterPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 500 }}>
 
+        {/* Brand header — official SVG logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: 'rgba(255,255,255,0.2)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, fontWeight: 800, color: '#fff',
-            }}>E</div>
+            <img
+              src="/brand/icon.svg"
+              alt="EdProSys"
+              style={{ width: 48, height: 30, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+            />
             <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.4px' }}>EdProSys</span>
           </Link>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 }}>
@@ -285,7 +281,6 @@ export default function RegisterPage() {
                   </select>
                 </div>
 
-                {/* Address — always shown */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>INSTITUTION ADDRESS</label>
                   <input
@@ -296,7 +291,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* District / Block / Mandal — shown for government institution types only */}
                 {isGovtType && (
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>DISTRICT / BLOCK / MANDAL *</label>
