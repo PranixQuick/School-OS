@@ -1,11 +1,12 @@
 'use client';
 // app/parent/login/page.tsx
-// Batch 10 — Parent login page.
+// Parent login page.
 // Phone + PIN authentication. On success redirects to /parent.
 // Parent accounts created by school admin — no self-service signup.
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ParentLoginPage() {
   const router = useRouter();
@@ -36,7 +37,14 @@ export default function ParentLoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div style={{ minHeight: '100vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+
+      {/* Brand strip at top */}
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 24 }}>
+        <img src="/brand/icon.svg" alt="EdProSys" style={{ width: 36, height: 22, objectFit: 'contain' }} />
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#374151' }}>EdProSys</span>
+      </Link>
+
       <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 380, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -44,7 +52,7 @@ export default function ParentLoginPage() {
             🏫
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Parent Portal</h1>
-          <p style={{ fontSize: 14, color: '#6B7280' }}>Sign in to view your child{"'"}s progress</p>
+          <p style={{ fontSize: 14, color: '#6B7280' }}>Sign in to view your child&apos;s progress</p>
         </div>
 
         {/* Form */}
