@@ -5,6 +5,11 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 // GET /api/auth/me
 // Returns current user identity for UI header/layout population.
 // 401 when no session — allows layout to redirect to login.
+//
+// P3: also returns institution_type and ownership_type so the client-side
+// Layout can filter navigation items per institution. Reads from the canonical
+// institutions table joined via schools.institution_id, matching the same
+// source-of-truth used by /api/onboarding/context and /api/config.
 
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
@@ -20,7 +25,7 @@ export async function GET(req: NextRequest) {
       .single(),
     supabaseAdmin
       .from('schools')
-      .select('name')
+      .select('name, institution_id')
       .eq('id', session.schoolId)
       .single(),
   ]);
@@ -41,6 +46,23 @@ export async function GET(req: NextRequest) {
 
   const name = staffName ?? session.userName ?? session.userEmail.split('@')[0];
 
+  // P3: resolve institution_type and ownership_type from canonical institutions
+  // table. Defaults to school_k12 / private so Suchitra (and any school without
+  // an institutions row) behaves identically to before.
+  let institutionType = 'school_k12';
+  let ownershipType = 'private';
+  if (school?.institution_id) {
+    const { data: institution } = await supabaseAdmin
+      .from('institutions')
+      .select('institution_type, ownership_type')
+      .eq('id', school.institution_id)
+      .maybeSingle();
+    if (institution) {
+      institutionType = institution.institution_type ?? institutionType;
+      ownershipType = institution.ownership_type ?? ownershipType;
+    }
+  }
+
   return NextResponse.json({
     id: session.userId,
     name,
@@ -49,5 +71,7 @@ export async function GET(req: NextRequest) {
     school_id: session.schoolId,
     school_name: school?.name ?? session.schoolName ?? '',
     staff_id: (schoolUser as { staff_id?: string } | null)?.staff_id ?? null,
+    institution_type: institutionType,
+    ownership_type: ownershipType,
   });
 }
