@@ -3,7 +3,11 @@
 // Role-native: shows ONLY what a teacher needs to act on today.
 // Institution-aware: geo-attendance indicator for govt school teachers.
 // Mobile-first, offline-tolerant, Telugu-primary support.
-// Sections: urgent alerts → today's ops → student risks → quick actions.
+// Sections: urgent alerts → today's ops → student risks → VIDYA GRID intelligence → quick actions.
+//
+// Bible Phase 4e: added "Learning Intelligence (VIDYA GRID)" section that
+// shows students flagged by VIDYA GRID for learning stagnation. Only renders
+// when data exists — if no VIDYA GRID integration is active, nothing shows.
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -30,6 +34,16 @@ interface DashData {
   geo_checked_in: boolean;
 }
 
+// Phase 4e: VIDYA GRID risk flag shape (from student_risk_flags WHERE source='vidya_grid')
+interface VGRiskFlag {
+  student_id: string;
+  risk_level: string;
+  risk_factors: string[];
+  ai_summary: string;
+  flagged_at: string;
+  students?: { name: string; class: string } | { name: string; class: string }[];
+}
+
 const LANG_SHORT: Partial<Record<Lang, string>> = {
   en: 'EN', hi: 'हि', te: 'తె', ta: 'த', kn: 'ಕ', mr: 'म', ml: 'മ',
 };
@@ -39,6 +53,8 @@ export default function TeacherPage() {
   const { lang, setLang } = useLang();
   const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Phase 4e: VIDYA GRID learning intelligence data
+  const [vgFlags, setVgFlags] = useState<VGRiskFlag[]>([]);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const hour = new Date().getHours();
@@ -55,6 +71,21 @@ export default function TeacherPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Phase 4e: fetch VIDYA GRID risk flags for the teacher's school.
+  // Uses the student_risk_flags table with source='vidya_grid'.
+  // Best-effort: if the API doesn't exist or returns empty, the section
+  // simply doesn't render. No error state needed.
+  useEffect(() => {
+    fetch('/api/teacher/vidya-grid-flags')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && Array.isArray(d.flags) && d.flags.length > 0) {
+          setVgFlags(d.flags as VGRiskFlag[]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const hasUnmarkedAtt  = data?.attendance_today === null || data?.attendance_today === 0;
   const scheduleCount   = data?.schedule?.length ?? 0;
@@ -75,6 +106,25 @@ export default function TeacherPage() {
     red:   { bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C', btn: '#B91C1C' },
     amber: { bg: '#FFF7ED', border: '#FED7AA', color: '#C2410C', btn: '#D97706' },
     blue:  { bg: '#EFF6FF', border: '#BFDBFE', color: '#1D4ED8', btn: '#4F46E5' },
+  };
+
+  // Phase 4e: resolve student name from the join result (Supabase returns
+  // object or array depending on FK cardinality)
+  function vgStudentName(flag: VGRiskFlag): string {
+    if (!flag.students) return 'Unknown';
+    if (Array.isArray(flag.students)) return flag.students[0]?.name ?? 'Unknown';
+    return flag.students.name ?? 'Unknown';
+  }
+  function vgStudentClass(flag: VGRiskFlag): string {
+    if (!flag.students) return '';
+    if (Array.isArray(flag.students)) return flag.students[0]?.class ?? '';
+    return flag.students.class ?? '';
+  }
+
+  const VG_RISK_COLOR: Record<string, { bg: string; text: string }> = {
+    critical: { bg: '#FEF2F2', text: '#B91C1C' },
+    high:     { bg: '#FFF7ED', text: '#C2410C' },
+    medium:   { bg: '#FFFBEB', text: '#A16207' },
   };
 
   return (
@@ -187,6 +237,54 @@ export default function TeacherPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </>
+        )}
+
+        {/* Phase 4e: Learning Intelligence (VIDYA GRID) — only renders when
+            VIDYA GRID risk flags exist for students in this school. Graceful
+            degradation: if the /api/teacher/vidya-grid-flags endpoint doesn't
+            exist or returns empty, this section is hidden entirely. */}
+        {vgFlags.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 8 }}>
+              🧠 Learning Intelligence (VIDYA GRID)
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #C7D2FE', borderRadius: 13, overflow: 'hidden', marginBottom: 14 }}>
+              <div style={{ padding: '10px 14px', background: '#EEF2FF', borderBottom: '1px solid #C7D2FE', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#4F46E5' }}>
+                  {vgFlags.length} student{vgFlags.length !== 1 ? 's' : ''} flagged for learning stagnation
+                </div>
+                <div style={{ fontSize: 10, color: '#6366F1', background: '#C7D2FE', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                  VIDYA GRID
+                </div>
+              </div>
+              {vgFlags.slice(0, 5).map((flag, i) => {
+                const riskStyle = VG_RISK_COLOR[flag.risk_level] ?? VG_RISK_COLOR.medium;
+                return (
+                  <div key={flag.student_id} style={{ padding: '11px 14px', borderBottom: i < Math.min(vgFlags.length, 5) - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{vgStudentName(flag)}</span>
+                        {vgStudentClass(flag) && (
+                          <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 6 }}>Class {vgStudentClass(flag)}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: riskStyle.text, background: riskStyle.bg, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase' }}>
+                        {flag.risk_level}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.4 }}>
+                      {flag.ai_summary.length > 120 ? flag.ai_summary.slice(0, 120) + '…' : flag.ai_summary}
+                    </div>
+                  </div>
+                );
+              })}
+              {vgFlags.length > 5 && (
+                <div style={{ padding: '8px 14px', textAlign: 'center', fontSize: 12, color: '#4F46E5', fontWeight: 600 }}>
+                  +{vgFlags.length - 5} more flagged students
+                </div>
+              )}
             </div>
           </>
         )}
