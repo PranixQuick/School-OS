@@ -15,6 +15,46 @@ interface Lead { id: string; parent_name: string; child_name: string | null; chi
 interface Eval { id: string; file_name: string; coaching_score: number | null; eval_report: string | null; status: string; uploaded_at: string; }
 interface Event { id: string; title: string; event_date: string; is_holiday: boolean; description: string | null; }
 
+// ── P3 STEP 3.2 — DASHBOARD WIDGET POLYMORPHISM ────────────────────────────
+// Per the EdProSys Implementation Bible, the dashboard should filter widgets
+// per institution_type. The Bible specifies a DASHBOARD_WIDGETS_BY_TYPE map
+// that includes future backend KPIs (placement_status, hostel_occupancy,
+// beneficiary_count, etc.). Until those backend KPIs ship, we filter the
+// surfaces that *do* exist today: the 5 platform module tiles, the KPI cards,
+// and the bottom-3 panels (top leads, teacher evals, upcoming events).
+//
+// Suchitra (school_k12 / private) sees all widgets shown — unchanged.
+// Other institution types see only widgets that apply to their model.
+
+const GOVT_TYPES = new Set(['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi']);
+const HIGHER_ED_TYPES = new Set(['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university', 'junior_college', 'intermediate_college']);
+const PRE_PRIMARY_TYPES = new Set(['pre_school', 'kg', 'anganwadi']);
+const COACHING_TYPES = new Set(['coaching', 'coaching_center', 'tuition_center']);
+
+interface InstitutionContext {
+  type: string;
+  ownership: string;
+  isGovernment: boolean;
+  isHigherEducation: boolean;
+  isPrePrimary: boolean;
+  isCoaching: boolean;
+  isAnganwadi: boolean;
+}
+
+function buildInstitutionContext(type: string, ownership: string): InstitutionContext {
+  return {
+    type, ownership,
+    isGovernment: GOVT_TYPES.has(type) || ownership === 'government',
+    isHigherEducation: HIGHER_ED_TYPES.has(type),
+    isPrePrimary: PRE_PRIMARY_TYPES.has(type),
+    isCoaching: COACHING_TYPES.has(type),
+    isAnganwadi: type === 'anganwadi',
+  };
+}
+
+const DEFAULT_CTX: InstitutionContext = buildInstitutionContext('school_k12', 'private');
+const ALWAYS_SHOW = (_ctx: InstitutionContext) => true;
+
 function scoreColor(s: number) { return s >= 8 ? '#15803D' : s >= 6 ? '#A16207' : '#B91C1C'; }
 function scoreBg(s: number) { return s >= 8 ? '#DCFCE7' : s >= 6 ? '#FEF9C3' : '#FEE2E2'; }
 
@@ -33,6 +73,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [legalPendingCount, setLegalPendingCount] = useState(0);
   const [setupIncomplete, setSetupIncomplete] = useState(false);
+  // P3 3.2: institution context drives widget filtering
+  const [ctx, setCtx] = useState<InstitutionContext>(DEFAULT_CTX);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setLoading(false); if (!kpis) setKpis(EMPTY_KPIS); }, 8000);
@@ -64,6 +106,21 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
+  // P3 3.2: fetch institution context to drive widget visibility
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && (d.institution_type || d.ownership_type)) {
+          setCtx(buildInstitutionContext(
+            d.institution_type ?? 'school_k12',
+            d.ownership_type ?? 'private',
+          ));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   if (loading && !kpis) {
@@ -81,19 +138,108 @@ export default function DashboardPage() {
   const safeKpis = kpis ?? EMPTY_KPIS;
   const hasFeeAlert = safeKpis.pending_fees_amount > 0;
 
+  // P3 3.2: KPI card definitions with showFor predicates. Defaults to "show
+  // for all" so Suchitra is byte-equivalent.
+  const allKpiCards = [
+    {
+      key: 'students',
+      value: safeKpis.total_students,
+      sub: T('active_enrolments', lang),
+      color: '#4F46E5',
+      bg: '#EEF2FF',
+      href: '/students',
+      showFor: ALWAYS_SHOW,
+    },
+    {
+      key: 'staff',
+      value: safeKpis.total_staff,
+      sub: T('active_staff', lang),
+      color: '#0284C7',
+      bg: '#E0F2FE',
+      href: '/admin/staff',
+      showFor: ALWAYS_SHOW,
+    },
+    {
+      key: 'fees',
+      value: safeKpis.pending_fees_count,
+      sub: `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K ${T('outstanding', lang)}`,
+      color: hasFeeAlert ? '#B91C1C' : '#15803D',
+      bg: hasFeeAlert ? '#FEF2F2' : '#ECFDF5',
+      href: '/admin/fees',
+      // Govt and anganwadi don't run platform-managed fees.
+      showFor: (c: InstitutionContext) => !c.isGovernment && !c.isAnganwadi,
+    },
+    {
+      key: 'leads_hp',
+      value: safeKpis.total_leads,
+      sub: `${safeKpis.high_priority_leads} ${T('leads_hp', lang)}`,
+      color: '#6D28D9',
+      bg: '#F5F3FF',
+      href: '/admissions/crm',
+      // Anganwadi doesn't run an admissions funnel.
+      showFor: (c: InstitutionContext) => !c.isAnganwadi,
+    },
+  ];
+  const visibleKpiCards = allKpiCards.filter(k => k.showFor(ctx));
+
+  // P3 3.2: Platform module tiles with showFor predicates.
+  const allModules = [
+    {
+      key: 'report_cards', href: '/report-cards', icon: '📄',
+      color: '#15803D', bg: '#DCFCE7',
+      // Anganwadi tracks developmental milestones separately; coaching uses
+      // test series rather than report cards.
+      showFor: (c: InstitutionContext) => !c.isAnganwadi && !c.isCoaching,
+    },
+    {
+      key: 'teacher_eval', href: '/teacher-eval', icon: '🎙',
+      color: '#1D4ED8', bg: '#DBEAFE',
+      // Teacher evaluation applies to all institution types.
+      showFor: ALWAYS_SHOW,
+    },
+    {
+      key: 'admissions', href: '/admissions/crm', icon: '👥',
+      color: '#6D28D9', bg: '#EDE9FE',
+      // No admissions funnel for anganwadi.
+      showFor: (c: InstitutionContext) => !c.isAnganwadi,
+    },
+    {
+      key: 'whatsapp_bot', href: '/whatsapp', icon: '💬',
+      color: '#065F46', bg: '#D1FAE5',
+      showFor: ALWAYS_SHOW,
+    },
+    {
+      key: 'events_gallery', href: '/admin/events', icon: '📸',
+      color: '#9333EA', bg: '#F5F3FF',
+      showFor: ALWAYS_SHOW,
+    },
+  ];
+  const visibleModules = allModules.filter(m => m.showFor(ctx));
+
+  // P3 3.2: Bottom-panel visibility. Top leads only when admissions makes
+  // sense; teacher evals everywhere; upcoming events everywhere.
+  const showTopLeadsPanel = !ctx.isAnganwadi;
+  const showTeacherEvalsPanel = true;
+  const showUpcomingEventsPanel = true;
+  const visibleBottomCount = [showTopLeadsPanel, showTeacherEvalsPanel, showUpcomingEventsPanel].filter(Boolean).length;
+
   return (
     <Layout title={T('dashboard', lang)} subtitle={today}
-      actions={<Link href="/admissions" style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>+ {T('new_inquiry', lang)}</Link>}>
+      actions={
+        !ctx.isAnganwadi ? (
+          <Link href="/admissions" style={{ padding: '8px 14px', background: '#4F46E5', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>+ {T('new_inquiry', lang)}</Link>
+        ) : null
+      }>
 
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
         .kpi-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
-        @media(min-width:640px){ .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media(min-width:640px){ .kpi-grid { grid-template-columns: repeat(${Math.max(visibleKpiCards.length, 1)}, 1fr); } }
         .mod-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
         @media(min-width:640px){ .mod-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width:900px){ .mod-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media(min-width:900px){ .mod-grid { grid-template-columns: repeat(${Math.max(visibleModules.length, 1)}, 1fr); } }
         .bottom-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
-        @media(min-width:768px){ .bottom-grid { grid-template-columns: 1fr 1fr 1fr; } }
+        @media(min-width:768px){ .bottom-grid { grid-template-columns: repeat(${Math.max(visibleBottomCount, 1)}, 1fr); } }
         .kpi-card-inner { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 16px; cursor: pointer; transition: transform 0.12s, box-shadow 0.15s; }
         .kpi-card-inner:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
       `}</style>
@@ -115,7 +261,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {hasFeeAlert && (
+      {/* P3 3.2: hide fee alert for institutions that don't run platform fees */}
+      {hasFeeAlert && !ctx.isGovernment && !ctx.isAnganwadi && (
         <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#B91C1C' }}>💰 ₹{(safeKpis.pending_fees_amount / 1000).toFixed(1)}K {T('fees_outstanding', lang)}</div>
@@ -127,12 +274,7 @@ export default function DashboardPage() {
 
       {/* KPI cards */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
-        {[
-          { key: 'students',   value: safeKpis.total_students,   sub: T('active_enrolments', lang), color: '#4F46E5', bg: '#EEF2FF', href: '/students' },
-          { key: 'staff',      value: safeKpis.total_staff,      sub: T('active_staff', lang),      color: '#0284C7', bg: '#E0F2FE', href: '/admin/staff' },
-          { key: 'fees',       value: safeKpis.pending_fees_count, sub: `₹${Math.round(safeKpis.pending_fees_amount / 1000)}K ${T('outstanding', lang)}`, color: hasFeeAlert ? '#B91C1C' : '#15803D', bg: hasFeeAlert ? '#FEF2F2' : '#ECFDF5', href: '/admin/fees' },
-          { key: 'leads_hp',   value: safeKpis.total_leads,      sub: `${safeKpis.high_priority_leads} ${T('leads_hp', lang)}`, color: '#6D28D9', bg: '#F5F3FF', href: '/admissions/crm' },
-        ].map(k => (
+        {visibleKpiCards.map(k => (
           <Link key={k.key} href={k.href} style={{ textDecoration: 'none' }}>
             <div className="kpi-card-inner">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -149,92 +291,96 @@ export default function DashboardPage() {
       </div>
 
       {/* Platform modules */}
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>{T('platform', lang)}</div>
-      <div className="mod-grid" style={{ marginBottom: 24 }}>
-        {[
-          { key: 'report_cards', href: '/report-cards',      icon: '📄', color: '#15803D', bg: '#DCFCE7' },
-          { key: 'teacher_eval', href: '/teacher-eval',      icon: '🎙', color: '#1D4ED8', bg: '#DBEAFE' },
-          { key: 'admissions',   href: '/admissions/crm',   icon: '👥', color: '#6D28D9', bg: '#EDE9FE' },
-          { key: 'whatsapp_bot', href: '/whatsapp',          icon: '💬', color: '#065F46', bg: '#D1FAE5' },
-          { key: 'events_gallery', href: '/admin/events',   icon: '📸', color: '#9333EA', bg: '#F5F3FF' },
-        ].map(mod => (
-          <Link key={mod.key} href={mod.href} style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px 14px', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: mod.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 10 }}>{mod.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginBottom: 3 }}>{T(mod.key, lang)}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {visibleModules.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>{T('platform', lang)}</div>
+          <div className="mod-grid" style={{ marginBottom: 24 }}>
+            {visibleModules.map(mod => (
+              <Link key={mod.key} href={mod.href} style={{ textDecoration: 'none' }}>
+                <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px 14px', cursor: 'pointer' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: mod.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 10 }}>{mod.icon}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginBottom: 3 }}>{T(mod.key, lang)}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* Bottom 3 panels */}
+      {/* Bottom panels */}
       <div className="bottom-grid">
-        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('top_leads', lang)}</div>
-            <Link href="/admissions/crm" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>{T('view_all', lang)} →</Link>
-          </div>
-          {leads.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>👥 {T('no_leads', lang)}</div>
-          ) : leads.slice(0, 5).map((l, i) => (
-            <div key={l.id} style={{ padding: '10px 16px', borderBottom: i < 4 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: scoreBg(l.score / 10), border: `2px solid ${scoreColor(l.score / 10)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: scoreColor(l.score / 10), flexShrink: 0 }}>{l.score}</div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{l.parent_name}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>Cl {l.target_class} · {SOURCE_LABEL[l.source] ?? l.source}</div>
-                </div>
-              </div>
-              <div style={{ padding: '2px 7px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: l.priority === 'high' ? '#FEE2E2' : l.priority === 'medium' ? '#FEF9C3' : '#F3F4F6', color: l.priority === 'high' ? '#B91C1C' : l.priority === 'medium' ? '#A16207' : '#6B7280' }}>
-                {l.priority.toUpperCase()}
-              </div>
+        {showTopLeadsPanel && (
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('top_leads', lang)}</div>
+              <Link href="/admissions/crm" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>{T('view_all', lang)} →</Link>
             </div>
-          ))}
-        </div>
-
-        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('teacher_evals', lang)}</div>
-            <Link href="/teacher-eval" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>{T('view_all', lang)} →</Link>
-          </div>
-          {evals.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>🎙 {T('no_eval', lang)}</div>
-          ) : evals.map((ev, i) => {
-            const score = ev.coaching_score ?? 0;
-            return (
-              <div key={ev.id} style={{ padding: '12px 16px', borderBottom: i < evals.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{ev.file_name}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>{new Date(ev.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+            {leads.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>👥 {T('no_leads', lang)}</div>
+            ) : leads.slice(0, 5).map((l, i) => (
+              <div key={l.id} style={{ padding: '10px 16px', borderBottom: i < 4 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: scoreBg(l.score / 10), border: `2px solid ${scoreColor(l.score / 10)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: scoreColor(l.score / 10), flexShrink: 0 }}>{l.score}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{l.parent_name}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Cl {l.target_class} · {SOURCE_LABEL[l.source] ?? l.source}</div>
+                  </div>
                 </div>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: scoreColor(score) }}>{score}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('upcoming_events', lang)}</div>
-          </div>
-          {events.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>📅 {T('no_events', lang)}</div>
-          ) : events.map((ev, i) => {
-            const d = new Date(ev.event_date);
-            return (
-              <div key={ev.id} style={{ padding: '11px 16px', borderBottom: i < events.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ minWidth: 36, height: 36, borderRadius: 8, background: ev.is_holiday ? '#FEF9C3' : '#EEF2FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: ev.is_holiday ? '#A16207' : '#4F46E5', lineHeight: 1 }}>{d.getDate()}</span>
-                  <span style={{ fontSize: 9, color: ev.is_holiday ? '#A16207' : '#4F46E5', fontWeight: 600 }}>{d.toLocaleString('en-IN', { month: 'short' })}</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{ev.title}</div>
-                  {ev.description && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{ev.description.slice(0, 55)}</div>}
+                <div style={{ padding: '2px 7px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: l.priority === 'high' ? '#FEE2E2' : l.priority === 'medium' ? '#FEF9C3' : '#F3F4F6', color: l.priority === 'high' ? '#B91C1C' : l.priority === 'medium' ? '#A16207' : '#6B7280' }}>
+                  {l.priority.toUpperCase()}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {showTeacherEvalsPanel && (
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('teacher_evals', lang)}</div>
+              <Link href="/teacher-eval" style={{ fontSize: 12, color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>{T('view_all', lang)} →</Link>
+            </div>
+            {evals.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>🎙 {T('no_eval', lang)}</div>
+            ) : evals.map((ev, i) => {
+              const score = ev.coaching_score ?? 0;
+              return (
+                <div key={ev.id} style={{ padding: '12px 16px', borderBottom: i < evals.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{ev.file_name}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>{new Date(ev.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+                  </div>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: scoreBg(score), border: `2px solid ${scoreColor(score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: scoreColor(score) }}>{score}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {showUpcomingEventsPanel && (
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{T('upcoming_events', lang)}</div>
+            </div>
+            {events.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9CA3AF', fontSize: 13 }}>📅 {T('no_events', lang)}</div>
+            ) : events.map((ev, i) => {
+              const d = new Date(ev.event_date);
+              return (
+                <div key={ev.id} style={{ padding: '11px 16px', borderBottom: i < events.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: 36, height: 36, borderRadius: 8, background: ev.is_holiday ? '#FEF9C3' : '#EEF2FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: ev.is_holiday ? '#A16207' : '#4F46E5', lineHeight: 1 }}>{d.getDate()}</span>
+                    <span style={{ fontSize: 9, color: ev.is_holiday ? '#A16207' : '#4F46E5', fontWeight: 600 }}>{d.toLocaleString('en-IN', { month: 'short' })}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{ev.title}</div>
+                    {ev.description && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{ev.description.slice(0, 55)}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </Layout>
   );
