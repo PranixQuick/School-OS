@@ -23,6 +23,7 @@ jobs:
         run: npm install --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps --force
 
       - name: Run lint
+        # Non-blocking during stabilization — lint errors visible in step output.
         continue-on-error: true
         run: npm run lint
         env:
@@ -36,7 +37,6 @@ jobs:
         run: mkdir -p test-results
 
       - name: Run unit tests
-        continue-on-error: true
         run: npm run test:unit
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -45,7 +45,6 @@ jobs:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder-for-ci-lint-only' }}
 
-      # E2E tests require a live deployment. Skip when PLAYWRIGHT_BASE_URL is not configured.
       - name: Check E2E prerequisites
         id: e2e_check
         run: |
