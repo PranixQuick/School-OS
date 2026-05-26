@@ -20,11 +20,9 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps --force
+        run: npm install --legacy-peer-deps
 
       - name: Run lint
-        # Non-blocking during stabilization — lint errors visible in step output.
-        continue-on-error: true
         run: npm run lint
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -45,25 +43,10 @@ jobs:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder-for-ci-lint-only' }}
 
-      - name: Check E2E prerequisites
-        id: e2e_check
-        run: |
-          if [ -z "$PLAYWRIGHT_BASE_URL" ]; then
-            echo "PLAYWRIGHT_BASE_URL not set — skipping E2E tests"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "PLAYWRIGHT_BASE_URL=$PLAYWRIGHT_BASE_URL — running E2E tests"
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
-
       - name: Install Playwright browsers
-        if: steps.e2e_check.outputs.skip != 'true'
         run: npx playwright install --with-deps
 
       - name: Run E2E tests
-        if: steps.e2e_check.outputs.skip != 'true'
         run: npm run test:e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
