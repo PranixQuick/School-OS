@@ -22,17 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: npx playwright install --with-deps
-        run: npx playwright install --with-deps
-
       - name: Run lint
         run: npm run lint
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder_anthropic_key' }}
 
       - name: Create test output directory
         run: mkdir -p test-results
@@ -40,13 +37,34 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder_anthropic_key' }}
+
+      # E2E tests require a live deployment. Skip when PLAYWRIGHT_BASE_URL is not configured.
+      # To enable: set PLAYWRIGHT_BASE_URL in GitHub repository secrets pointing to
+      # the production or staging URL (e.g. https://www.schoolos.in).
+      - name: Check E2E prerequisites
+        id: e2e_check
+        run: |
+          if [ -z "$PLAYWRIGHT_BASE_URL" ]; then
+            echo "PLAYWRIGHT_BASE_URL not set — skipping E2E tests"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "PLAYWRIGHT_BASE_URL=$PLAYWRIGHT_BASE_URL — running E2E tests"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+
+      - name: Install Playwright browsers
+        if: steps.e2e_check.outputs.skip != 'true'
+        run: npx playwright install --with-deps
 
       - name: Run E2E tests
+        if: steps.e2e_check.outputs.skip != 'true'
         run: npm run test:e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
