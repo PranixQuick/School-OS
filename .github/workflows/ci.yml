@@ -26,10 +26,10 @@ jobs:
         run: npm run lint
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key_at_least_20_chars' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key_at_least_20_chars' }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder_anthropic_key' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder-for-ci-lint-only' }}
 
       - name: Create test output directory
         run: mkdir -p test-results
@@ -38,10 +38,10 @@ jobs:
         run: npm run test:unit
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key_at_least_20_chars' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key_at_least_20_chars' }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_32chars_min' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder_anthropic_key' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder-for-ci-lint-only' }}
 
       # E2E tests require a live deployment. Skip when PLAYWRIGHT_BASE_URL is not configured.
       # To enable: set PLAYWRIGHT_BASE_URL in GitHub repository secrets pointing to
