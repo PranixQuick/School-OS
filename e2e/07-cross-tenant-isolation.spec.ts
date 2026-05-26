@@ -6,12 +6,12 @@
 import { test, expect } from '@playwright/test';
 
 const SUCHITRA_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@suchitracademy.edu.in';
-const SUCHITRA_ADMIN_PASS  = process.env.TEST_ADMIN_PASSWORD || 'edprosys0000';
+const SUCHITRA_ADMIN_PASS  = process.env.TEST_ADMIN_PASSWORD || 'schoolos0000';
 const SUCHITRA_SCHOOL_ID   = '00000000-0000-0000-0000-000000000001';
 const SUCHITRA_STUDENT_ID  = '00000000-0000-0000-0000-000000000020';
 
 const DPS_ADMIN_EMAIL = 'sushruth@dpsnadergul.com';
-const DPS_ADMIN_PASS  = 'edprosys7304';
+const DPS_ADMIN_PASS  = process.env.TEST_DPS_ADMIN_PASSWORD || 'schoolos7304';
 
 async function loginWith(page: import('@playwright/test').Page, email: string, password: string) {
   await page.goto('/login');
