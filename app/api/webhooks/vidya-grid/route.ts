@@ -2,7 +2,8 @@
 // Bible Phase 4b — Inbound webhook receiver for VIDYA GRID events.
 //
 // POST /api/webhooks/vidya-grid
-// This path must be added to middleware.ts PUBLIC_PATHS (no session required).
+// Auth: no session required. All /api/* routes bypass middleware auth by design.
+// This endpoint authenticates via HMAC signature (x-vg-signature header) instead.
 //
 // VIDYA GRID sends webhooks with header: x-vg-signature
 // Signature = hmac_sha256(raw_body, VIDYA_GRID_WEBHOOK_SECRET)
