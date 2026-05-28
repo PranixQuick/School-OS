@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'School OS — School Management Platform for Indian Schools',
+  title: 'EdProSys — School Management Platform for Indian Schools',
   description: 'AI-powered school management for Indian K-12 schools. WhatsApp parent bot, automated report cards, teacher evaluation, attendance, fees — all in one platform.',
 };
 
@@ -31,7 +31,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <img
             src="/brand/icon.svg"
-            alt="School OS logo"
+            alt="EdProSys logo"
             width={48}
             height={30}
             style={{
@@ -43,7 +43,7 @@ export default function HomePage() {
               flexShrink: 0,
             }}
           />
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>School OS</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>EdProSys</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <Link href="/login" style={{ padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', background: '#F3F4F6' }}>Sign In</Link>
@@ -131,7 +131,7 @@ export default function HomePage() {
           Ready to transform your school?
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginBottom: 32 }}>
-          Join schools across India already using School OS. Set up in 5 minutes.
+          Join schools across India already using EdProSys. Set up in 5 minutes.
         </p>
         <Link href="/register" style={{ padding: '16px 36px', borderRadius: 12, fontSize: 16, fontWeight: 700, color: '#4F46E5', textDecoration: 'none', background: '#fff', display: 'inline-block', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
           Create your school account →
@@ -147,12 +147,12 @@ export default function HomePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img
               src="/brand/icon.svg"
-              alt="School OS"
+              alt="EdProSys"
               width={36}
               height={22}
               style={{ width: 36, height: 22, objectFit: 'contain', display: 'block', flexShrink: 0 }}
             />
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>School OS</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
             <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
           </div>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
