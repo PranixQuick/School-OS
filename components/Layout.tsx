@@ -444,7 +444,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src="/brand/icon.svg" alt="School OS" style={{ width: 40, height: 25, objectFit: 'contain', flexShrink: 0, display: 'block' }} />
             <div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: '#111827', lineHeight: 1.2 }}>School OS</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: '#111827', lineHeight: 1.2 }}>EdProSys</div>
               {schoolName && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, lineHeight: 1 }}>{schoolName}</div>}
             </div>
           </div>
