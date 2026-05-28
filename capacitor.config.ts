@@ -2,10 +2,10 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'in.pranix.edprosys',
-  appName: 'EdProSys',
+  appName: 'School OS',
   webDir: 'out',
   server: {
-    // Production domain — stable across Vercel redeployments.
+    // Production domain — edprosys.com is live and routes to School OS
     url: 'https://www.edprosys.com',
     cleartext: false,
     androidScheme: 'https',
