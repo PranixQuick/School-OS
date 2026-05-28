@@ -29,10 +29,9 @@ export default function HomePage() {
       {/* NAV */}
       <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          {/* Official EdProSys logo — flexShrink:0 prevents mobile compression */}
           <img
             src="/brand/icon.svg"
-            alt="EdProSys logo"
+            alt="School OS logo"
             width={48}
             height={30}
             style={{
@@ -57,7 +56,6 @@ export default function HomePage() {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #E0E7FF', borderRadius: 20, padding: '5px 14px', marginBottom: 24, fontSize: 12, fontWeight: 700, color: '#4F46E5' }}>
           🇮🇳 Built for Indian Schools
         </div>
-        {/* HEADLINE — updated to reflect full platform scope */}
         <h1 style={{ fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 900, color: '#111827', letterSpacing: '-1.5px', lineHeight: 1.1, margin: '0 auto 20px', maxWidth: 700 }}>
           One Platform to Run<br />the Entire Education System
         </h1>
@@ -133,7 +131,7 @@ export default function HomePage() {
           Ready to transform your school?
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginBottom: 32 }}>
-          Join schools across India already using EdProSys. Set up in 5 minutes.
+          Join schools across India already using School OS. Set up in 5 minutes.
         </p>
         <Link href="/register" style={{ padding: '16px 36px', borderRadius: 12, fontSize: 16, fontWeight: 700, color: '#4F46E5', textDecoration: 'none', background: '#fff', display: 'inline-block', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
           Create your school account →
@@ -149,12 +147,12 @@ export default function HomePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img
               src="/brand/icon.svg"
-              alt="EdProSys"
+              alt="School OS"
               width={36}
               height={22}
               style={{ width: 36, height: 22, objectFit: 'contain', display: 'block', flexShrink: 0 }}
             />
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>EdProSys</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>School OS</span>
             <span style={{ color: '#9CA3AF', fontSize: 12 }}>by Pranix AI Labs</span>
           </div>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
