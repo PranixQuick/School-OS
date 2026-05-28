@@ -24,6 +24,6 @@ export default function robots(): MetadataRoute.Robots {
         '/admin',
       ],
     },
-    sitemap: 'https://www.schoolos.in/sitemap.xml',
+    sitemap: 'https://www.edprosys.com/sitemap.xml',
   };
 }
