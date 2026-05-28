@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'in.pranix.edprosys',
-  appName: 'School OS',
+  appName: 'EdProSys',
   webDir: 'out',
   server: {
     // Production domain — edprosys.com is live and routes to School OS
