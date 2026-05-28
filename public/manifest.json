@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "EdProSys",
-  "short_name": "EdProSys",
+  "name": "School OS",
+  "short_name": "School OS",
   "description": "AI-powered education management for Indian schools, Anganwadi, and government institutions. Attendance, fees, WhatsApp alerts, ICDS, MEO governance.",
   "start_url": "/",
   "scope": "/",
