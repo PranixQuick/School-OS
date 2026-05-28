@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'EdProSys — School Management Platform for Indian Schools',
+  title: 'School OS — School Management Platform for Indian Schools',
   description: 'AI-powered school management for Indian K-12 schools. WhatsApp parent bot, automated report cards, teacher evaluation, attendance, fees — all in one platform.',
 };
 
