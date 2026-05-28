@@ -43,8 +43,8 @@ const config: CapacitorConfig = {
   // macOS machine with Xcode installed). This config block is pre-defined
   // so the generated project picks up the correct settings immediately.
   ios: {
-    // Use EdProSys URL scheme for deep links (edprosys://)
-    scheme: 'EdProSys',
+    // Use School OS URL scheme for deep links (schoolos://)
+    scheme: 'SchoolOS',
     // Content inset behavior — 'automatic' respects Safe Area on notched iPhones
     contentInset: 'automatic',
     // Allow inline media playback (needed for any embedded video content)
