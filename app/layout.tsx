@@ -9,24 +9,24 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'EdProSys — The Operating System for Indian Education',
+  title: 'School OS — The Operating System for Indian Schools',
   description: 'AI-first school operating system for Indian K-12 schools. WhatsApp parent bot, AI report cards, teacher evaluation, and automated principal briefings.',
-  keywords: 'school management software India,AI school ERP,WhatsApp school app,CBSE report card AI,school OS,school management system,AI teacher evaluation,parent communication app India',
+  keywords: 'school management software India,AI school ERP,WhatsApp school app,CBSE report card AI,School OS,school management system,AI teacher evaluation,parent communication app India',
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   manifest: '/manifest.json',
-  appleWebApp: { title: 'EdProSys', statusBarStyle: 'black-translucent', capable: true },
+  appleWebApp: { title: 'School OS', statusBarStyle: 'black-translucent', capable: true },
   openGraph: {
-    title: 'EdProSys — Powering Institutions. Empowering Futures.',
+    title: 'School OS — Powering Institutions. Empowering Futures.',
     description: 'WhatsApp parent bot, AI report cards, teacher evaluation — all automated. Built for Indian K-12 schools.',
-    siteName: 'EdProSys', locale: 'en_IN',
-    images: [{ url: 'https://www.edprosys.com/api/og', width: 1200, height: 630, alt: 'EdProSys — Education Infrastructure Platform' }],
+    siteName: 'School OS', locale: 'en_IN',
+    images: [{ url: 'https://www.schoolos.in/api/og', width: 1200, height: 630, alt: 'School OS — Education Infrastructure Platform' }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EdProSys — The Operating System for Indian Education',
+    title: 'School OS — The Operating System for Indian Schools',
     description: 'AI school management for Indian K-12 schools. WhatsApp bot, report cards, teacher eval — automated.',
-    images: ['https://www.edprosys.com/api/og'],
+    images: ['https://www.schoolos.in/api/og'],
   },
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }, { url: '/brand/icon.svg', type: 'image/svg+xml', sizes: 'any' }],
