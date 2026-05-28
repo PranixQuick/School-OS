@@ -44,7 +44,7 @@ export default function HomePage() {
               flexShrink: 0,
             }}
           />
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>EdProSys</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>School OS</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <Link href="/login" style={{ padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', background: '#F3F4F6' }}>Sign In</Link>
