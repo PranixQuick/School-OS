@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next';
 
-// Static sitemap — EdProSys is a B2B SaaS with auth-gated content.
+// Static sitemap — School OS is a B2B SaaS with auth-gated content.
 // Only public-facing routes are listed here.
 // Dynamic per-school pages are not crawlable (they require auth).
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://www.edprosys.com';
+  const base = 'https://www.schoolos.in';
   const now = new Date();
 
   return [
