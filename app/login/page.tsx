@@ -128,7 +128,7 @@ export default function LoginPage() {
             ∞
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>edpro<span style={{ color: '#7DD3FC' }}>sys</span></div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>School <span style={{ color: '#7DD3FC' }}>OS</span></div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>School Management Platform</div>
           </div>
         </div>
