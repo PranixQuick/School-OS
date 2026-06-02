@@ -56,6 +56,15 @@ const EnvSchema = z
     RAZORPAY_KEY_ID: z.string().optional(),
     RAZORPAY_KEY_SECRET: z.string().optional(),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+
+    // ── VidyaGrid integration ─────────────────────────────────────────────
+    // Optional so unset values never block boot/build; the outbound sync
+    // endpoint (/api/admin/vidya-grid/sync) enforces presence at runtime, and
+    // the inbound webhook reads VIDYA_GRID_WEBHOOK_SECRET directly. Format is
+    // validated only when a value is present.
+    VIDYA_GRID_API_URL: z.string().url('VIDYA_GRID_API_URL must be a valid URL').optional(),
+    VIDYA_GRID_SERVICE_KEY: z.string().min(10, 'VIDYA_GRID_SERVICE_KEY too short').optional(),
+    VIDYA_GRID_WEBHOOK_SECRET: z.string().min(10, 'VIDYA_GRID_WEBHOOK_SECRET too short').optional(),
   })
   .superRefine((data, ctx) => {
     // In production, WhatsApp must be Twilio (stub / unset is blocked).
