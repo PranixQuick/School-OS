@@ -1,21 +1,24 @@
 // lib/super-admin-auth.ts
-// Super-admin gate: email must end with @pranixailabs.com
-// Uses same middleware-injected header pattern as lib/admin-auth.ts
-// Next.js 15: headers() returns a Promise — must be awaited
-import { headers } from "next/headers";
+// Super-admin gate: email must end with @pranixailabs.com.
+// Identity is derived from the verified session cookie (getSession) instead of
+// an x-user-email request header. middleware.ts does not inject that header and
+// a client could set it arbitrarily, so the previous header-based gate was both
+// spoofable and non-functional for normal navigations. This mirrors the
+// verified-session pattern used by lib/admin-auth.ts / principal-auth.ts.
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { isSuperAdmin } from "@/lib/authz";
 
 export interface SuperAdminContext {
   email: string;
 }
 
 export async function requireSuperAdmin(): Promise<SuperAdminContext> {
-  const headersList = await headers();
-  const email = (headersList.get("x-user-email") ?? "").toLowerCase();
+  const session = await getSession();
 
-  if (!email.endsWith("@pranixailabs.com")) {
+  if (!session || !isSuperAdmin(session.userEmail)) {
     redirect("/dashboard");
   }
 
-  return { email };
+  return { email: session.userEmail };
 }
