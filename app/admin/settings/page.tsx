@@ -318,6 +318,9 @@ export default function AdminSettingsPage() {
       {/* Batch 4A: Institution Configuration */}
       <InstitutionConfig />
 
+      {/* VidyaGrid enrollment sync */}
+      <VidyaGridSync />
+
     </Layout>
   );
 }
