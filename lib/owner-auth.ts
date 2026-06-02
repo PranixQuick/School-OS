@@ -5,6 +5,7 @@
 // supabaseAdmin intentional — cross-school boundary queries are owner's core use case.
 
 import type { NextRequest } from 'next/server';
+import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export class OwnerAuthError extends Error {
