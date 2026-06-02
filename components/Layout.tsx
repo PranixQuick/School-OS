@@ -238,6 +238,9 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       { key: 'complaints',    href: '/admin/complaints',          icon: '📩' },
       { key: 'health',        href: '/admin/health-incidents',    icon: '🏥' },
     ]},
+    { groupKey: 'academics', items: [
+      { key: 'promotion',     href: '/admin/promotion',           icon: '🎓' },
+    ]},
     { groupKey: 'ai_tools', items: [
       { key: 'teacher_eval',  href: '/teacher-eval',  icon: '🎙' },
       { key: 'report_cards',  href: '/report-cards',  icon: '📄' },
