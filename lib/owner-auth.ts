@@ -1,6 +1,6 @@
 // lib/owner-auth.ts
 // Batch 4C — Owner session helper.
-// Pattern mirrors lib/admin-auth.ts: reads middleware-injected headers.
+// Pattern mirrors lib/admin-auth.ts: reads the verified session cookie (getSession).
 // Owner role resolves ALL schools under the same institution via school_users.institution_id.
 // supabaseAdmin intentional — cross-school boundary queries are owner's core use case.
 
