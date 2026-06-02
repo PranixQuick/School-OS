@@ -168,6 +168,11 @@ export default function FeesPage() {
       </div>
 
       {/* Fee list */}
+      {payError && (
+        <div style={{ background: '#FEE2E2', color: '#B91C1C', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+          {payError}
+        </div>
+      )}
       {loading ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading fees…</div>
       ) : visible.length === 0 ? (
