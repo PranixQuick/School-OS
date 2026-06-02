@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
-import Link from 'next/link';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -11,8 +10,16 @@ interface FeeRecord {
   status: 'paid' | 'pending' | 'overdue'; paid_at?: string;
 }
 
+interface StudentLite { id: string; name: string; class: string; section: string; admission_number?: string; }
+
 const STATUS_COLOR = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C' };
 const STATUS_BG = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2' };
+// Mirrors the fee_type whitelist used by the fee importer; POST /api/admin/fees
+// accepts any string and defaults to 'tuition'.
+const FEE_TYPES = ['tuition', 'transport', 'hostel', 'exam', 'library', 'lab', 'admission', 'uniform', 'books', 'misc', 'other'];
+
+const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', margin: '10px 0 4px' } as const;
+const inputStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const, background: '#F9FAFB' };
 
 export default function FeesPage() {
   const { lang } = useLang();
@@ -22,6 +29,15 @@ export default function FeesPage() {
   const [search, setSearch] = useState('');
   const [actionId, setActionId] = useState<string|null>(null);
   const [stats, setStats] = useState({ total: 0, paid: 0, pending: 0, overdue: 0, collected: 0, outstanding: 0 });
+
+  // ── Add Fee: direct creation via the existing POST /api/admin/fees ──
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [showAdd, setShowAdd] = useState(false);
+  const [students, setStudents] = useState<StudentLite[]>([]);
+  const [studentsLoaded, setStudentsLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [form, setForm] = useState({ student_id: '', amount: '', due_date: todayIso, fee_type: 'tuition', description: '' });
 
   const loadFees = useCallback(async () => {
     setLoading(true);
@@ -44,6 +60,51 @@ export default function FeesPage() {
   }, []);
 
   useEffect(() => { loadFees(); }, [loadFees]);
+
+  async function openAddFee() {
+    setAddError('');
+    setForm({ student_id: '', amount: '', due_date: todayIso, fee_type: 'tuition', description: '' });
+    setShowAdd(true);
+    if (!studentsLoaded) {
+      try {
+        const res = await fetch('/api/students');
+        if (res.ok) {
+          const d = await res.json() as { students?: StudentLite[] };
+          setStudents((d.students ?? []).map(s => ({
+            id: s.id, name: s.name, class: s.class, section: s.section, admission_number: s.admission_number,
+          })));
+          setStudentsLoaded(true);
+        }
+      } catch { /* student list optional */ }
+    }
+  }
+
+  async function submitFee() {
+    setAddError('');
+    const amountNum = Number(form.amount);
+    if (!form.student_id) { setAddError('Select a student.'); return; }
+    if (!Number.isFinite(amountNum) || amountNum <= 0) { setAddError('Amount must be greater than 0.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.due_date)) { setAddError('A valid due date is required.'); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/fees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: form.student_id,
+          amount: amountNum,
+          due_date: form.due_date,
+          fee_type: form.fee_type,
+          description: form.description || undefined,
+        }),
+      });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setAddError(d.error ?? 'Could not create fee.'); return; }
+      setShowAdd(false);
+      await loadFees();
+    } catch { setAddError('Network error. Please try again.'); }
+    finally { setSaving(false); }
+  }
 
   async function markPaid(id: string) {
     setActionId(id);
@@ -68,7 +129,7 @@ export default function FeesPage() {
   return (
     <Layout title={T('fee_management', lang)} subtitle="Track collections, send reminders, mark payments"
       actions={
-        <Link href="/admin/fees/templates" className="btn btn-primary btn-sm">+ Fee Template</Link>
+        <button onClick={() => void openAddFee()} className="btn btn-primary btn-sm">+ Add Fee</button>
       }>
 
       {/* Stats row */}
@@ -107,7 +168,7 @@ export default function FeesPage() {
         <div className="empty-state">
           <div className="empty-state-icon">💰</div>
           <div className="empty-state-title">{T('no_fees', lang as never)} {filter !== 'all' ? `with status "${filter}"` : ''}</div>
-          <div className="empty-state-sub">Fee records appear here once fee templates are assigned to students.</div>
+          <div className="empty-state-sub">Use “+ Add Fee” to create a fee for a student.</div>
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -140,6 +201,63 @@ export default function FeesPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Add Fee modal — posts to existing POST /api/admin/fees */}
+      {showAdd && (
+        <div onClick={() => { if (!saving) setShowAdd(false); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 420, boxShadow: '0 10px 40px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 6 }}>Add Fee</div>
+            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Create a fee record for a student.</div>
+
+            <label style={labelStyle}>Student *</label>
+            <select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} style={inputStyle}>
+              <option value="">{studentsLoaded ? 'Select a student…' : 'Loading students…'}</option>
+              {students.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — Class {s.class}{s.section ? '-' + s.section : ''}{s.admission_number ? ` (${s.admission_number})` : ''}
+                </option>
+              ))}
+            </select>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Amount (₹) *</label>
+                <input type="number" min="1" step="0.01" value={form.amount}
+                  onChange={e => setForm({ ...form, amount: e.target.value })} style={inputStyle} placeholder="0" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Due date *</label>
+                <input type="date" value={form.due_date}
+                  onChange={e => setForm({ ...form, due_date: e.target.value })} style={inputStyle} />
+              </div>
+            </div>
+
+            <label style={labelStyle}>Fee type</label>
+            <select value={form.fee_type} onChange={e => setForm({ ...form, fee_type: e.target.value })} style={inputStyle}>
+              {FEE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+
+            <label style={labelStyle}>Description</label>
+            <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+              style={inputStyle} placeholder="Optional" />
+
+            {addError && <div style={{ color: '#B91C1C', fontSize: 12, marginTop: 10 }}>{addError}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowAdd(false)} disabled={saving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                Cancel
+              </button>
+              <button onClick={() => void submitFee()} disabled={saving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: 'none', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {saving ? 'Saving…' : 'Create Fee'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>
