@@ -28,6 +28,7 @@ export default function FeesPage() {
   const [filter, setFilter] = useState<'all'|'pending'|'overdue'|'paid'>('all');
   const [search, setSearch] = useState('');
   const [actionId, setActionId] = useState<string|null>(null);
+  const [payError, setPayError] = useState('');
   const [stats, setStats] = useState({ total: 0, paid: 0, pending: 0, overdue: 0, collected: 0, outstanding: 0 });
 
   // ── Add Fee: direct creation via the existing POST /api/admin/fees ──
