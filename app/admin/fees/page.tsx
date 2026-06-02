@@ -108,16 +108,21 @@ export default function FeesPage() {
   }
 
   async function markPaid(id: string) {
+    setPayError('');
     setActionId(id);
     try {
-      await fetch('/api/admin/fees', {
+      // Collection uses the dedicated endpoint (cash mode). The collection-level
+      // PATCH /api/admin/fees does not exist (GET + POST only) — calling it 405s.
+      const res = await fetch(`/api/admin/fees/${id}/mark-paid`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: 'paid', paid_at: new Date().toISOString() }),
+        body: JSON.stringify({ method: 'cash' }),
       });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setPayError(d.error ?? 'Could not mark this fee paid.'); return; }
       await loadFees();
-    } catch { /* ignore */ }
-    setActionId(null);
+    } catch { setPayError('Network error. Please try again.'); }
+    finally { setActionId(null); }
   }
 
   const visible = fees.filter(f => {
