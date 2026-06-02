@@ -1,10 +1,11 @@
 // lib/owner-auth.ts
 // Batch 4C — Owner session helper.
-// Pattern mirrors lib/admin-auth.ts: reads middleware-injected headers.
+// Pattern mirrors lib/admin-auth.ts: reads the verified session cookie (getSession).
 // Owner role resolves ALL schools under the same institution via school_users.institution_id.
 // supabaseAdmin intentional — cross-school boundary queries are owner's core use case.
 
 import type { NextRequest } from 'next/server';
+import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export class OwnerAuthError extends Error {
@@ -31,12 +32,10 @@ export interface OwnerContext {
  * Throws OwnerAuthError 401 if no session, 403 if not owner role.
  */
 export async function requireOwnerSession(req: NextRequest): Promise<OwnerContext> {
-  const schoolId  = req.headers.get('x-school-id');
-  const userRole  = req.headers.get('x-user-role');
-  const userEmail = req.headers.get('x-user-email');
-
-  if (!schoolId || !userRole || !userEmail) throw new OwnerAuthError('No session', 401);
-  if (userRole !== 'owner') throw new OwnerAuthError('Owner access required', 403);
+  const session = await getSession(req);
+  if (!session) throw new OwnerAuthError('No session', 401);
+  const { schoolId, userEmail } = session;
+  if (session.userRole !== 'owner') throw new OwnerAuthError('Owner access required', 403);
 
   // Get this user's school_users record to find institution_id
   const { data: seedUser } = await supabaseAdmin
