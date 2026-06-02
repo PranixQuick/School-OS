@@ -28,6 +28,7 @@ export default function FeesPage() {
   const [filter, setFilter] = useState<'all'|'pending'|'overdue'|'paid'>('all');
   const [search, setSearch] = useState('');
   const [actionId, setActionId] = useState<string|null>(null);
+  const [payError, setPayError] = useState('');
   const [stats, setStats] = useState({ total: 0, paid: 0, pending: 0, overdue: 0, collected: 0, outstanding: 0 });
 
   // ── Add Fee: direct creation via the existing POST /api/admin/fees ──
@@ -107,16 +108,21 @@ export default function FeesPage() {
   }
 
   async function markPaid(id: string) {
+    setPayError('');
     setActionId(id);
     try {
-      await fetch('/api/admin/fees', {
+      // Collection uses the dedicated endpoint (cash mode). The collection-level
+      // PATCH /api/admin/fees does not exist (GET + POST only) — calling it 405s.
+      const res = await fetch(`/api/admin/fees/${id}/mark-paid`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: 'paid', paid_at: new Date().toISOString() }),
+        body: JSON.stringify({ method: 'cash' }),
       });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setPayError(d.error ?? 'Could not mark this fee paid.'); return; }
       await loadFees();
-    } catch { /* ignore */ }
-    setActionId(null);
+    } catch { setPayError('Network error. Please try again.'); }
+    finally { setActionId(null); }
   }
 
   const visible = fees.filter(f => {
@@ -162,6 +168,11 @@ export default function FeesPage() {
       </div>
 
       {/* Fee list */}
+      {payError && (
+        <div style={{ background: '#FEE2E2', color: '#B91C1C', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+          {payError}
+        </div>
+      )}
       {loading ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading fees…</div>
       ) : visible.length === 0 ? (
