@@ -88,6 +88,82 @@ function InstitutionConfig() {
   );
 }
 
+// VidyaGrid enrollment sync — triggers the existing POST /api/admin/vidya-grid/sync.
+// Manual button only (no auto-run). Authorization is enforced server-side by
+// requireAdminSession on the route; nothing new is added here.
+function VidyaGridSync() {
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    processed: number; linked: number; skipped: number; failed: number;
+    remaining_eligible_unlinked: number | null;
+  } | null>(null);
+
+  async function runSync() {
+    setRunning(true); setError(null); setResult(null);
+    try {
+      const res = await fetch('/api/admin/vidya-grid/sync', { method: 'POST' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const missing = Array.isArray(d?.missing) ? ` (missing: ${(d.missing as string[]).join(', ')})` : '';
+        setError((d?.error ?? `Request failed (HTTP ${res.status})`) + missing);
+        return;
+      }
+      setResult({
+        processed: d.processed ?? 0,
+        linked: d.linked ?? 0,
+        skipped: d.skipped ?? 0,
+        failed: d.failed ?? 0,
+        remaining_eligible_unlinked: d.remaining_eligible_unlinked ?? null,
+      });
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 4 }}>🎓 VidyaGrid Enrollment Sync</div>
+      <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+        Enrolls eligible Class 9–10 students (with parent details, in a VidyaGrid-mapped school) into VidyaGrid and links their accounts. Processes up to 30 students per run — re-run until none remain.
+      </div>
+
+      <button onClick={() => void runSync()} disabled={running}
+        style={{ padding: '9px 20px', background: running ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: running ? 'not-allowed' : 'pointer' }}>
+        {running ? 'Syncing…' : 'Sync to VidyaGrid'}
+      </button>
+
+      {error && (
+        <div style={{ marginTop: 14, background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#991B1B', fontWeight: 600 }}>
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div style={{ marginTop: 14, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 10 }}>LAST RUN RESULT</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 13 }}>
+            <div>Processed: <b>{result.processed}</b></div>
+            <div>Linked: <b style={{ color: '#065F46' }}>{result.linked}</b></div>
+            <div>Skipped: <b style={{ color: '#92400E' }}>{result.skipped}</b></div>
+            <div>Failed: <b style={{ color: '#991B1B' }}>{result.failed}</b></div>
+            <div style={{ gridColumn: '1 / -1' }}>Remaining eligible unlinked: <b>{result.remaining_eligible_unlinked ?? '—'}</b></div>
+          </div>
+          {result.remaining_eligible_unlinked && result.remaining_eligible_unlinked > 0 ? (
+            <div style={{ marginTop: 10, fontSize: 11, color: '#6B7280' }}>
+              {result.remaining_eligible_unlinked} still eligible — run again (VidyaGrid limits enrollment to ~30 per hour).
+            </div>
+          ) : result.remaining_eligible_unlinked === 0 ? (
+            <div style={{ marginTop: 10, fontSize: 11, color: '#065F46', fontWeight: 600 }}>✓ All eligible students are linked.</div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface RazorpayStatus {
   key_id_configured: boolean;
   key_id_preview: string | null;
