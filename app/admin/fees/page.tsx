@@ -199,6 +199,13 @@ export default function FeesPage() {
                   {actionId === fee.id ? T('loading', lang as never) : T('mark_paid_btn', lang as never)}
                 </button>
               )}
+              {fee.status === 'paid' && (
+                <a href={`/admin/fees/receipt/${fee.id}`} target="_blank" rel="noopener noreferrer"
+                  style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'pointer',
+                    background: '#fff', color: '#4F46E5', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                  🧾 Receipt
+                </a>
+              )}
             </div>
           ))}
         </div>
