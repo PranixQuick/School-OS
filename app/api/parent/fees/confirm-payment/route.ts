@@ -125,13 +125,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, receipt_number: body.razorpay_payment_id, already_paid: true });
   }
 
+  // Allocate a human receipt number (best-effort; fall back to gateway id).
+  const confirmReceipt = (await allocateReceiptNumber(schoolId)) ?? body.razorpay_payment_id;
   const { data, error: updateErr } = await supabaseAdmin
     .from('fees')
     .update({
       status: 'paid',
       payment_method: 'online',
       payment_reference: body.razorpay_payment_id,
-      fee_receipt_number: body.razorpay_payment_id,
+      fee_receipt_number: confirmReceipt,
       paid_date: todayIST(),
       payment_verified_at: new Date().toISOString(),
     })
