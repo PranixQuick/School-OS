@@ -127,8 +127,8 @@ export default function FeesPage() {
 
   const visible = fees.filter(f => {
     if (filter !== 'all' && f.status !== filter) return false;
-    if (search && !f.student_name.toLowerCase().includes(search.toLowerCase()) &&
-        !f.class.includes(search)) return false;
+    if (search && !(f.students?.name ?? '').toLowerCase().includes(search.toLowerCase()) &&
+        !(f.students?.class ?? '').includes(search)) return false;
     return true;
   });
 
