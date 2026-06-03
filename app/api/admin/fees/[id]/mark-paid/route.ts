@@ -125,6 +125,18 @@ export async function PATCH(
   const today = todayIST();
   const isWaiver = body.method === 'waiver';
 
+  // Fees: allocate a receipt number for money-collected settlements (not waivers). Fail-closed.
+  let receiptNumber: string | null = null;
+  if (!isWaiver) {
+    receiptNumber = await allocateReceiptNumber(schoolId);
+    if (!receiptNumber) {
+      return NextResponse.json(
+        { error: 'Could not allocate receipt number; fee was not marked paid. Please retry.' },
+        { status: 500 }
+      );
+    }
+  }
+
   const updatePayload: Record<string, unknown> = {
     status: isWaiver ? 'waived' : 'paid',
     paid_date: today,
@@ -132,6 +144,7 @@ export async function PATCH(
     payment_reference: body.reference ?? null,
     payment_verified_by: staffId ?? userId,
     payment_verified_at: now,
+    fee_receipt_number: receiptNumber,
   };
 
   if (isWaiver || (body.discount_amount ?? 0) > 0) {
