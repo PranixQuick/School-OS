@@ -5,7 +5,7 @@ import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
 interface FeeRecord {
-  id: string; student_name: string; class: string; section: string;
+  id: string; students?: { name: string; class: string; section: string } | null;
   fee_type: string; amount: number; due_date: string;
   status: 'paid' | 'pending' | 'overdue'; paid_at?: string;
 }
@@ -127,8 +127,8 @@ export default function FeesPage() {
 
   const visible = fees.filter(f => {
     if (filter !== 'all' && f.status !== filter) return false;
-    if (search && !f.student_name.toLowerCase().includes(search.toLowerCase()) &&
-        !f.class.includes(search)) return false;
+    if (search && !(f.students?.name ?? '').toLowerCase().includes(search.toLowerCase()) &&
+        !(f.students?.class ?? '').includes(search)) return false;
     return true;
   });
 
@@ -189,9 +189,9 @@ export default function FeesPage() {
               display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 2 }}>{fee.student_name}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 2 }}>{fee.students?.name ?? '—'}</div>
                 <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  Class {fee.class}{fee.section} · {fee.fee_type} · Due {new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  Class {fee.students?.class}{fee.students?.section} · {fee.fee_type} · Due {new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
