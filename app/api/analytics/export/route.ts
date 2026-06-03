@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'fees': {
-        const { data: rows } = await supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date, students(name, class, section)').eq('school_id', schoolId).order('due_date', { ascending: false });
+        const { data: rows } = await supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date, payment_method, payment_reference, fee_receipt_number, students(name, class, section)').eq('school_id', schoolId).order('due_date', { ascending: false });
         data = { exported_at: new Date().toISOString(), dataset: 'fees', rows: rows ?? [] };
         break;
       }
