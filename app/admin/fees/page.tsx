@@ -5,7 +5,7 @@ import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
 interface FeeRecord {
-  id: string; student_name: string; class: string; section: string;
+  id: string; students?: { name: string; class: string; section: string } | null;
   fee_type: string; amount: number; due_date: string;
   status: 'paid' | 'pending' | 'overdue'; paid_at?: string;
 }
