@@ -23,6 +23,7 @@ import { NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
 
@@ -157,14 +158,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Mark paid
+  // Mark paid — allocate a human receipt number (best-effort; fall back to gateway id).
+  // Gateway payment id is always retained in payment_reference for reconciliation.
+  const onlineReceipt = (await allocateReceiptNumber(fee.school_id)) ?? paymentId;
   const { error: updateErr } = await supabaseAdmin
     .from('fees')
     .update({
       status: 'paid',
       payment_method: 'online',
       payment_reference: paymentId,
-      fee_receipt_number: paymentId,
+      fee_receipt_number: onlineReceipt,
       paid_date: todayIST(),
       payment_verified_at: new Date().toISOString(),
     })

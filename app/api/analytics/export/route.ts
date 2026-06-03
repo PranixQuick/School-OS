@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         const [students, staff, fees, leads, recordings, narratives, broadcasts, attendance, risk] = await Promise.all([
           supabaseAdmin.from('students').select('id, name, class, section, is_active, created_at').eq('school_id', schoolId),
           supabaseAdmin.from('staff').select('id, name, role, subject, is_active').eq('school_id', schoolId),
-          supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date').eq('school_id', schoolId),
+          supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date, payment_method, payment_reference, fee_receipt_number').eq('school_id', schoolId),
           supabaseAdmin.from('inquiries').select('id, source, priority, status, score, target_class, created_at').eq('school_id', schoolId).is('deleted_at', null),
           supabaseAdmin.from('recordings').select('id, staff_id, coaching_score, status, uploaded_at').eq('school_id', schoolId),
           supabaseAdmin.from('report_narratives').select('id, student_id, term, status, generated_at').eq('school_id', schoolId),
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'fees': {
-        const { data: rows } = await supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date, students(name, class, section)').eq('school_id', schoolId).order('due_date', { ascending: false });
+        const { data: rows } = await supabaseAdmin.from('fees').select('id, student_id, fee_type, amount, status, due_date, paid_date, payment_method, payment_reference, fee_receipt_number, students(name, class, section)').eq('school_id', schoolId).order('due_date', { ascending: false });
         data = { exported_at: new Date().toISOString(), dataset: 'fees', rows: rows ?? [] };
         break;
       }

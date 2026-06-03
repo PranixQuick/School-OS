@@ -25,6 +25,7 @@ import { verifyRazorpaySignature } from '@/lib/razorpay-verify';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
+import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
 
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
     keySecret
   );
 
-  if (!sigValid || body.razorpay_signature) {
+  if (!sigValid) {
     console.warn('[confirm-payment] signature mismatch for fee', body.fee_id);
     return NextResponse.json({ error: 'Payment signature invalid' }, { status: 400 });
   }
@@ -124,13 +125,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, receipt_number: body.razorpay_payment_id, already_paid: true });
   }
 
+  // Allocate a human receipt number (best-effort; fall back to gateway id).
+  const confirmReceipt = (await allocateReceiptNumber(schoolId)) ?? body.razorpay_payment_id;
   const { data, error: updateErr } = await supabaseAdmin
     .from('fees')
     .update({
       status: 'paid',
       payment_method: 'online',
       payment_reference: body.razorpay_payment_id,
-      fee_receipt_number: body.razorpay_payment_id,
+      fee_receipt_number: confirmReceipt,
       paid_date: todayIST(),
       payment_verified_at: new Date().toISOString(),
     })
