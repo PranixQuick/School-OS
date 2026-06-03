@@ -29,6 +29,7 @@ import { isFeeModuleEnabled } from '@/lib/institution-flags';
 import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
 import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
+import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
 
