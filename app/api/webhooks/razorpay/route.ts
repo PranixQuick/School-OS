@@ -23,6 +23,7 @@ import { NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
 
