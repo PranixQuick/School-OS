@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     keySecret
   );
 
-  if (!sigValid || body.razorpay_signature) {
+  if (!sigValid) {
     console.warn('[confirm-payment] signature mismatch for fee', body.fee_id);
     return NextResponse.json({ error: 'Payment signature invalid' }, { status: 400 });
   }
