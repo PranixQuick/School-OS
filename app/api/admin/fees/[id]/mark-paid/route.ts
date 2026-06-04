@@ -142,7 +142,7 @@ export async function PATCH(
     paid_date: today,
     payment_method: body.method,
     payment_reference: body.reference ?? null,
-    payment_verified_by: staffId ?? userId,
+    payment_verified_by: staffId,
     payment_verified_at: now,
     fee_receipt_number: receiptNumber,
   };
