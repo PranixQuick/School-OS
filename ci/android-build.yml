@@ -68,6 +68,6 @@ jobs:
 
             **Install:** Download APK → enable "Install from unknown sources" → install.
             **Requires:** Android 7.0+ (API 24+)
-            **App loads:** https://school-os-rh47.vercel.app
+            **App loads:** https://www.edprosys.com
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
