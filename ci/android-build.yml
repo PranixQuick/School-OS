@@ -51,7 +51,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: school-os-${{ env.VERSION || 'debug' }}.apk
+          name: edprosys-${{ env.VERSION || 'debug' }}.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
@@ -60,14 +60,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: android/app/build/outputs/apk/debug/app-debug.apk
-          name: School OS ${{ github.ref_name }}
+          name: EdProSys ${{ github.ref_name }}
           body: |
-            ## School OS ${{ github.ref_name }}
+            ## EdProSys ${{ github.ref_name }}
 
             Android APK — internal distribution build.
 
             **Install:** Download APK → enable "Install from unknown sources" → install.
             **Requires:** Android 7.0+ (API 24+)
-            **App loads:** https://school-os-rh47.vercel.app
+            **App loads:** https://www.edprosys.com
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
