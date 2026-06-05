@@ -30,11 +30,14 @@ test.describe('Fee template API', () => {
     });
     expect([200, 201]).toContain(resp.status());
     const body = await resp.json();
-    expect(body).toHaveProperty('id');
-    expect(body.grade_level).toBe('5');
+    // API wraps record under 'template' key — body.template.id not body.id
+    expect(body).toHaveProperty('template');
+    const t = body.template;
+    expect(typeof t.id).toBe('string');
+    expect(t.grade_level).toBe('5');
     // Cleanup
-    if (body.id) {
-      await page.request.delete(`/api/admin/fee-templates/${body.id}`);
+    if (t.id) {
+      await page.request.delete(`/api/admin/fee-templates/${t.id}`);
     }
   });
 
