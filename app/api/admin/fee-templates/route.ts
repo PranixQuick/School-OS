@@ -4,12 +4,12 @@
 // POST /api/admin/fee-templates         - create template
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/admin-auth';
+import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabase } from '@/lib/supabaseClient';
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminSession(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status ?? 401 });
+  let auth; try { auth = await requireAdminSession(req); }
+  catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
   const { data, error } = await supabase
     .from('fee_templates')
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminSession(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status ?? 401 });
+  let auth; try { auth = await requireAdminSession(req); }
+  catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
