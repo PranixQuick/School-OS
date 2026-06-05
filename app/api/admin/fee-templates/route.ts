@@ -1,69 +1,87 @@
 // app/api/admin/fee-templates/route.ts
-// Batch 2: Fee structure templates — list and create.
-// GET: ?grade_level=X (optional)
-// POST: { name, grade_level, section?, academic_year_id?, fee_items: [{fee_type, amount, description?}] }
-// TODO(item-15): migrate to supabaseForUser
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+// Phase D — C4: Fee Templates API — list and create
+// GET  /api/admin/fee-templates         - list templates for school
+// POST /api/admin/fee-templates         - create template
+
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
-export const runtime = 'nodejs';
-
-function isUuid(s: unknown): s is string {
-  return typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-}
-
-interface FeeItem { fee_type: string; amount: number; description?: string }
-
-function validateFeeItems(items: unknown): items is FeeItem[] {
-  if (!Array.isArray(items) || items.length === 0) return false;
-  return items.every((i: unknown) => {
-    if (!i || typeof i !== 'object') return false;
-    const item = i as Record<string, unknown>;
-    return typeof item.fee_type === 'string' && item.fee_type.trim() &&
-      typeof item.amount === 'number' && item.amount > 0;
-  });
-}
-
-// ─── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  let ctx; try { ctx = await requireAdminSession(req); }
+  let auth; try { auth = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
-  const { schoolId } = ctx;
-  const gradeLevel = req.nextUrl.searchParams.get('grade_level');
-  let query = supabaseAdmin.from('fee_templates')
-    .select('id, name, grade_level, section, academic_year_id, fee_items, is_active, created_at, updated_at')
-    .eq('school_id', schoolId).eq('is_active', true)
-    .order('grade_level').order('name');
-  if (gradeLevel) query = query.eq('grade_level', gradeLevel);
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ templates: data ?? [], count: (data ?? []).length });
+
+  const { data, error } = await supabaseAdmin
+    .from('fee_templates')
+    .select('id, name, grade_level, section, fee_items, is_active, created_at')
+    .eq('school_id', auth.schoolId)
+    .order('created_at', { ascending: false });
+
+  if (error) return NextResponse.json({ error: 'Failed to load templates' }, { status: 500 });
+  return NextResponse.json({ templates: data ?? [] });
 }
 
-// ─── POST ─────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  let ctx; try { ctx = await requireAdminSession(req); }
+  let auth; try { auth = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
-  const { schoolId, staffId } = ctx;
-  let body: unknown; try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
-  const { name, grade_level, section, academic_year_id, fee_items } = body as Record<string, unknown>;
-  if (!name || typeof name !== 'string' || !name.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 });
-  if (!grade_level || typeof grade_level !== 'string' || !grade_level.trim()) return NextResponse.json({ error: 'grade_level required' }, { status: 400 });
-  if (!validateFeeItems(fee_items)) return NextResponse.json({ error: 'fee_items must be a non-empty array of {fee_type, amount (>0)}' }, { status: 400 });
-  // Resolve institution_id
-  const { data: school } = await supabaseAdmin.from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
-  const { data: template, error } = await supabaseAdmin.from('fee_templates').insert({
-    school_id: schoolId,
-    institution_id: school?.institution_id ?? null,
-    name: name.trim(),
-    grade_level: grade_level.trim(),
-    section: typeof section === 'string' && section.trim() ? section.trim() : null,
-    academic_year_id: isUuid(academic_year_id) ? academic_year_id : null,
-    fee_items,
-    created_by: staffId ?? null,
-  }).select('*').single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(template, { status: 201 });
+
+  const body = await req.json().catch(() => null);
+  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+
+  const { name, grade_level, section, fee_items } = body as {
+    name?: string; grade_level?: string; section?: string;
+    fee_items?: Array<{ name: string; amount: number; type: string }>;
+  };
+
+  if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  if (!grade_level?.trim()) return NextResponse.json({ error: 'grade_level is required' }, { status: 400 });
+  if (!Array.isArray(fee_items) || fee_items.length === 0) {
+    return NextResponse.json({ error: 'fee_items must be a non-empty array' }, { status: 400 });
+  }
+
+  // Validate fee_items shape
+  for (const item of fee_items) {
+    if (!item.name || typeof item.amount !== 'number' || item.amount <= 0) {
+      return NextResponse.json(
+        { error: 'Each fee_item must have name (string) and amount (number > 0)' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Require academic_year_id from school
+  const { data: school } = await supabaseAdmin
+    .from('schools')
+    .select('id')
+    .eq('id', auth.schoolId)
+    .single();
+  if (!school) return NextResponse.json({ error: 'School not found' }, { status: 404 });
+
+  const { data: ay } = await supabaseAdmin
+    .from('academic_years')
+    .select('id')
+    .eq('school_id', auth.schoolId)
+    .eq('is_active', true)
+    .single();
+
+  const { data: created, error: createErr } = await supabaseAdmin
+    .from('fee_templates')
+    .insert({
+      school_id: auth.schoolId,
+      academic_year_id: ay?.id ?? null,
+      name: name.trim(),
+      grade_level: grade_level.trim(),
+      section: section?.trim() ?? null,
+      fee_items,
+      is_active: true,
+    })
+    .select('id, name, grade_level, section, fee_items, is_active, created_at')
+    .single();
+
+  if (createErr) {
+    console.error('[fee-templates] create error:', createErr.message);
+    return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
+  }
+
+  return NextResponse.json({ template: created }, { status: 201 });
 }
