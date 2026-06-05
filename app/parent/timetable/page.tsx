@@ -18,7 +18,7 @@ export default function ParentTimetablePage() {
       .then(async (d) => {
         if (!d?.student) return;
         setStudentClass(`Class ${d.student.class}-${d.student.section}`);
-        const res = await fetch(`/api/teacher/timetable?class=${d.student.class}&section=${d.student.section}`);
+        const res = await fetch('/api/parent/timetable');
         if (res.ok) {
           const t = await res.json();
           setSlots(t.timetable ?? t.slots ?? []);
