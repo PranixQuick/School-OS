@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseClient';
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
@@ -42,14 +42,14 @@ async function uploadBrandingFile(
   const ext = file.name.split('.').pop() ?? 'png';
   const storagePath = `${schoolId}/${field}.${ext}`;
   const bytes = await file.arrayBuffer();
-  const { error } = await supabase.storage
+  const { error } = await supabaseAdmin.storage
     .from(BUCKET)
     .upload(storagePath, bytes, {
       contentType: file.type,
       upsert: true,
     });
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
   return data.publicUrl;
 }
 
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No valid branding fields provided' }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('schools')
     .update(update)
     .eq('id', schoolId);
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
   let auth; try { auth = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('schools')
     .select('logo_url, seal_url, signature_url, primary_color, secondary_color, font_family, tagline, website, contact_phone, contact_email, receipt_prefix, name')
     .eq('id', auth.schoolId)
