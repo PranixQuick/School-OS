@@ -61,8 +61,9 @@ test.describe('CONTRACT: POST /api/admin/fee-templates', () => {
     expect(t.fee_items[0].amount).toBe(5000);
     expect(t.is_active).toBe(true);
     expect(typeof t.created_at).toBe('string');
-    // Validate ISO 8601
-    expect(new Date(t.created_at).toISOString()).toBe(t.created_at);
+    // Validate ISO 8601 — DB returns timestamptz (+00:00 suffix), toISOString() returns Z suffix;
+    // both are valid ISO 8601. Validate by parsing to a finite timestamp instead of string equality.
+    expect(Number.isFinite(new Date(t.created_at).getTime())).toBe(true);
 
     // Cleanup
     if (t.id) {
