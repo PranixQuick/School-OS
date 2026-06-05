@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   let auth; try { auth = await requireAdminSession(req); }
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('fee_templates')
     .select('id, name, grade_level, section, fee_items, is_active, created_at')
     .eq('school_id', auth.schoolId)
@@ -50,21 +50,21 @@ export async function POST(req: NextRequest) {
   }
 
   // Require academic_year_id from school
-  const { data: school } = await supabase
+  const { data: school } = await supabaseAdmin
     .from('schools')
     .select('id')
     .eq('id', auth.schoolId)
     .single();
   if (!school) return NextResponse.json({ error: 'School not found' }, { status: 404 });
 
-  const { data: ay } = await supabase
+  const { data: ay } = await supabaseAdmin
     .from('academic_years')
     .select('id')
     .eq('school_id', auth.schoolId)
     .eq('is_active', true)
     .single();
 
-  const { data: created, error: createErr } = await supabase
+  const { data: created, error: createErr } = await supabaseAdmin
     .from('fee_templates')
     .insert({
       school_id: auth.schoolId,
