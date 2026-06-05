@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { name, grade_level, section, fee_items } = body as {
     name?: string; grade_level?: string; section?: string;
-    fee_items?: Array<{ name: string; amount: number; type: string }>;
+    fee_items?: Array<{ fee_type: string; amount: number }>;
   };
 
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
