@@ -9,7 +9,7 @@
 // NOTE: founder must also add image/png to Institution-Branding bucket MIME whitelist in Supabase dashboard
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/admin-auth';
+import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabase } from '@/lib/supabaseClient';
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -54,8 +54,8 @@ async function uploadBrandingFile(
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminSession(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status ?? 401 });
+  let auth; try { auth = await requireAdminSession(req); }
+  catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
   const { schoolId } = auth;
   const update: BrandingUpdate = {};
@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminSession(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status ?? 401 });
+  let auth; try { auth = await requireAdminSession(req); }
+  catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
 
   const { data, error } = await supabase
     .from('schools')
