@@ -5,6 +5,10 @@
 // the full edge pipeline which injects x-school-id headers required by admin-auth.
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './helpers/auth';
+import {
+  assertCreatedTemplateResponse,
+  extractTemplateId,
+} from './helpers/fee-template-contract';
 
 test.describe('Fee template API', () => {
   // Use page-scoped serial tests so the browser context (and session cookie) persists
@@ -28,13 +32,15 @@ test.describe('Fee template API', () => {
         fee_items: [{ fee_type: 'tuition', amount: 10000 }],
       },
     });
-    expect([200, 201]).toContain(resp.status());
-    const body = await resp.json();
-    expect(body).toHaveProperty('id');
-    expect(body.grade_level).toBe('5');
-    // Cleanup
-    if (body.id) {
-      await page.request.delete(`/api/admin/fee-templates/${body.id}`);
+
+    // Use contract helper — all assertions delegated to single source of truth
+    const template = await assertCreatedTemplateResponse(resp);
+    expect(template.grade_level).toBe('5');
+
+    // Cleanup using extracted id
+    const id = await extractTemplateId(resp);
+    if (id) {
+      await page.request.delete(`/api/admin/fee-templates/${id}`);
     }
   });
 
