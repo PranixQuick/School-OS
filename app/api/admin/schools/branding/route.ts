@@ -3,7 +3,10 @@
 // Handles: multipart/form-data for logo, seal, signature uploads
 //          JSON body for color/font/tagline updates
 // Auth: requireAdminSession — owner or admin_staff only
-// Storage: Supabase bucket 'school-branding' (public read, school-scoped write)
+// Storage: Supabase bucket 'Institution-Branding' (public read, school-scoped write)
+// Bucket reconciled 2026-06-05: renamed from school-branding → Institution-Branding (Option B, founder-created)
+// MIME whitelist: image/png, image/jpeg, image/webp, image/svg+xml
+// NOTE: founder must also add image/png to Institution-Branding bucket MIME whitelist in Supabase dashboard
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/admin-auth';
@@ -11,7 +14,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-const BUCKET = 'school-branding';
+const BUCKET = 'Institution-Branding';
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
