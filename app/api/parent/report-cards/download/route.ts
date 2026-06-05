@@ -1,13 +1,14 @@
 // app/api/parent/report-cards/download/route.ts
-// Batch 9 — Parent report card PDF download.
-// Auth: phone+PIN. Validates parent owns the student.
-// Inlines PDF generation (avoids auth complexity of server→server call).
+// Parent report card PDF download.
+// Auth: getParentSession cookie-first, phone+PIN body fallback.
 // TODO(item-15): migrate to supabaseForUser
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getParentSession } from '@/lib/parent-auth';
 import { jsPDF } from 'jspdf';
+import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
@@ -17,27 +18,38 @@ function calcGrade(pct: number): string {
   return 'F';
 }
 
-export async function POST(req: NextRequest) {
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
+async function resolveParent(req: NextRequest): Promise<{ schoolId: string; studentId: string } | null> {
+  const session = await getParentSession(req);
+  if (session) return { schoolId: session.schoolId, studentId: session.studentId };
 
-  const { phone, pin, term } = body as { phone?: string; pin?: string; term?: string };
-  if (!phone || !pin || !term) return NextResponse.json({ error: 'phone, pin, and term are required' }, { status: 400 });
+  let body: { phone?: string; pin?: string } = {};
+  try { body = await req.json(); } catch { return null; }
+  const { phone, pin } = body;
+  if (!phone || !pin) return null;
 
-  // Verify parent + ownership
-  const { data: parent } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id')
-    .eq('phone', phone)
-    .eq('access_pin', pin)
-    .maybeSingle();
-  if (!parent) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+  const { data: parents } = await supabaseAdmin.from('parents')
+    .select('id, school_id, student_id, access_pin, access_pin_hashed')
+    .eq('phone', phone);
+  if (!parents || parents.length !== 1) return null;
+  const p = parents[0];
 
-  const schoolId = parent.school_id as string;
-  const studentId = parent.student_id as string;
+  let valid = false;
+  if (p.access_pin_hashed) valid = await bcrypt.compare(pin, p.access_pin_hashed);
+  else if (p.access_pin) valid = p.access_pin === pin;
+  if (!valid) return null;
 
-  // Fetch student + school
+  return { schoolId: p.school_id, studentId: p.student_id };
+}
+
+export async function GET(req: NextRequest) {
+  const parent = await resolveParent(req);
+  if (!parent) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const term = req.nextUrl.searchParams.get('term');
+  if (!term) return NextResponse.json({ error: 'term query param required' }, { status: 400 });
+
+  const { schoolId, studentId } = parent;
+
   const [studentRes, schoolRes] = await Promise.all([
     supabaseAdmin.from('students').select('name, class, section, roll_number').eq('id', studentId).eq('school_id', schoolId).maybeSingle(),
     supabaseAdmin.from('schools').select('name, address').eq('id', schoolId).maybeSingle(),
@@ -45,7 +57,6 @@ export async function POST(req: NextRequest) {
   const student = studentRes.data;
   const school = schoolRes.data;
 
-  // Fetch marks for this term
   const { data: marks } = await supabaseAdmin
     .from('academic_records')
     .select('subject, marks_obtained, max_marks, grade')
@@ -61,7 +72,6 @@ export async function POST(req: NextRequest) {
   const termLabel = term.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const className = student ? `${student.class ?? '?'}${student.section ? '-' + student.section : ''}` : 'N/A';
 
-  // Generate PDF
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.getWidth();
   doc.setFontSize(16).setFont('helvetica', 'bold');
@@ -75,7 +85,7 @@ export async function POST(req: NextRequest) {
   let y = 42;
   doc.setFontSize(9).setFont('helvetica', 'normal');
   [['Student Name', student?.name ?? 'N/A', 'Term', termLabel],
-   ['Class', className, 'Roll No', student?.roll_number ?? 'N/A']
+   ['Class', className, 'Roll No', String(student?.roll_number ?? 'N/A')]
   ].forEach(([l1,v1,l2,v2]) => {
     doc.setFont('helvetica','bold').text(`${l1}:`,15,y);
     doc.setFont('helvetica','normal').text(v1,50,y);
@@ -109,7 +119,7 @@ export async function POST(req: NextRequest) {
   doc.line(15,y,pw-15,y); y+=5;
   doc.setFont('helvetica','bold');
   doc.setTextColor(promoted?0:180,promoted?120:0,0);
-  doc.text(promoted?'✓ Promoted to next class':'✗ Detained — Below passing threshold',15,y);
+  doc.text(promoted?'\u2713 Promoted to next class':'\u2717 Detained \u2014 Below passing threshold',15,y);
   doc.setTextColor(0,0,0); y+=12;
   doc.line(15,y,65,y); doc.line(pw-65,y,pw-15,y); y+=5;
   doc.setFont('helvetica','normal').setFontSize(8);
@@ -119,3 +129,6 @@ export async function POST(req: NextRequest) {
   const pdfBase64 = doc.output('datauristring').split(',')[1];
   return NextResponse.json({ pdf_base64: pdfBase64, student_name: student?.name ?? '', term, percentage: parseFloat(percentage.toFixed(1)), grade: overallGrade });
 }
+
+// POST retained for backward compat (old body-auth clients)
+export async function POST(req: NextRequest) { return GET(req); }

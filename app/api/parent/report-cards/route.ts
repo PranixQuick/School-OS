@@ -1,12 +1,15 @@
 // app/api/parent/report-cards/route.ts
-// Batch 9 — Parent view of child marks grouped by term.
-// Auth: phone+PIN (same pattern as /api/parent/fees).
+// Parent view of child marks grouped by term.
+// Auth: getParentSession cookie (same pattern as /api/parent/fees).
+// Backward compat: falls back to phone+PIN body auth if no session cookie.
 // academic_records.subject is TEXT (not UUID) — confirmed in Batch 6.
 // TODO(item-15): migrate to supabaseForUser
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getParentSession } from '@/lib/parent-auth';
+import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
@@ -16,39 +19,51 @@ function calcGrade(pct: number): string {
   return 'F';
 }
 
-export async function POST(req: NextRequest) {
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
+async function resolveParent(req: NextRequest): Promise<{ schoolId: string; studentId: string } | null> {
+  // Cookie-first
+  const session = await getParentSession(req);
+  if (session) return { schoolId: session.schoolId, studentId: session.studentId };
 
-  const { phone, pin, term } = body as { phone?: string; pin?: string; term?: string };
-  if (!phone || !pin) return NextResponse.json({ error: 'phone and pin are required' }, { status: 400 });
+  // Fallback: phone+PIN body (backward compat)
+  let body: { phone?: string; pin?: string } = {};
+  try { body = await req.json(); } catch { return null; }
+  const { phone, pin } = body;
+  if (!phone || !pin) return null;
 
-  // Verify parent credentials
-  const { data: parent } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id, name')
-    .eq('phone', phone)
-    .eq('access_pin', pin)
-    .maybeSingle();
-  if (!parent) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+  const { data: parents } = await supabaseAdmin.from('parents')
+    .select('id, school_id, student_id, access_pin, access_pin_hashed')
+    .eq('phone', phone);
+  if (!parents || parents.length !== 1) return null;
+  const p = parents[0];
 
-  const { schoolId: schoolId, student_id: studentId } = { schoolId: parent.school_id, student_id: parent.student_id };
+  let valid = false;
+  if (p.access_pin_hashed) valid = await bcrypt.compare(pin, p.access_pin_hashed);
+  else if (p.access_pin) valid = p.access_pin === pin;
+  if (!valid) return null;
+
+  return { schoolId: p.school_id, studentId: p.student_id };
+}
+
+async function handleRequest(req: NextRequest) {
+  const parent = await resolveParent(req);
+  if (!parent) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const term = req.nextUrl.searchParams.get('term') ?? undefined;
 
   // Fetch student info
   const { data: student } = await supabaseAdmin
     .from('students')
     .select('name, class, section, roll_number')
-    .eq('id', studentId)
-    .eq('school_id', schoolId)
+    .eq('id', parent.studentId)
+    .eq('school_id', parent.schoolId)
     .maybeSingle();
 
   // Fetch marks
   let query = supabaseAdmin
     .from('academic_records')
     .select('term, subject, marks_obtained, max_marks, grade, exam_date')
-    .eq('school_id', schoolId)
-    .eq('student_id', studentId)
+    .eq('school_id', parent.schoolId)
+    .eq('student_id', parent.studentId)
     .order('term')
     .order('subject');
   if (term) query = query.eq('term', term);
@@ -74,3 +89,6 @@ export async function POST(req: NextRequest) {
     terms,
   });
 }
+
+export async function GET(req: NextRequest) { return handleRequest(req); }
+export async function POST(req: NextRequest) { return handleRequest(req); }
