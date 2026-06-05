@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
 
   // Validate fee_items shape
   for (const item of fee_items) {
-    if (!item.name || typeof item.amount !== 'number' || item.amount <= 0) {
+    if (!item.fee_type || typeof item.amount !== 'number' || item.amount <= 0) {
       return NextResponse.json(
-        { error: 'Each fee_item must have name (string) and amount (number > 0)' },
+        { error: 'Each fee_item must have fee_type (string) and amount (number > 0)' },
         { status: 400 }
       );
     }
