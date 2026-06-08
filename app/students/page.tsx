@@ -277,7 +277,7 @@ export default function StudentsPage() {
                     {s.status === 'graduated' && s.graduation_year && <div style={{ fontSize: 11, color: '#3730A3' }}>{T('graduated', lang as never)} {s.graduation_year}</div>}
                   </div>
                   <span style={{ padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 700, background: bg, color: fg, marginLeft: 8, flexShrink: 0 }}>
-                    {T(STATUS_KEYS[s.status] ?? s.status, lang as never)}
+                    {s.status ? T(STATUS_KEYS[s.status] ?? s.status, lang as never) : '—'}
                   </span>
                 </div>
                 {s.status === 'active' && (
