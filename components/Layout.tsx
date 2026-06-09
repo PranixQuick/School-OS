@@ -85,6 +85,8 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       { key: 'fees',          href: '/admin/fees',                   icon: '💰',
         // Govt and anganwadi institutions don't run platform-managed fees.
         showFor: (ctx) => !ctx.isGovernment && !ctx.isAnganwadi },
+      { key: 'fee_categories', href: '/admin/fees/categories',        icon: '🏷️',
+        showFor: (ctx) => !ctx.isGovernment && !ctx.isAnganwadi },
       { key: 'payroll',       href: '/admin/payroll',                icon: '💼',
         // Anganwadi staff are typically paid through government channels, not
         // the platform.
