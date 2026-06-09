@@ -1,14 +1,18 @@
 // app/api/admin/fee-categories/[id]/route.ts
 // PR-103 — Fee Categories PATCH (update name / description / is_active)
 // PATCH /api/admin/fee-categories/:id
+//
+// Next.js 15 App Router: params is a Promise — must be awaited.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
+type RouteContext = { params: Promise<{ id: string }> };
+
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   let auth;
   try { auth = await requireAdminSession(req); }
@@ -17,7 +21,7 @@ export async function PATCH(
     throw e;
   }
 
-  const { id } = params;
+  const { id } = await context.params;
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
   const body = await req.json().catch(() => null);
