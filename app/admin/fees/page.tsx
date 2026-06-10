@@ -197,7 +197,7 @@ export default function FeesPage() {
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>₹{(Number(fee.amount) || 0).toLocaleString('en-IN')}</div>
                 <span style={{ display: 'inline-block', marginTop: 3, padding: '2px 8px', borderRadius: 6,
-                  background: STATUS_BG[fee.status], color: STATUS_COLOR[fee.status],
+                  background: STATUS_BG[fee.status] ?? '#F3F4F6', color: STATUS_COLOR[fee.status] ?? '#374151',
                   fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>
                   {fee.status}
                 </span>
