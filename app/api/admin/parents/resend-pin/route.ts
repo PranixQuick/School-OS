@@ -61,7 +61,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Stamp delivery tracking — this is what the truth board reads as "credentialed".
+  if (notifErr) {
+    return NextResponse.json({ error: `Failed to queue PIN notification: ${notifErr.message}` }, { status: 500 });
+  }
+
+  // Stamp delivery tracking only after the message is actually queued.
   await supabaseAdmin.from('parents').update({ credential_sent_at: new Date().toISOString() }).eq('id', parent.id);
 
   return NextResponse.json({ success: true, message: 'PIN resend queued via WhatsApp.' });
