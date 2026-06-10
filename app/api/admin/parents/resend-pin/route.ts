@@ -23,12 +23,15 @@ export async function POST(req: NextRequest) {
   if (pErr || !parent) return NextResponse.json({ error: 'Parent not found' }, { status: 404 });
   if (!parent.phone) return NextResponse.json({ error: 'Parent has no phone number on record' }, { status: 422 });
 
-  let pin = parent.access_pin ?? '----';
-
-  // If regenerating, create a new 4-digit PIN
+  // 318/320 parents have only a hashed PIN (access_pin_hashed) with no readable
+  // plaintext (access_pin). We cannot un-hash, so if there is no plaintext PIN we
+  // MUST re-issue a fresh one — otherwise we'd send a useless placeholder.
+  let pin: string;
   if (body.regenerate || !parent.access_pin) {
     pin = String(Math.floor(1000 + Math.random() * 9000));
     await supabaseAdmin.from('parents').update({ access_pin: pin }).eq('id', parent.id);
+  } else {
+    pin = parent.access_pin;
   }
 
   // Fetch student name for the message
