@@ -159,6 +159,20 @@ async function resolveRecipients(supabase: SupabaseClient, row: NotificationRow)
     return (parents ?? []).filter(p => p.phone).map(p => ({ phone: p.phone, name: p.name }));
   }
 
+  if (row.module === 'credentials' || row.type === 'parent_pin_resend' || row.type === 'parent_credentials') {
+    // Credential delivery targets ONE parent, identified by reference_id = parent_id.
+    // Previously this fell through to [] (0 recipients), so no parent PIN was ever sent.
+    if (!row.reference_id) {
+      console.error(`Credential notif ${row.id} has no reference_id (parent_id) — cannot resolve recipient`);
+      return [];
+    }
+    const { data: parent, error: cErr } = await supabase.from('parents').select('phone, name')
+      .eq('id', row.reference_id).eq('school_id', row.school_id).maybeSingle();
+    if (cErr) { console.error(`Credential recipient resolve error (notif=${row.id}):`, cErr.message); return []; }
+    if (!parent?.phone) { console.error(`Credential notif ${row.id}: parent ${row.reference_id} has no phone`); return []; }
+    return [{ phone: parent.phone, name: parent.name }];
+  }
+
   console.warn(`Unknown module/type for recipient resolution (notif=${row.id}, module=${module}, type=${row.type})`);
   return [];
 }
