@@ -53,8 +53,8 @@ export default function FeesPage() {
         paid: list.filter(f => f.status === 'paid').length,
         pending: list.filter(f => f.status === 'pending').length,
         overdue: list.filter(f => f.status === 'overdue').length,
-        collected: list.filter(f => f.status === 'paid').reduce((s, f) => s + f.amount, 0),
-        outstanding: list.filter(f => f.status !== 'paid').reduce((s, f) => s + f.amount, 0),
+        collected: list.filter(f => f.status === 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0),
+        outstanding: list.filter(f => f.status !== 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0),
       });
     } catch { /* keep empty state */ }
     setLoading(false);
