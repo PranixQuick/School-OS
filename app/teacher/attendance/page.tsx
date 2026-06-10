@@ -46,38 +46,30 @@ export default function TeacherAttendancePage() {
     setSaved(false);
     setExistingDate(null);
 
-    const [studRes, attRes] = await Promise.allSettled([
-      fetch(`/api/teacher/students?class_id=${selectedClass}`),
-      fetch(`/api/teacher/attendance?class_id=${selectedClass}&date=${today}`),
-    ]);
+    const cls = classes.find(c => c.id === selectedClass);
+    if (!cls) { setLoadingStudents(false); return; }
+    const qs = new URLSearchParams({ class: cls.grade, date: today });
+    if (cls.section) qs.set('section', cls.section);
 
     let studentList: StudentRow[] = [];
-    if (studRes.status === 'fulfilled' && studRes.value.ok) {
-      const sd = await studRes.value.json();
-      studentList = (sd.students ?? []).map((s: { id: string; name: string; roll_number: string | null }) => ({
-        id: s.id, name: s.name, roll_number: s.roll_number, status: null,
-      }));
-    }
+    const attRes = await fetch(`/api/teacher/attendance?${qs.toString()}`).catch(() => null);
 
-    if (attRes.status === 'fulfilled' && attRes.value.ok) {
-      const ad = await attRes.value.json();
-      const existing: AttRecord[] = ad.records ?? [];
-      if (existing.length > 0) {
-        setExistingDate(today);
-        studentList = studentList.map(s => {
-          const rec = existing.find((r: AttRecord) => r.student_id === s.id);
-          return { ...s, status: (rec?.status ?? 'present') as StudentRow['status'] };
-        });
-      } else {
-        studentList = studentList.map(s => ({ ...s, status: 'present' as const }));
-      }
-    } else {
-      studentList = studentList.map(s => ({ ...s, status: 'present' as const }));
+    if (attRes && attRes.ok) {
+      const ad = await attRes.json();
+      // The attendance GET returns the full roster with each student's existing
+      // status (null if not yet marked) in a single call.
+      const roster: Array<{ id: string; name: string; roll_number: string | null; status: StudentRow['status'] | null }> = ad.students ?? [];
+      const anyMarked = roster.some(s => s.status);
+      if (anyMarked) setExistingDate(today);
+      studentList = roster.map(s => ({
+        id: s.id, name: s.name, roll_number: s.roll_number,
+        status: (s.status ?? 'present') as StudentRow['status'],
+      }));
     }
 
     setStudents(studentList);
     setLoadingStudents(false);
-  }, [selectedClass, today]);
+  }, [selectedClass, classes, today]);
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
