@@ -90,12 +90,15 @@ export default function TeacherAttendancePage() {
 
   async function save() {
     if (students.length === 0) return;
+    const cls = classes.find(c => c.id === selectedClass);
+    if (!cls) return;
     setSaving(true);
     const res = await fetch('/api/teacher/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        class_id: selectedClass,
+        class: cls.grade,
+        section: cls.section || undefined,
         date: today,
         records: students.map(s => ({ student_id: s.id, status: s.status ?? 'present' })),
       }),
