@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
 
   // Queue WhatsApp notification. reference_id = parent id so the dispatcher's
   // credentials branch can resolve this single recipient.
-  await supabaseAdmin.from('notifications').insert({
+  const { error: notifErr } = await supabaseAdmin.from('notifications').insert({
     school_id: schoolId,
-    type: 'parent_pin_resend',
+    type: 'system',
     title: 'EdProSys Parent Portal',
     message: `Hello ${parent.name}, your login PIN for the EdProSys parent portal is: *${pin}*\n\nStudents: ${studentName}\nLogin: edprosys.com/parent\n\nUse your registered phone number and this PIN to access homework, fees, attendance and more.`,
     module: 'credentials',
