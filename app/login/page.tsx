@@ -168,7 +168,7 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
+                <div role="alert" data-testid="login-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
                   {error}
                 </div>
               )}
@@ -256,7 +256,7 @@ export default function LoginPage() {
                     />
                   </div>
                   {magicLinkError && (
-                    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 14 }}>{magicLinkError}</div>
+                    <div role="alert" data-testid="magic-link-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 14 }}>{magicLinkError}</div>
                   )}
                   <button type="button" onClick={() => void handleMagicLink()} disabled={magicLinkLoading}
                     style={{ width: '100%', height: 46, borderRadius: 10, border: 'none', background: magicLinkLoading ? '#818CF8' : '#4F46E5', color: '#fff', fontSize: 15, fontWeight: 600, cursor: magicLinkLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
