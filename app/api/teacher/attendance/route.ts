@@ -61,15 +61,21 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabaseAdmin.from('attendance')
       .select('id').eq('school_id', schoolId).eq('student_id', rec.student_id).eq('date', date).maybeSingle();
 
+    let writeErr = null;
     if (existing) {
-      await supabaseAdmin.from('attendance').update({
-        status: rec.status, marked_by: staffId, marked_via: 'teacher_dashboard',
+      const { error } = await supabaseAdmin.from('attendance').update({
+        status: rec.status, marked_by: staffId, marked_via: 'portal',
       }).eq('id', existing.id).eq('school_id', schoolId);
+      writeErr = error;
     } else {
-      await supabaseAdmin.from('attendance').insert({
+      const { error } = await supabaseAdmin.from('attendance').insert({
         school_id: schoolId, student_id: rec.student_id,
-        date, status: rec.status, marked_by: staffId, marked_via: 'teacher_dashboard',
+        date, status: rec.status, marked_by: staffId, marked_via: 'portal',
       });
+      writeErr = error;
+    }
+    if (writeErr) {
+      return NextResponse.json({ error: `Failed to save attendance for ${rec.student_id}: ${writeErr.message}`, saved }, { status: 500 });
     }
     saved++;
     if (rec.status === 'absent' || rec.status === 'late') absentRecords.push(rec);
