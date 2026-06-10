@@ -168,7 +168,7 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
+                <div role="alert" data-testid="login-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
                   {error}
                 </div>
               )}
