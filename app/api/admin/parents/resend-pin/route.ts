@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
     if (s?.name) studentName = s.name;
   }
 
-  // Queue WhatsApp notification
+  // Queue WhatsApp notification. reference_id = parent id so the dispatcher's
+  // credentials branch can resolve this single recipient.
   await supabaseAdmin.from('notifications').insert({
     school_id: schoolId,
     type: 'parent_pin_resend',
     title: 'EdProSys Parent Portal',
     message: `Hello ${parent.name}, your login PIN for the EdProSys parent portal is: *${pin}*\n\nStudents: ${studentName}\nLogin: edprosys.com/parent\n\nUse your registered phone number and this PIN to access homework, fees, attendance and more.`,
     module: 'credentials',
+    reference_id: parent.id,
     status: 'pending',
     channel: 'whatsapp',
     template_vars: {
@@ -58,6 +60,9 @@ export async function POST(req: NextRequest) {
       portal_url: 'https://www.edprosys.com/parent',
     },
   });
+
+  // Stamp delivery tracking — this is what the truth board reads as "credentialed".
+  await supabaseAdmin.from('parents').update({ credential_sent_at: new Date().toISOString() }).eq('id', parent.id);
 
   return NextResponse.json({ success: true, message: 'PIN resend queued via WhatsApp.' });
 }
