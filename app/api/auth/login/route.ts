@@ -97,6 +97,10 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (userCheck && !userCheck.auth_user_id) {
+    await logAuthEvent({
+      eventType: 'login_failure', email, ip,
+      metadata: { reason: 'auth_not_provisioned' },
+    });
     return NextResponse.json({
       error: 'Your login is not yet active. Please check your email for an EdProSys setup invitation and click "Set Password". If you have not received it, ask your school admin.',
       code: 'AUTH_NOT_PROVISIONED',
