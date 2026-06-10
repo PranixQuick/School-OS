@@ -191,7 +191,7 @@ export default function FeesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 2 }}>{fee.students?.name ?? '—'}</div>
                 <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  Class {fee.students?.class}{fee.students?.section} · {fee.fee_type} · Due {new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  Class {fee.students?.class}{fee.students?.section} · {fee.fee_type} · Due {fee.due_date ? new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
