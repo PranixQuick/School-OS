@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
 
   const classes = (classRes.data ?? []).map((c) => ({
     id: c.id,
+    grade: c.grade_level,
+    section: c.section,
     label: 'Grade ' + c.grade_level + (c.section ? '-' + c.section : ''),
   }));
   const subjects = (subjectRes.data ?? []).map((s) => ({
