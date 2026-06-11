@@ -25,6 +25,7 @@ import { verifyRazorpaySignature } from '@/lib/razorpay-verify';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
+import { verifyParentCredentials } from '@/lib/parent-auth';
 import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
