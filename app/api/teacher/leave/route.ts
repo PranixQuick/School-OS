@@ -121,5 +121,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Notify the principal/leadership in real time so they can act on the request.
+  // Best-effort — the leave request is already filed.
+  try {
+    const { data: staff } = await supabaseAdmin
+      .from('staff')
+      .select('name')
+      .eq('id', staffId)
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    const who = staff?.name ? staff.name : 'A teacher';
+    const notifResult = await writeNotification(supabaseAdmin, {
+      school_id: schoolId,
+      type: 'leave_status',
+      title: 'New leave request',
+      message: `${who} applied for ${body.leave_type} leave (${body.from_date} to ${body.to_date}). Review in Principal → Leave Approvals.`,
+      module: 'leave',
+      reference_id: data.id,
+    });
+    if (!notifResult.ok) console.error('Leave notification failed (non-fatal):', notifResult.error);
+  } catch (notifErr) {
+    console.error('Leave notification threw (non-fatal):', notifErr);
+  }
+
   return NextResponse.json({ request: data }, { status: 201 });
 }
