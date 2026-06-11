@@ -6,6 +6,7 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import type { NextRequest } from 'next/server';
 import { env } from '@/lib/env';
 
