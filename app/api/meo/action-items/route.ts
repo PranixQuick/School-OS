@@ -38,6 +38,24 @@ export async function POST(req: NextRequest) {
     status: 'open',
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the inspected school's leadership in real time. Best-effort.
+  try {
+    const { error: notifErr } = await supabaseAdmin.from('notifications').insert({
+      school_id: body.school_id,
+      type: 'alert',
+      title: `New MEO action item (${body.severity ?? 'medium'})`,
+      message: `The MEO has raised a ${body.category ?? 'compliance'} action item: ${body.description.slice(0, 160)}${body.due_date ? ` (due ${body.due_date})` : ''}.`,
+      module: 'meo_action',
+      reference_id: data.id,
+      channel: 'email',
+      status: 'pending',
+    });
+    if (notifErr) console.error('MEO action-item notification failed (non-fatal):', notifErr);
+  } catch (e) {
+    console.error('MEO action-item notification threw (non-fatal):', e);
+  }
+
   return NextResponse.json({ success: true, item: data });
 }
 
