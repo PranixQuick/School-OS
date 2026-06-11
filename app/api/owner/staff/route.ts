@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('staff')
-    .select('id, school_id, name, email, phone, role, department, is_active')
+    .select('id, school_id, name, email, phone, role, department_id, is_active')
     .in('school_id', schoolIds)
     .eq('is_active', true)
     .order('school_id', { ascending: true })
