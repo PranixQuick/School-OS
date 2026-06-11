@@ -24,6 +24,7 @@ async function resolveDeoDistrict(userId: string): Promise<{ district_code: stri
   const { data } = await supabaseAdmin
     .from('meo_mandal_mapping')
     .select('district_code, district_name, state_code, state_name')
+    .eq('is_active', true)
     .limit(1)
     .maybeSingle();
   if (!data) return null;
