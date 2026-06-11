@@ -36,6 +36,45 @@ function adminClient() {
   );
 }
 
+/**
+ * Unified parent credential verification — the SINGLE source of truth used by
+ * every /api/parent/* action route (complaints, fees, consent, student, …).
+ *
+ * Mirrors the login route exactly: prefer the hashed PIN, fall back to a legacy
+ * plaintext PIN and transparently upgrade it to a hash. Previously each action
+ * route re-implemented this as `.eq('access_pin', pin)` (plaintext only), which
+ * broke the moment a parent logged in — login migrates the PIN to hashed and
+ * nulls the plaintext, so subsequent actions were rejected with "Invalid PIN".
+ *
+ * Returns the parent row on success, or null on bad credentials.
+ * Throws only on genuine lookup errors or duplicate-phone ambiguity.
+ */
+export async function verifyParentCredentials(phone: string, pin: string) {
+  const db = adminClient();
+  const { data: parents, error } = await db
+    .from('parents')
+    .select('id, school_id, student_id, name, phone, access_pin, access_pin_hashed, is_active')
+    .eq('phone', phone)
+    .eq('is_active', true);
+  if (error) throw new Error(`Parent lookup failed: ${error.message}`);
+  if (!parents || parents.length === 0) return null;
+  if (parents.length > 1) throw new Error('Multiple accounts match this phone');
+
+  const parent = parents[0];
+  let valid = false;
+  if (parent.access_pin_hashed) {
+    valid = await bcrypt.compare(pin, parent.access_pin_hashed);
+  } else if (parent.access_pin) {
+    valid = parent.access_pin === pin;
+    if (valid) {
+      const hashed = await bcrypt.hash(pin, 10);
+      await db.from('parents').update({ access_pin_hashed: hashed, access_pin: null }).eq('id', parent.id);
+    }
+  }
+  if (!valid) return null;
+  return { id: parent.id, school_id: parent.school_id, student_id: parent.student_id, name: parent.name, phone: parent.phone };
+}
+
 export async function signParentSession(payload: ParentSessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: ALG })
