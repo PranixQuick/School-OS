@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
   let body: {
     institution_name?: string; udise_code?: string;
     principal_name?: string; principal_email?: string;
+    institution_type?: string;
   } | null = null;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
