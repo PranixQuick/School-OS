@@ -47,7 +47,7 @@ DROP POLICY IF EXISTS fee_categories_select ON public.fee_categories;
 CREATE POLICY fee_categories_select ON public.fee_categories
   FOR SELECT USING (
     school_id = (SELECT school_id FROM public.school_users
-                  WHERE user_id = auth.uid() LIMIT 1)
+                  WHERE auth_user_id = auth.uid() LIMIT 1)
   );
 
 -- Only admin / owner can insert
@@ -55,7 +55,7 @@ DROP POLICY IF EXISTS fee_categories_insert ON public.fee_categories;
 CREATE POLICY fee_categories_insert ON public.fee_categories
   FOR INSERT WITH CHECK (
     school_id = (SELECT school_id FROM public.school_users
-                  WHERE user_id = auth.uid()
+                  WHERE auth_user_id = auth.uid()
                     AND role IN ('admin','owner')
                   LIMIT 1)
   );
@@ -65,7 +65,7 @@ DROP POLICY IF EXISTS fee_categories_update ON public.fee_categories;
 CREATE POLICY fee_categories_update ON public.fee_categories
   FOR UPDATE USING (
     school_id = (SELECT school_id FROM public.school_users
-                  WHERE user_id = auth.uid()
+                  WHERE auth_user_id = auth.uid()
                     AND role IN ('admin','owner')
                   LIMIT 1)
   );
