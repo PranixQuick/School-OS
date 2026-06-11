@@ -155,5 +155,29 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 });
   }
 
+  // Notify the parent in real time when the school acts on their complaint
+  // (status resolved/closed, or a resolution was written). Best-effort — the
+  // complaint update is already committed.
+  const becameResolved = updates.status === 'resolved' || updates.status === 'closed';
+  const gotResolution = typeof updates.resolution === 'string' && updates.resolution.length > 0;
+  if (becameResolved || gotResolution) {
+    try {
+      const { error: notifErr } = await supabaseAdmin.from('notifications').insert({
+        school_id: schoolId,
+        type: 'system',
+        title: becameResolved ? 'Your complaint has been resolved' : 'Update on your complaint',
+        message: `Your complaint "${updated.subject}" has an update from the school${updated.resolution ? `: ${String(updated.resolution).slice(0, 200)}` : '.'}`,
+        module: 'complaints',
+        reference_id: updated.id,
+        channel: 'whatsapp',
+        status: 'pending',
+        metadata_json: { parent_phone: updated.parent_phone, complaint_status: updated.status },
+      });
+      if (notifErr) console.error('Parent complaint-resolution notification failed (non-fatal):', notifErr);
+    } catch (e) {
+      console.error('Parent complaint-resolution notification threw (non-fatal):', e);
+    }
+  }
+
   return NextResponse.json({ success: true, complaint: updated });
 }
