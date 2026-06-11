@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { verifyParentCredentials } from '@/lib/parent-auth';
+import { verifyParentCredentials, getParentSession } from '@/lib/parent-auth';
 
 // PR-2 Task A: Parent complaint create + history.
 // Auth pattern: phone+PIN re-auth per request (matches /api/parent/announcements,
