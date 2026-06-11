@@ -171,7 +171,6 @@ export async function PATCH(
         reference_id: updated.id,
         channel: 'whatsapp',
         status: 'pending',
-        metadata_json: { parent_phone: updated.parent_phone, complaint_status: updated.status },
       });
       if (notifErr) console.error('Parent complaint-resolution notification failed (non-fatal):', notifErr);
     } catch (e) {
