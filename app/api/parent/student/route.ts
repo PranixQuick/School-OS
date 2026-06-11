@@ -14,18 +14,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
     }
 
-    // Build query — MUST reassign each .eq() call (Supabase builder is immutable)
-    let query = supabaseAdmin
-      .from('parents')
-      .select('id, school_id, student_id, name, phone, access_pin, last_access')
-      .eq('phone', phone)
-      .eq('access_pin', pin);
-
-    if (school_id) query = query.eq('school_id', school_id);
-
-    const { data: parent, error: pErr } = await query.single();
-
-    if (pErr || !parent) {
+    // Unified hash-aware verification (shared with login + all parent actions).
+    let parent;
+    try {
+      parent = await verifyParentCredentials(phone, pin);
+    } catch {
+      return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
+    }
+    if (!parent) {
+      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+    }
+    if (school_id && parent.school_id !== school_id) {
       return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
     }
 
