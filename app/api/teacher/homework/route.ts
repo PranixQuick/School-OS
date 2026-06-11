@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { requireTeacherSession, TeacherAuthError } from '@/lib/teacher-auth';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { writeNotification } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 
