@@ -158,21 +158,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to file complaint' }, { status: 500 });
   }
 
-  // Best-effort: notify school admins about an escalated complaint via notifications table.
-  // Doesn't block on failure — the complaint is already filed.
-  if (initialStatus === 'escalated') {
-    try {
-      await supabaseAdmin.from('notifications').insert({
-        school_id: parent.school_id,
-        type: 'alert',
-        title: `Escalated complaint: ${complaintType}`,
-        message: `A parent has filed a complaint requiring immediate attention. Subject: ${subject.slice(0, 100)}. View in admin → Parent Complaints.`,
-        channel: 'email',
-        status: 'pending',
-      });
-    } catch (notifyErr) {
-      // Log but don't fail the complaint creation
-      console.error('Failed to queue escalation notification:', notifyErr);
+  // Notify school admins about EVERY new complaint via the notifications table.
+  // Escalated complaints get urgent wording; all others still reach the admin so
+  // nothing sits unseen. Best-effort — never blocks the already-filed complaint.
+  {
+    const isEscalated = initialStatus === 'escalated';
+    const { error: notifyErr } = await supabaseAdmin.from('notifications').insert({
+      school_id: parent.school_id,
+      type: 'alert',
+      title: isEscalated ? `Escalated complaint: ${complaintType}` : `New parent complaint: ${complaintType}`,
+      message: isEscalated
+        ? `A parent has filed a complaint requiring immediate attention. Subject: ${subject.slice(0, 100)}. View in admin → Parent Complaints.`
+        : `A parent has filed a new complaint. Subject: ${subject.slice(0, 100)}. View in admin → Parent Complaints.`,
+      module: 'complaints',
+      reference_id: inserted.id,
+      channel: 'email',
+      status: 'pending',
+    });
+    if (notifyErr) {
+      // Log but don't fail the complaint creation — the complaint is already filed.
+      console.error('Failed to queue complaint notification:', notifyErr);
     }
   }
 
