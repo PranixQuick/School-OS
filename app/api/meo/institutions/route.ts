@@ -51,6 +51,35 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ institutions: [], count: 0 });
 }
 
+// DELETE — MEO soft-deactivates an institution they onboarded (school-scoped).
+export async function DELETE(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.userRole !== 'meo') {
+    return NextResponse.json({ error: `Role '${session.userRole}' is not permitted` }, { status: 403 });
+  }
+  const mandal = await resolveMeoMandal(session.userId);
+  if (!mandal) return NextResponse.json({ error: 'MEO mandal not configured' }, { status: 403 });
+
+  const schoolId = req.nextUrl.searchParams.get('school_id');
+  if (!schoolId) return NextResponse.json({ error: 'school_id query param required' }, { status: 400 });
+
+  // Confine to the MEO's mandal: the school's institution must carry this mandal_code.
+  const { data: school } = await supabaseAdmin
+    .from('schools').select('id, institution_id').eq('id', schoolId).maybeSingle();
+  if (!school) return NextResponse.json({ error: 'School not found' }, { status: 404 });
+  const { data: instRow } = await supabaseAdmin
+    .from('institutions').select('settings').eq('id', school.institution_id ?? '').maybeSingle();
+  const instMandal = (instRow?.settings as Record<string, unknown> | null)?.mandal_code;
+  if (instMandal && instMandal !== mandal.mandal_code) {
+    return NextResponse.json({ error: 'School is outside your mandal jurisdiction' }, { status: 403 });
+  }
+
+  await supabaseAdmin.from('schools').update({ is_active: false }).eq('id', schoolId);
+  await supabaseAdmin.from('school_users').update({ is_active: false }).eq('school_id', schoolId);
+  return NextResponse.json({ success: true, deactivated: schoolId });
+}
+
 // POST — MEO registers an institution under their mandal + grants principal access.
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
