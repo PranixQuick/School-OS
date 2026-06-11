@@ -50,6 +50,23 @@ export async function POST(req: NextRequest) {
   if (loginErr) return NextResponse.json({ error: `Login lookup failed: ${loginErr.message}` }, { status: 500 });
   if (!login) return NextResponse.json({ error: 'No login found for that email in this school' }, { status: 404 });
 
+  // role_v2_only mode: just set role_v2 (and backfill institution_id from the
+  // school if missing) without creating a staff record. Used for roles that don't
+  // need staff linkage but DO need role_v2 set for their auth (e.g. owner, whose
+  // requireOwnerSession filters on role_v2='owner'). Idempotent, additive.
+  if (body.role_v2_only === true) {
+    const patch: Record<string, unknown> = { role_v2: role };
+    if (!login.institution_id) {
+      const { data: school } = await supabaseAdmin
+        .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
+      if (school?.institution_id) patch.institution_id = school.institution_id;
+    }
+    const { error: rErr } = await supabaseAdmin
+      .from('school_users').update(patch).eq('id', login.id).eq('school_id', schoolId);
+    if (rErr) return NextResponse.json({ error: `role_v2 set failed: ${rErr.message}` }, { status: 500 });
+    return NextResponse.json({ success: true, role_v2_set: role, institution_backfilled: !login.institution_id });
+  }
+
   // 2) If already linked, return idempotently.
   if (login.staff_id) {
     return NextResponse.json({ success: true, already_linked: true, staff_id: login.staff_id });
