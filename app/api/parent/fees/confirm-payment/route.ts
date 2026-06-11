@@ -141,5 +141,24 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+  // Notify admin/accountant that a payment was received (real-time reconciliation
+  // signal). Best-effort — never blocks the already-confirmed payment.
+  try {
+    const { error: notifyErr } = await supabaseAdmin.from('notifications').insert({
+      school_id: schoolId,
+      type: 'fee_reminder',
+      title: 'Fee payment received',
+      message: `An online fee payment was received. Receipt: ${data.fee_receipt_number}. View in admin → Fees.`,
+      module: 'fees',
+      reference_id: body.fee_id,
+      channel: 'email',
+      status: 'pending',
+    });
+    if (notifyErr) console.error('[confirm-payment] payment notification failed (non-fatal):', notifyErr);
+  } catch (e) {
+    console.error('[confirm-payment] payment notification threw (non-fatal):', e);
+  }
+
   return NextResponse.json({ success: true, receipt_number: data.fee_receipt_number });
 }
