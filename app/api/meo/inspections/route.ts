@@ -41,5 +41,23 @@ export async function POST(req: NextRequest) {
     submitted_at:      new Date().toISOString(),
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the inspected school in real time. Best-effort.
+  try {
+    const { error: notifErr } = await supabaseAdmin.from('notifications').insert({
+      school_id: body.school_id,
+      type: 'alert',
+      title: 'MEO inspection report filed',
+      message: `An MEO inspection (${body.overall_rating ?? 'satisfactory'}, compliance ${body.compliance_score ?? 80}%) was recorded for your school on ${body.visit_date}.`,
+      module: 'meo_inspection',
+      reference_id: data.id,
+      channel: 'email',
+      status: 'pending',
+    });
+    if (notifErr) console.error('MEO inspection notification failed (non-fatal):', notifErr);
+  } catch (e) {
+    console.error('MEO inspection notification threw (non-fatal):', e);
+  }
+
   return NextResponse.json({ success: true, inspection: data });
 }
