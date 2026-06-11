@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { verifyParentCredentials } from '@/lib/parent-auth';
 
 // Parent portal: verify by phone + PIN, return child's data
 export async function POST(req: NextRequest) {
