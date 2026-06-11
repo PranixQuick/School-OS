@@ -75,17 +75,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'institution_name, principal_name and principal_email are required' }, { status: 400 });
   }
 
-  // 1) Create the institution record (best-effort; schools.institution_id links it).
-  let institutionId: string | null = null;
-  const { data: inst } = await supabaseAdmin
+  // Default to government school; overridable for the multi-institution-type model.
+  const institutionType = body?.institution_type?.trim() || 'govt_school';
+
+  // 1) Resolve the government organisation (institutions.organisation_id is NOT NULL).
+  const { data: siblingInst } = await supabaseAdmin
+    .from('institutions')
+    .select('organisation_id, ownership_type')
+    .limit(1)
+    .maybeSingle();
+  const organisationId = siblingInst?.organisation_id ?? null;
+  if (!organisationId) {
+    return NextResponse.json({ error: 'Could not resolve government organisation for this district' }, { status: 500 });
+  }
+
+  // 2) Create the institution record with all required columns. Fail loudly.
+  const { data: inst, error: instErr } = await supabaseAdmin
     .from('institutions')
     .insert({
+      organisation_id: organisationId,
       name: institutionName,
+      slug: slugify(institutionName),
+      institution_type: institutionType,
+      ownership_type: siblingInst?.ownership_type ?? 'government',
       settings: { udise_code: body?.udise_code ?? null, mandal_code: mandal.mandal_code, district_code: mandal.district_code },
     })
     .select('id')
-    .maybeSingle();
-  institutionId = inst?.id ?? null;
+    .single();
+  if (instErr || !inst) {
+    return NextResponse.json({ error: `Institution create failed: ${instErr?.message}` }, { status: 500 });
+  }
+  const institutionId: string = inst.id;
 
   // 2) Create the school under this MEO's mandal jurisdiction.
   const { data: school, error: schoolErr } = await supabaseAdmin
