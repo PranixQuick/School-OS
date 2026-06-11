@@ -60,17 +60,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Re-auth parent
-  const { data: parents, error: pErr } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id')
-    .eq('phone', body.phone)
-    .eq('access_pin', body.pin);
-
-  if (pErr) return NextResponse.json({ error: 'Credential verification failed' }, { status: 500 });
-  if (!parents || parents.length === 0) return NextResponse.json({ error: 'Invalid phone or PIN' }, { status: 401 });
-  if (parents.length > 1) return NextResponse.json({ error: 'Multiple accounts match this phone.' }, { status: 409 });
-
-  const parent = parents[0];
+  let parent;
+  try {
+    parent = await verifyParentCredentials(body.phone, body.pin);
+  } catch (e) {
+    if (String(e).includes('Multiple accounts')) return NextResponse.json({ error: 'Multiple accounts match this phone.' }, { status: 409 });
+    return NextResponse.json({ error: 'Credential verification failed' }, { status: 500 });
+  }
+  if (!parent) return NextResponse.json({ error: 'Invalid phone or PIN' }, { status: 401 });
   const { school_id: schoolId, student_id: studentId } = parent;
 
   // Institution gate — both fee_module_enabled AND online_payment_enabled
