@@ -43,15 +43,7 @@ interface CreateBody {
 
 // Verify parent identity by phone+PIN match. Returns parent row or throws.
 async function verifyParent(phone: string, pin: string) {
-  const { data: parents, error } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id, name, phone')
-    .eq('phone', phone)
-    .eq('access_pin', pin);
-  if (error) throw new Error(`Parent lookup failed: ${error.message}`);
-  if (!parents || parents.length === 0) return null;
-  if (parents.length > 1) throw new Error('Multiple accounts match this phone');
-  return parents[0];
+  return verifyParentCredentials(phone, pin);
 }
 
 export async function POST(req: NextRequest) {
