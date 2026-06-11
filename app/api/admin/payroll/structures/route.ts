@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       id, staff_id, basic_salary, hra, da, conveyance, medical_allowance, other_allowance,
       gross_salary, pf_employer_pct, pf_employee_pct, esi_applicable, pt_state,
       tds_placeholder, other_deduction, effective_from, is_active,
-      staff!inner(id, name, designation, department)
+      staff!inner(id, name, designation, department_id)
     `)
     .eq('school_id', ctx.schoolId)
     .eq('is_active', true)
