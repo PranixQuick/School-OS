@@ -24,6 +24,7 @@ import { NextResponse } from 'next/server';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getInstitutionFlags } from '@/lib/institution-flags';
+import { verifyParentCredentials } from '@/lib/parent-auth';
 
 export const runtime = 'nodejs';
 
