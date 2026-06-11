@@ -128,5 +128,27 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Notify class parents in real time. Best-effort — homework is already committed.
+  try {
+    const { data: cls } = await supabaseAdmin
+      .from('classes')
+      .select('grade_level, section')
+      .eq('id', body.class_id)
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    const classLabel = cls ? `Class ${cls.grade_level}${cls.section ? '-' + cls.section : ''}` : 'your child\'s class';
+    const notifResult = await writeNotification(supabaseAdmin, {
+      school_id: schoolId,
+      type: 'homework_assigned',
+      title: `New homework: ${body.title.trim()}`,
+      message: `New homework for ${classLabel}: ${body.title.trim()}. Due: ${body.due_date}.`,
+      module: 'homework_created',
+      reference_id: data.id,
+    });
+    if (!notifResult.ok) console.error('Homework notification failed (non-fatal):', notifResult.error);
+  } catch (notifErr) {
+    console.error('Homework notification threw (non-fatal):', notifErr);
+  }
+
   return NextResponse.json({ homework: data }, { status: 201 });
 }
