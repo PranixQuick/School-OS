@@ -19,15 +19,15 @@ const VALID_CONSENT_TYPES = new Set([
 const VALID_STATUSES = new Set(['granted','withdrawn']);
 
 async function resolveParent(phone: string, pin: string) {
-  const { data: parents, error } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id')
-    .eq('phone', phone)
-    .eq('access_pin', pin);
-  if (error) return { error: 'Failed to verify credentials', status: 500 as const };
-  if (!parents || parents.length === 0) return { error: 'Invalid phone or PIN', status: 401 as const };
-  if (parents.length > 1) return { error: 'Multiple accounts match this phone. Contact your school admin.', status: 409 as const };
-  return { parent: parents[0] };
+  let parent;
+  try {
+    parent = await verifyParentCredentials(phone, pin);
+  } catch (e) {
+    if (String(e).includes('Multiple accounts')) return { error: 'Multiple accounts match this phone. Contact your school admin.', status: 409 as const };
+    return { error: 'Failed to verify credentials', status: 500 as const };
+  }
+  if (!parent) return { error: 'Invalid phone or PIN', status: 401 as const };
+  return { parent: { id: parent.id, school_id: parent.school_id, student_id: parent.student_id } };
 }
 
 // ─── POST: record consent entries ────────────────────────────────────────────
