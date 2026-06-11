@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('departments')
-    .select('*, hod:staff(id, name, email, role)')
+    .select('*, hod:staff!departments_hod_staff_id_fkey(id, name, email, role)')
     .eq('institution_id', school.institution_id)
     .order('code');
 
