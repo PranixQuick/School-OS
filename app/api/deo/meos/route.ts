@@ -49,6 +49,22 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ meos: data ?? [], count: (data ?? []).length });
 }
 
+// DELETE — DEO deactivates an MEO mapping by id (e.g. a stale/orphaned row).
+export async function DELETE(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.userRole !== 'deo') {
+    return NextResponse.json({ error: `Role '${session.userRole}' is not permitted` }, { status: 403 });
+  }
+  const mappingId = req.nextUrl.searchParams.get('mapping_id');
+  if (!mappingId) return NextResponse.json({ error: 'mapping_id query param required' }, { status: 400 });
+
+  const { error } = await supabaseAdmin
+    .from('meo_mandal_mapping').update({ is_active: false }).eq('id', mappingId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true, deactivated: mappingId });
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
