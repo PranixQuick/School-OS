@@ -30,6 +30,7 @@ const ACTION_KEYS = [
   { href: '/parent/timetable',  icon: '🗓️', key: 'timetable',  bg: '#EEF2FF' },
   { href: '/parent/notices',    icon: '📢', key: 'announcements', bg: '#F9FAFB' },
   { href: '/parent/events',     icon: '📸', key: 'events',     bg: '#FDF4FF' },
+  { href: '/parent/complaints', icon: '📣', key: 'complaints', bg: '#FEF2F2' },
 ];
 
 const LANG_SHORT: Partial<Record<Lang, string>> = {
