@@ -55,21 +55,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  if (!body.phone || !body.pin) {
-    return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
-  }
-
-  let parent;
-  try {
-    parent = await verifyParent(body.phone, body.pin);
-  } catch (e) {
-    if (String(e).includes('Multiple accounts')) {
-      return NextResponse.json({ error: String(e) }, { status: 409 });
+  // Auth: prefer the logged-in parent session cookie; fall back to phone+PIN in
+  // the body (used by older/native callers).
+  let parent: { id: string; school_id: string; student_id: string; name?: string; phone: string } | null = null;
+  const session = await getParentSession(req);
+  if (session) {
+    parent = { id: session.parentId, school_id: session.schoolId, student_id: session.studentId, phone: session.phone };
+  } else {
+    if (!body.phone || !body.pin) {
+      return NextResponse.json({ error: 'Not signed in (no session, and phone+pin not provided)' }, { status: 401 });
     }
-    return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
-  }
-  if (!parent) {
-    return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+    try {
+      parent = await verifyParent(body.phone, body.pin);
+    } catch (e) {
+      if (String(e).includes('Multiple accounts')) {
+        return NextResponse.json({ error: String(e) }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
+    }
+    if (!parent) {
+      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
+    }
   }
 
   const action = body.action ?? 'create';
