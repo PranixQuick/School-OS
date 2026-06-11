@@ -65,17 +65,16 @@ export async function POST(
   }
 
   // Re-auth parent
-  const { data: parents, error: pErr } = await supabaseAdmin
-    .from('parents')
-    .select('id, school_id, student_id')
-    .eq('phone', body.phone)
-    .eq('access_pin', body.pin);
+  let parent;
+  try {
+    parent = await verifyParentCredentials(body.phone, body.pin);
+  } catch (e) {
+    if (String(e).includes('Multiple accounts')) return NextResponse.json({ error: 'Multiple accounts match this phone. Contact school admin.' }, { status: 409 });
+    return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
+  }
+  if (!parent) return NextResponse.json({ error: 'Invalid phone or PIN' }, { status: 401 });
 
-  if (pErr) return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
-  if (!parents || parents.length === 0) return NextResponse.json({ error: 'Invalid phone or PIN' }, { status: 401 });
-  if (parents.length > 1) return NextResponse.json({ error: 'Multiple accounts match this phone. Contact school admin.' }, { status: 409 });
-
-  const { school_id: schoolId, student_id: studentId } = parents[0];
+  const { school_id: schoolId, student_id: studentId } = parent;
 
   // Institution gate
   const feeEnabled = await isFeeModuleEnabled(schoolId);
