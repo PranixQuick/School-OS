@@ -133,18 +133,56 @@ export async function POST(req: NextRequest) {
     if (schoolErr || !school) throw new Error(schoolErr?.message ?? 'Failed to create school');
     schoolId = school.id;
 
-    // Step 4: Create admin/owner user in school_users
+    // Step 4: Create admin/owner user in school_users.
+    // The owner is the ROOT authority of a self-registered institution — there is
+    // no one above them to "activate" their login, so we provision their Supabase
+    // Auth user inline with a known password and mark them verified. Without this
+    // the returned password was fiction: the account had auth_user_id=NULL and the
+    // login route rejected it with "your login is not yet active". This is the
+    // private-flow fix — owner registers and can sign in immediately.
+    const ownerEmail = admin_email.toLowerCase().trim();
+    const initialPassword = `edprosys${school.id.slice(0, 4)}`;
+
+    let ownerAuthId: string | null = null;
+    const { data: ownerAuth, error: ownerAuthErr } = await supabaseAdmin.auth.admin.createUser({
+      email: ownerEmail,
+      password: initialPassword,
+      email_confirm: true,
+      user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
+    });
+    if (ownerAuthErr) {
+      // Recover if an auth user already exists for this email (re-registration / leftover).
+      try {
+        for (let page = 1; page <= 10 && !ownerAuthId; page++) {
+          const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+          const hit = list?.users.find(u => (u.email ?? '').toLowerCase() === ownerEmail);
+          if (hit) {
+            await supabaseAdmin.auth.admin.updateUserById(hit.id, { password: initialPassword, email_confirm: true });
+            ownerAuthId = hit.id;
+          }
+          if (!list || list.users.length < 200) break;
+        }
+      } catch { /* fall through; handled below */ }
+    } else {
+      ownerAuthId = ownerAuth.user?.id ?? null;
+    }
+
     const { error: userErr } = await supabaseAdmin
       .from('school_users')
       .insert({
         school_id: school.id,
-        email: admin_email.toLowerCase().trim(),
+        email: ownerEmail,
         name: admin_name,
         role: 'owner',
+        auth_user_id: ownerAuthId,
+        is_active: true,
+        invite_status: ownerAuthId ? 'verified' : 'pending',
+        auth_verified: !!ownerAuthId,
       });
 
     if (userErr) {
-      // Rollback all three created rows
+      // Rollback all three created rows + any auth user we created
+      if (ownerAuthId) { try { await supabaseAdmin.auth.admin.deleteUser(ownerAuthId); } catch { /* ignore */ } }
       await supabaseAdmin.from('schools').delete().eq('id', school.id);
       await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
       await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
@@ -175,8 +213,6 @@ export async function POST(req: NextRequest) {
       is_holiday: false,
     });
 
-    const initialPassword = `edprosys${school.id.slice(0, 4)}`;
-
     return NextResponse.json({
       success: true,
       school: {
@@ -190,9 +226,12 @@ export async function POST(req: NextRequest) {
       login: {
         email: admin_email,
         password: initialPassword,
+        active: !!ownerAuthId,
       },
       next_step: '/onboarding',
-      message: 'Account created. Save your password below, then complete the setup wizard.',
+      message: ownerAuthId
+        ? 'Account created. Save your password below and sign in to complete the setup wizard.'
+        : 'Account created, but login activation is pending. Contact support to activate your login.',
     });
 
   } catch (err) {
