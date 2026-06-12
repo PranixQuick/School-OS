@@ -69,9 +69,20 @@ export async function POST(req: NextRequest) {
     const instType = INST_TYPE_MAP[body.institution_type ?? 'school_k10'] ?? 'school_k10';
     const ownType = body.ownership_type ?? 'private';
 
-    const isGovt = ['govt_school', 'govt_aided_school', 'welfare_school'].includes(instType);
+    const GOVT_SCHOOL_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school'];
+    const HIGHER_ED_TYPES = ['junior_college', 'degree_college', 'intermediate_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
+    const isGovt = GOVT_SCHOOL_TYPES.includes(instType);
     const isPrivateOrFranchise = ['private', 'franchise'].includes(ownType);
     const isAided = ownType === 'aided';
+    const isGovernmentOwned = ownType === 'government';
+    const isHigherEd = HIGHER_ED_TYPES.includes(instType);
+    // Government higher-ed (junior/degree colleges) charge a small fee that is
+    // largely covered by state scholarship/reimbursement — so BOTH the fee module
+    // and scholarship tracking must be on for them, even though they are neither
+    // private nor a govt SCHOOL type.
+    const isGovtHigherEd = isGovernmentOwned && isHigherEd;
+    const feeModuleEnabled = isPrivateOrFranchise || isAided || isGovtHigherEd;
+    const scholarshipEnabled = isGovt || isAided || isGovernmentOwned;
 
     // Step 1: Create organisation (top-level trust/management body)
     // For single-school registration this is a 1:1 org:school relationship.
