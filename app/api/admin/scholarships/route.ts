@@ -11,10 +11,16 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 export const runtime = 'nodejs';
 
 async function checkScholarshipEnabled(schoolId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from('schools').select('institutions(feature_flags)').eq('id', schoolId).maybeSingle();
-  const inst = data ? (Array.isArray(data.institutions) ? data.institutions[0] : data.institutions) as { feature_flags?: Record<string, unknown> } | null : null;
-  return !!(inst?.feature_flags?.scholarship_tracking_enabled);
+  // Two explicit steps instead of a PostgREST embed: the embedded-resource form
+  // (schools.select('institutions(feature_flags)')) returned empty feature_flags
+  // for some rows, causing spurious 403s even when the flag was true in the DB.
+  const { data: school } = await supabaseAdmin
+    .from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
+  if (!school?.institution_id) return false;
+  const { data: inst } = await supabaseAdmin
+    .from('institutions').select('feature_flags').eq('id', school.institution_id).maybeSingle();
+  const flags = (inst?.feature_flags ?? {}) as Record<string, unknown>;
+  return flags.scholarship_tracking_enabled === true;
 }
 
 export async function GET(req: NextRequest) {
