@@ -56,7 +56,21 @@ async function fetchTenantDbLookup(userId: string): Promise<TenantDbLookup> {
     };
   }
 
-  const institution_id = (user.institution_id as string | null) ?? null;
+  // institution_id normally lives on the school_users row, but several onboarding
+  // paths (self-registration, MEO grant, CSV) historically left it NULL while the
+  // SCHOOL row carries the correct institution_id. Without this fallback, every
+  // institution-scoped feature (programmes, academic years, the whole v2 API)
+  // fails with "Cannot resolve institution" for those accounts. Fall back to the
+  // school's institution_id so the tenant context resolves regardless.
+  let institution_id = (user.institution_id as string | null) ?? null;
+  if (!institution_id && user.school_id) {
+    const { data: sch } = await supabaseAdmin
+      .from('schools')
+      .select('institution_id')
+      .eq('id', user.school_id as string)
+      .maybeSingle();
+    institution_id = (sch?.institution_id as string | null) ?? null;
+  }
 
   // 2. institution → organisation_id (only if institution_id is linked).
   let organisation_id: string | null = null;
