@@ -111,10 +111,10 @@ export async function POST(req: NextRequest) {
         ownership_type: ownType,
         is_demo: false,
         feature_flags: {
-          fee_module_enabled: isPrivateOrFranchise || isAided,
+          fee_module_enabled: feeModuleEnabled,
           meal_tracking_enabled: isGovt,
           rte_mode_enabled: isGovt || isAided,
-          scholarship_tracking_enabled: isGovt || isAided,
+          scholarship_tracking_enabled: scholarshipEnabled,
           online_payment_enabled: false,
         },
       })
