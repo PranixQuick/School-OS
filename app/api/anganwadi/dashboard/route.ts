@@ -49,11 +49,13 @@ export async function GET(req: NextRequest) {
   const mealRows = mealRes.status === 'fulfilled' ? (mealRes.value.data ?? []) : [];
   const suppRows = suppRes.status === 'fulfilled' ? (suppRes.value.data ?? []) : [];
 
-  // Growth summary
+  // Growth summary — malnutrition_cat is stored lowercase; compare case-insensitively
+  // so SAM/MAM are never silently under-counted (child-welfare critical).
+  const catOf = (r: { malnutrition_cat?: string | null }) => (r.malnutrition_cat ?? '').toLowerCase();
   const growth = {
-    sam:    growthRows.filter(r => r.malnutrition_cat === 'SAM').length,
-    mam:    growthRows.filter(r => r.malnutrition_cat === 'MAM').length,
-    normal: growthRows.filter(r => r.malnutrition_cat === 'Normal' || !r.malnutrition_cat).length,
+    sam:    growthRows.filter(r => catOf(r) === 'sam').length,
+    mam:    growthRows.filter(r => catOf(r) === 'mam').length,
+    normal: growthRows.filter(r => catOf(r) === 'normal' || !r.malnutrition_cat).length,
     total:  growthRows.length,
   };
 
