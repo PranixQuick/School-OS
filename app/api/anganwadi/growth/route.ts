@@ -48,25 +48,41 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // SAM alert: if malnutrition_cat = 'sam', create a health incident for supervisor visibility
-  if (body.malnutrition_cat === 'sam') {
-    try {
-      await supabaseAdmin.from('health_incidents').insert({
-        school_id:            session.schoolId,
-        student_id:           body.student_id,
-        incident_date:        new Date().toISOString().split('T')[0],
-        incident_type:        'malnutrition_sam',
-        description:          `SAM detected. Weight: ${body.weight_kg}kg${body.muac_cm ? `, MUAC: ${body.muac_cm}cm` : ''}. NRC referral required.`,
-        first_aid_given:      'Growth record created. Supervisor alert triggered.',
-        parent_notified:      false,
-        referred_to_hospital: false,
-      });
-    } catch (e) {
-      console.error('[growth] SAM health incident insert failed:', e);
+  // SAM alert: severe acute malnutrition must escalate to the supervisor for NRC
+  // referral. health_incidents.incident_type has a CHECK constraint that only
+  // allows injury|illness|allergy_reaction|fever|fainting|other, so the previous
+  // 'malnutrition_sam' value silently violated the constraint and the escalation
+  // NEVER fired (the insert error was swallowed by a bare catch). Use the allowed
+  // 'illness' type and carry the SAM/NRC detail in the description. Compare case-
+  // insensitively (stored cats are lowercase). Surface failures instead of hiding
+  // them — a missed SAM escalation is child-safety critical.
+  let sam_escalated = false;
+  let sam_escalation_error: string | null = null;
+  const catLc = (body.malnutrition_cat ?? '').toLowerCase();
+  if (catLc === 'sam') {
+    const { error: hiErr } = await supabaseAdmin.from('health_incidents').insert({
+      school_id:            session.schoolId,
+      student_id:           body.student_id,
+      incident_date:        new Date().toISOString().split('T')[0],
+      incident_type:        'illness',
+      description:          `SAM (Severe Acute Malnutrition) detected. Weight: ${body.weight_kg}kg${body.muac_cm ? `, MUAC: ${body.muac_cm}cm` : ''}. NRC referral required.`,
+      first_aid_given:      'Growth record created. Supervisor alert triggered.',
+      parent_notified:      false,
+      referred_to_hospital: false,
+    });
+    if (hiErr) {
+      sam_escalation_error = hiErr.message;
+      console.error('[growth] SAM health incident insert failed:', hiErr.message);
+    } else {
+      sam_escalated = true;
     }
   }
 
-  return NextResponse.json({ success: true, record_id: record?.id });
+  return NextResponse.json({
+    success: true,
+    record_id: record?.id,
+    ...(catLc === 'sam' ? { sam_escalated, ...(sam_escalation_error ? { sam_escalation_error } : {}) } : {}),
+  });
 }
 
 export async function GET(req: NextRequest) {
