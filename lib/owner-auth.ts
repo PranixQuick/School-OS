@@ -37,19 +37,31 @@ export async function requireOwnerSession(req: NextRequest): Promise<OwnerContex
   const { schoolId, userEmail } = session;
   if (session.userRole !== 'owner') throw new OwnerAuthError('Owner access required', 403);
 
-  // Get this user's school_users record to find institution_id
+  // Get this user's school_users record to find institution_id.
+  // NOTE: session.userRole === 'owner' is already verified above. We do NOT
+  // additionally filter on role_v2='owner' here, because owners onboarded before
+  // the registration fix have role_v2=NULL and would be wrongly rejected.
   const { data: seedUser } = await supabaseAdmin
     .from('school_users')
     .select('id, institution_id, is_active')
     .eq('school_id', schoolId)
     .eq('email', userEmail)
-    .eq('role_v2', 'owner')
     .maybeSingle();
 
   if (!seedUser) throw new OwnerAuthError('Owner account not found', 403);
   if (seedUser.is_active === false) throw new OwnerAuthError('Owner account inactive', 403);
 
-  const institutionId = seedUser.institution_id;
+  // institution_id may be NULL on pre-fix owner rows — fall back to the school's
+  // institution_id so owner-only endpoints resolve for those accounts too.
+  let institutionId = seedUser.institution_id as string | null;
+  if (!institutionId) {
+    const { data: sch } = await supabaseAdmin
+      .from('schools')
+      .select('institution_id')
+      .eq('id', schoolId)
+      .maybeSingle();
+    institutionId = (sch?.institution_id as string | null) ?? null;
+  }
   if (!institutionId) throw new OwnerAuthError('Owner not linked to an institution', 403);
 
   // Fetch institution name
