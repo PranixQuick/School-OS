@@ -15,14 +15,29 @@ export async function GET(req: NextRequest) {
   const { data: school } = await supabaseAdmin.from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
   if (!school?.institution_id) return NextResponse.json({ departments: [] });
 
-  const { data, error } = await supabaseAdmin
+  const { data: depts, error } = await supabaseAdmin
     .from('departments')
-    .select('*, hod:staff!departments_hod_staff_id_fkey(id, name, email, role)')
+    .select('id, institution_id, school_id, code, name, hod_staff_id, is_active, description, created_at')
     .eq('institution_id', school.institution_id)
     .order('code');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ departments: data ?? [] });
+
+  // Attach HOD details via an explicit second lookup instead of a PostgREST embed
+  // (the embed form intermittently 500s on stale schema cache). Best-effort: a
+  // failed HOD lookup must not fail the whole departments list.
+  const rows = depts ?? [];
+  const hodIds = Array.from(new Set(rows.map(d => d.hod_staff_id).filter(Boolean))) as string[];
+  let hodById: Record<string, { id: string; name: string; email: string; role: string }> = {};
+  if (hodIds.length) {
+    const { data: hods } = await supabaseAdmin
+      .from('staff')
+      .select('id, name, email, role')
+      .in('id', hodIds);
+    for (const h of hods ?? []) hodById[h.id] = h;
+  }
+  const departments = rows.map(d => ({ ...d, hod: d.hod_staff_id ? (hodById[d.hod_staff_id] ?? null) : null }));
+  return NextResponse.json({ departments });
 }
 
 export async function POST(req: NextRequest) {
