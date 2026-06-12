@@ -140,6 +140,11 @@ export async function POST(req: NextRequest) {
     // the returned password was fiction: the account had auth_user_id=NULL and the
     // login route rejected it with "your login is not yet active". This is the
     // private-flow fix — owner registers and can sign in immediately.
+    //
+    // institution_id and role_v2 MUST be set here: getTenantContext + the whole v2
+    // API (programmes, academic-years) resolve the institution from the
+    // school_users row. Leaving them null broke college academic setup with
+    // "Cannot resolve institution".
     const ownerEmail = admin_email.toLowerCase().trim();
     const initialPassword = `edprosys${school.id.slice(0, 4)}`;
 
@@ -171,9 +176,11 @@ export async function POST(req: NextRequest) {
       .from('school_users')
       .insert({
         school_id: school.id,
+        institution_id: institutionId,
         email: ownerEmail,
         name: admin_name,
         role: 'owner',
+        role_v2: 'owner',
         auth_user_id: ownerAuthId,
         is_active: true,
         invite_status: ownerAuthId ? 'verified' : 'pending',
