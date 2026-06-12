@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from('fees').select('school_id, amount, status, paid_date').in('school_id', schoolIds),
     supabaseAdmin.from('attendance').select('school_id, status').in('school_id', schoolIds).eq('date', today),
     supabaseAdmin.from('students').select('school_id').in('school_id', schoolIds).eq('is_active', true).gte('created_at', days30Ago),
-    supabaseAdmin.from('student_risk_flags').select('school_id').in('school_id', schoolIds).eq('is_active', true),
+    supabaseAdmin.from('student_risk_flags').select('school_id').in('school_id', schoolIds),
     supabaseAdmin.from('schools').select('id, plan, is_active').in('id', schoolIds),
   ]);
 
