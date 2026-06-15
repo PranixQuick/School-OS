@@ -55,6 +55,39 @@ try {
   );
 }
 
+// MCP-BR-02 Human Workflow Recorder embed.
+// Inert by default. Activates ONLY when the URL carries ?br02=1, loading the
+// reusable rrweb recorder from the agent-engine and exposing window.PranixBR02.
+// The event key is read from a server-injected <meta name="br02-event-key">
+// (never hardcoded). Masked-by-default + consent-gated inside the recorder.
+function BR02Recorder() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+try {
+  if (typeof window !== 'undefined' && /[?&]br02=1/.test(window.location.search)) {
+    var s = document.createElement('script');
+    s.src = 'https://pranix-agent-engine.vercel.app/br02-recorder.js';
+    s.async = true;
+    s.onload = function () {
+      try {
+        var keyEl = document.querySelector('meta[name="br02-event-key"]');
+        window.__BR02_READY = true;
+        console.log('[BR02] recorder loaded. Call PranixBR02.start({product,role,consentRef,certItem,endpoint,eventKey}) to record.');
+        window.__br02EventKey = keyEl ? keyEl.getAttribute('content') : '';
+      } catch (e) { console.warn('[BR02] init warning (non-fatal):', e); }
+    };
+    s.onerror = function () { console.warn('[BR02] recorder load failed (non-fatal)'); };
+    document.head.appendChild(s);
+  }
+} catch (e) { console.warn('[BR02] embed error (non-fatal):', e); }
+`,
+      }}
+    />
+  );
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN">
@@ -68,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ServiceWorkerRegistration />
+        <BR02Recorder />
       </body>
     </html>
   );
