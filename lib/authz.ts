@@ -49,6 +49,12 @@ export function isTeacher(role: string): boolean {
 // schools.accounting_mode ('dedicated' | 'admin_only', default 'admin_only').
 
 export type AccountingMode = 'dedicated' | 'admin_only';
+// ── ACCOUNTANT FEE-ONLY SCOPING ─────────────────────────────────────────────
+// The accountant role is permitted in requireAdminSession's ALLOWED_ROLES, but
+// must be restricted to fee-domain routes only. Without this, an accountant can
+// reach every /api/admin/* route. The allowlist below is the single source of
+// truth for which API paths an accountant may access; enforcement lives in
+// requireAdminSession (lib/admin-auth.ts).
 
 export function isAccountant(role: string): boolean {
   return role === 'accountant';
@@ -68,4 +74,20 @@ export function canManageAccounts(
     return role === 'accountant' || role === 'admin' || role === 'admin_staff';
   }
   return role === 'admin' || role === 'admin_staff';
+// Path prefixes an accountant may access. A path matches if it equals an entry
+// or begins with `entry + '/'` (so '/api/admin/fees' covers '/api/admin/fees/...').
+export const ACCOUNTANT_ROUTE_ALLOWLIST: string[] = [
+  '/api/admin/fees',
+  '/api/admin/fee-categories',
+  '/api/admin/fee-templates',
+  '/api/accounts',
+  '/api/billing',
+  '/api/dashboard/summary',
+  '/api/auth/me',
+];
+
+export function canAccountantAccess(pathname: string): boolean {
+  return ACCOUNTANT_ROUTE_ALLOWLIST.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  );
 }
