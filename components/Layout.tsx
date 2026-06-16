@@ -67,6 +67,17 @@ interface NavGroup {
 }
 
 const NAV_BY_ROLE: Record<string, NavGroup[]> = {
+  // Accountant: fee-only navigation. API access is independently enforced by
+  // requireAdminSession via the ACCOUNTANT_ROUTE_ALLOWLIST in lib/authz.ts.
+  accountant: [
+    { groupKey: 'overview', items: [
+      { key: 'dashboard',      href: '/dashboard',             icon: '🏠' },
+    ]},
+    { groupKey: 'finance', items: [
+      { key: 'fees',           href: '/admin/fees',            icon: '💰' },
+      { key: 'fee_categories', href: '/admin/fees/categories', icon: '🏷️' },
+    ]},
+  ],
   admin: [
     { groupKey: 'overview', items: [
       { key: 'dashboard',     href: '/dashboard',                    icon: '🏠' },

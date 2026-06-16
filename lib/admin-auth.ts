@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { canAccountantAccess } from '@/lib/authz';
 
 export class AdminAuthError extends Error {
   status: number;
@@ -22,6 +23,7 @@ export interface AdminContext {
 // Roles that can access admin API routes.
 // viewer: read-only access enforced at API level (GET only, no mutations).
 // counsellor: access to student data, leave requests, parent interactions.
+// accountant: fee-domain routes only — enforced via canAccountantAccess() below.
 const ALLOWED_ROLES = new Set([
   'owner', 'principal', 'admin_staff', 'admin',
   'accountant', 'viewer', 'counsellor',
@@ -40,6 +42,11 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
   // Viewer: only allow GET requests
   if (userRole === 'viewer' && req.method !== 'GET') {
     throw new AdminAuthError('Viewer role is read-only', 403);
+  }
+
+  // Accountant: scoped to fee-domain routes only. Deny every other admin route.
+  if (userRole === 'accountant' && !canAccountantAccess(req.nextUrl.pathname)) {
+    throw new AdminAuthError('Accountant role is limited to fee management', 403);
   }
 
   const { data: schoolUser, error } = await supabaseAdmin
