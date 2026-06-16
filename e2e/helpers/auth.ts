@@ -6,15 +6,24 @@ import type { Page } from '@playwright/test';
 // Fallback credentials match seeded demo data for Suchitra Academy.
 // Real CI should set all secrets explicitly; these fallbacks enable local dev runs.
 export const ADMIN_EMAIL      = process.env.TEST_ADMIN_EMAIL      || 'admin@suchitracademy.edu.in';
-export const ADMIN_PASSWORD   = process.env.TEST_ADMIN_PASSWORD   || 'schoolos0000';
+export const ADMIN_PASSWORD   = process.env.TEST_ADMIN_PASSWORD   || 'edprosys0000';
 export const TEACHER_EMAIL    = process.env.TEST_TEACHER_EMAIL    || 'test.teacher@schoolos.local';
-export const TEACHER_PASSWORD = process.env.TEST_TEACHER_PASSWORD || 'schoolos0000';
-export const BASE_URL         = process.env.PLAYWRIGHT_BASE_URL   || 'https://www.schoolos.in';
+export const TEACHER_PASSWORD = process.env.TEST_TEACHER_PASSWORD || 'edprosys0000';
+export const BASE_URL         = process.env.PLAYWRIGHT_BASE_URL   || 'https://www.edprosys.com';
 
 async function loginAs(page: Page, email: string, password: string) {
   await page.goto('/login');
-  await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 15_000 });
-  await page.waitForSelector('input[type="password"]', { state: 'visible', timeout: 5_000 });
+
+  // The login form renders on both the chromium and mobile (Pixel 5) projects,
+  // but the previous strict waitForSelector('input[type="email"]', { state:
+  // 'visible' }) could time out on the mobile viewport before layout/hydration
+  // settled (all observed failures were [mobile]; desktop passed). Wait for the
+  // field to be attached, scroll it into view, then rely on Playwright's fill()
+  // actionability auto-wait. This is resilient on both viewports and changes no
+  // application behaviour.
+  const emailField = page.locator('input[type="email"]');
+  await emailField.waitFor({ state: 'attached', timeout: 15_000 });
+  await emailField.scrollIntoViewIfNeeded();
 
   const bypassSecret = process.env.E2E_BYPASS_SECRET || '';
   if (bypassSecret) {
@@ -26,8 +35,8 @@ async function loginAs(page: Page, email: string, password: string) {
     });
   }
 
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
+  await emailField.fill(email);
+  await page.locator('input[type="password"]').fill(password);
 
   const [response] = await Promise.all([
     page.waitForResponse(
