@@ -102,11 +102,7 @@ export default function LoginPage() {
                 For school owner, admin, principal, teacher accounts
               </div>
 
-              {/* Setup guidance — shown when no auth accounts provisioned */}
-              <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 9, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
-                <strong>First time?</strong> Check your email for a setup invitation from School OS. Click &quot;Set Password&quot; in that email before logging in here.
-                <br />Can&apos;t find it? Use <button type="button" onClick={() => setShowMagicLink(true)} style={{ background: 'none', border: 'none', color: '#4F46E5', cursor: 'pointer', fontWeight: 700, fontSize: 12, padding: 0, fontFamily: 'inherit' }}>Sign in with email link</button> below.
-              </div>
+              {/* setup guidance removed for reading */}
 
               {error && (
                 <div role="alert" data-testid="login-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
