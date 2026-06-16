@@ -62,44 +62,8 @@ export default function LoginPage() {
     }
   }
 
-  async function handleLogin(e: FormEvent) {
-    e.preventDefault();
-    if (showMagicLink) return;
-    const cleanEmail = sanitizeEmail(email);
-    if (cleanEmail !== email) setEmailRaw(cleanEmail);
-    setLoading(true); setError('');
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password }),
-      });
-      const data = await res.json() as { error?: string; code?: string; redirectTo?: string };
-      if (!res.ok) {
-        if (data.code === 'USE_MAGIC_LINK') { setShowMagicLink(true); setError(''); }
-        else setError(data.error ?? 'Login failed. Check your email and password.');
-        return;
-      }
-      router.push(data.redirectTo ?? '/dashboard');
-    } catch { setError('Network error. Please try again.'); }
-    finally { setLoading(false); }
-  }
-
-  async function handleMagicLink() {
-    const cleanEmail = sanitizeEmail(email);
-    if (!cleanEmail) { setMagicLinkError('Please enter your email address above first.'); return; }
-    setMagicLinkLoading(true); setMagicLinkError('');
-    try {
-      const res = await fetch('/api/auth/magic-link', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail }),
-      });
-      const data = await res.json() as { error?: string };
-      if (!res.ok) { setMagicLinkError(data.error ?? 'Could not send link.'); return; }
-      setMagicLinkSent(true);
-    } catch { setMagicLinkError('Network error. Please try again.'); }
-    finally { setMagicLinkLoading(false); }
-  }
+  async function handleLogin(e: FormEvent) { e.preventDefault(); }
+  async function handleMagicLink() {}
 
   return (
     <div style={{ minHeight: '100vh', background: '#F0F4FF', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
