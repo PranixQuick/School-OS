@@ -43,6 +43,12 @@ export function isTeacher(role: string): boolean {
   return role === 'teacher';
 }
 
+// --- Accountant role (Decision 2, founder-locked 2026-06-15) ---------------
+// The dedicated Accountant role is now supported. Whether a school actually uses
+// a dedicated accountant or keeps accounting with admin staff is governed by
+// schools.accounting_mode ('dedicated' | 'admin_only', default 'admin_only').
+
+export type AccountingMode = 'dedicated' | 'admin_only';
 // ── ACCOUNTANT FEE-ONLY SCOPING ─────────────────────────────────────────────
 // The accountant role is permitted in requireAdminSession's ALLOWED_ROLES, but
 // must be restricted to fee-domain routes only. Without this, an accountant can
@@ -54,6 +60,21 @@ export function isAccountant(role: string): boolean {
   return role === 'accountant';
 }
 
+// Gate for the accounts / finance module. Owners and super admins always pass.
+// In 'dedicated' mode a dedicated accountant is permitted; in 'admin_only' mode
+// accounting stays with admin staff. Pass the school's accounting_mode from the
+// resolved school record; defaults to 'admin_only' to match the column default.
+export function canManageAccounts(
+  role: string,
+  email: string,
+  accountingMode: AccountingMode = 'admin_only'
+): boolean {
+  if (isSuperAdmin(email) || role === 'owner') return true;
+  if (accountingMode === 'dedicated') {
+    return role === 'accountant' || role === 'admin' || role === 'admin_staff';
+  }
+  return role === 'admin' || role === 'admin_staff';
+}
 // Path prefixes an accountant may access. A path matches if it equals an entry
 // or begins with `entry + '/'` (so '/api/admin/fees' covers '/api/admin/fees/...').
 export const ACCOUNTANT_ROUTE_ALLOWLIST: string[] = [

@@ -229,17 +229,6 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       { key: 'settings',      href: '/settings', icon: '⚙️' },
     ]},
   ],
-  accountant: [
-    { groupKey: 'finance', items: [
-      { key: 'dashboard',     href: '/dashboard',   icon: '🏠' },
-      { key: 'fees',          href: '/admin/fees',  icon: '💰' },
-      { key: 'payroll',       href: '/admin/payroll', icon: '💼' },
-      { key: 'students',      href: '/students',    icon: '👨‍🎓' },
-    ]},
-    { groupKey: 'account', items: [
-      { key: 'settings',      href: '/settings', icon: '⚙️' },
-    ]},
-  ],
   principal: [
     { groupKey: 'overview', items: [
       { key: 'dashboard',     href: '/principal',   icon: '🏠' },
