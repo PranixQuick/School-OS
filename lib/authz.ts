@@ -74,6 +74,7 @@ export function canManageAccounts(
     return role === 'accountant' || role === 'admin' || role === 'admin_staff';
   }
   return role === 'admin' || role === 'admin_staff';
+}
 // Path prefixes an accountant may access. A path matches if it equals an entry
 // or begins with `entry + '/'` (so '/api/admin/fees' covers '/api/admin/fees/...').
 export const ACCOUNTANT_ROUTE_ALLOWLIST: string[] = [
