@@ -210,7 +210,7 @@ function roleRedirect(role: string): string {
     case 'registrar':
     case 'dean':         return '/registrar/dashboard';
     case 'accountant':   return '/dashboard';
-    case 'counsellor':   return '/dashboard';
+    case 'counsellor':   return '/counsellor';
     case 'librarian':    return '/dashboard';
     case 'transport_staff': return '/dashboard';
     case 'hostel_warden':
