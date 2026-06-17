@@ -173,6 +173,54 @@ export default function StudentsPage() {
     void load();
   }
 
+  // Single student: set a PIN (last 4 of admission no., else random) and enable login.
+  async function enableLogin(s: Student) {
+    if (loginBusyId) return;
+    const adm = (s.admission_number ?? '').replace(/\D/g, '');
+    const pin = adm.length >= 4 ? adm.slice(-4) : String(Math.floor(1000 + Math.random() * 9000));
+    if (!window.confirm(`Enable login for ${s.name}? Their PIN will be set to ${pin}. They log in with their phone number + this PIN.`)) return;
+    setLoginBusyId(s.id);
+    try {
+      const r = await fetch(`/api/admin/students/${s.id}/set-pin`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, enable_login: true }),
+      });
+      const d = await r.json().catch(() => ({})) as { error?: string };
+      if (r.ok) setLoginMsg(m => ({ ...m, [s.id]: `Login enabled \u00b7 PIN ${pin}` }));
+      else showToast(d.error ?? T('error', lang as never), 'err');
+    } catch { showToast(T('error', lang as never), 'err'); }
+    finally { setLoginBusyId(null); }
+  }
+
+  // Bulk: enable login for all active students who have no PIN yet (NULL-only,
+  // never overwrites). Previews counts via dry-run, then asks to confirm.
+  async function bulkEnableLogin() {
+    if (bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const dry = await fetch('/api/admin/students/bulk-enable-login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ default_pin_pattern: 'last4_admission', dry_run: true }),
+      });
+      const dd = await dry.json().catch(() => ({})) as { enabled?: number; skipped_existing?: number; skipped_no_admission?: number; error?: string };
+      if (!dry.ok) { showToast(dd.error ?? T('error', lang as never), 'err'); return; }
+      const willEnable = dd.enabled ?? 0;
+      if (willEnable === 0) { showToast('No students to enable (all have PINs or lack an admission number).'); return; }
+      const ok = window.confirm(`Enable login for ${willEnable} student(s) who have no PIN yet, using the last 4 digits of their admission number. ${dd.skipped_existing ?? 0} already have a PIN and will be left unchanged. Proceed?`);
+      if (!ok) return;
+      const r = await fetch('/api/admin/students/bulk-enable-login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ default_pin_pattern: 'last4_admission' }),
+      });
+      const rd = await r.json().catch(() => ({})) as { enabled?: number; skipped_no_admission?: number; error?: string };
+      if (!r.ok) { showToast(rd.error ?? T('error', lang as never), 'err'); return; }
+      const extra = (rd.skipped_no_admission ?? 0) > 0 ? ` ${rd.skipped_no_admission} skipped (no admission number).` : '';
+      showToast(`Enabled login for ${rd.enabled ?? 0} student(s).${extra}`);
+      void load();
+    } catch { showToast(T('error', lang as never), 'err'); }
+    finally { setBulkBusy(false); }
+  }
+
   const STATUSES = ['active', 'graduated', 'transferred', 'withdrawn', 'archived', 'all'];
   const STATUS_KEYS: Record<string, string> = { active: 'active', graduated: 'graduated', transferred: 'transferred', withdrawn: 'withdrawn', archived: 'archived', all: 'all_students' };
 
