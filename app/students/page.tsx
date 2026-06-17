@@ -194,8 +194,9 @@ export default function StudentsPage() {
     finally { setLoginBusyId(null); }
   }
 
-  // Bulk: enable login for all active students who have no PIN yet (NULL-only,
-  // never overwrites). Previews counts via dry-run, then asks to confirm.
+  // Bulk: preview how many active students have no PIN yet (dry-run), then show
+  // an in-app confirmation modal. Native confirm() is unreliable (some browsers
+  // auto-dismiss it), so we use a real modal that previews the counts.
   async function bulkEnableLogin() {
     if (bulkBusy) return;
     setBulkBusy(true);
@@ -204,12 +205,16 @@ export default function StudentsPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ default_pin_pattern: 'last4_admission', dry_run: true }),
       });
-      const dd = await dry.json().catch(() => ({})) as { enabled?: number; skipped_existing?: number; skipped_no_admission?: number; error?: string };
+      const dd = await dry.json().catch(() => ({})) as { enabled?: number; skipped_existing?: number; error?: string };
       if (!dry.ok) { showToast(dd.error ?? T('error', lang as never), 'err'); return; }
-      const willEnable = dd.enabled ?? 0;
-      if (willEnable === 0) { showToast('No students to enable (all have PINs or lack an admission number).'); return; }
-      const ok = window.confirm(`Enable login for ${willEnable} student(s) who have no PIN yet, using the last 4 digits of their admission number. ${dd.skipped_existing ?? 0} already have a PIN and will be left unchanged. Proceed?`);
-      if (!ok) return;
+      setBulkPreview({ willEnable: dd.enabled ?? 0, skippedExisting: dd.skipped_existing ?? 0 });
+    } catch { showToast(T('error', lang as never), 'err'); }
+    finally { setBulkBusy(false); }
+  }
+
+  async function bulkCommit() {
+    setBulkCommitting(true);
+    try {
       const r = await fetch('/api/admin/students/bulk-enable-login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ default_pin_pattern: 'last4_admission' }),
@@ -218,9 +223,10 @@ export default function StudentsPage() {
       if (!r.ok) { showToast(rd.error ?? T('error', lang as never), 'err'); return; }
       const extra = (rd.skipped_no_admission ?? 0) > 0 ? ` ${rd.skipped_no_admission} skipped (no admission number).` : '';
       showToast(`Enabled login for ${rd.enabled ?? 0} student(s).${extra}`);
+      setBulkPreview(null);
       void load();
     } catch { showToast(T('error', lang as never), 'err'); }
-    finally { setBulkBusy(false); }
+    finally { setBulkCommitting(false); }
   }
 
   const STATUSES = ['active', 'graduated', 'transferred', 'withdrawn', 'archived', 'all'];
