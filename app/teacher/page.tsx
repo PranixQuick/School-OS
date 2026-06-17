@@ -157,9 +157,9 @@ export default function TeacherPage() {
         {/* Stats strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
           {[
-            { v: loading ? '—' : scheduleCount,               l: 'Classes' },
+            { v: loading ? '—' : (data?.classes_count ?? 0),  l: 'Classes' },
+            { v: loading ? '—' : (data?.students_count ?? 0), l: 'Students' },
             { v: loading ? '—' : (data?.attendance_today ?? '✓'), l: hasUnmarkedAtt ? '⚠ Unmark' : 'Marked' },
-            { v: loading ? '—' : (data?.substitute_duties?.length ?? 0), l: 'Subs' },
             { v: loading ? '—' : (data?.leave_pending ?? 0),  l: 'Leave' },
           ].map(s => (
             <div key={s.l} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
