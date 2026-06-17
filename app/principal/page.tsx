@@ -87,10 +87,17 @@ export default function PrincipalPage() {
   }
   if (!data) return <Layout title="Principal Dashboard" subtitle={today}><div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF' }}>Dashboard unavailable.</div></Layout>;
 
-  const att      = data.attendance;
-  const fee      = data.fees;
-  const risk     = data.risk;
-  const teachers = data.teachers;
+  // Guard against a partial payload — a missing nested object must not
+  // crash the whole page. Defaults fill only absent keys (JSON omits
+  // undefined), so a complete reply is unaffected.
+  const DEF_ATT: AttData       = { today_pct: null, today_present: 0, today_total: 0, today_marked: false, month_avg_pct: 0, status: 'not_marked' };
+  const DEF_FEE: FeeData       = { pending_amount: 0, pending_students: 0, overdue_count: 0, collected_month: 0, collection_pct: 0, status: 'warning' };
+  const DEF_RISK: RiskData     = { critical: 0, high: 0, medium: 0, total: 0, top_cases: [] };
+  const DEF_TEACH: TeacherData = { present_today: 0, total_tracked: 0, absent_today: [], avg_eval_score: null, status: 'not_marked' };
+  const att      = { ...DEF_ATT,   ...(data.attendance ?? {}) };
+  const fee      = { ...DEF_FEE,   ...(data.fees ?? {}) };
+  const risk     = { ...DEF_RISK,  ...(data.risk ?? {}) };
+  const teachers = { ...DEF_TEACH, ...(data.teachers ?? {}) };
   const attSt    = STATUS_COLOR[att.status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.not_marked;
   const feeSt    = STATUS_COLOR[fee.status as keyof typeof STATUS_COLOR] ?? STATUS_COLOR.warning;
 

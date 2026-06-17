@@ -81,8 +81,23 @@ export default function DashboardPage() {
     fetch('/api/dashboard/summary')
       .then(r => r.json())
       .then(d => {
-        if (d?.kpis && typeof d.kpis.total_students === 'number') {
-          setKpis(d.kpis); setLeads(d.recent_leads ?? []);
+        // API returns a flat summary ({ total_students, ... }).
+        // Older builds nested it under d.kpis — accept both so neither regresses.
+        const src = (d?.kpis && typeof d.kpis.total_students === 'number') ? d.kpis
+                  : (d && typeof d.total_students === 'number') ? d
+                  : null;
+        if (src) {
+          setKpis({
+            total_students:       src.total_students,
+            total_staff:          src.total_staff ?? 0,
+            pending_fees_count:   src.pending_fees_count ?? 0,
+            pending_fees_amount:  src.pending_fees_amount ?? 0,
+            total_leads:          src.total_leads ?? 0,
+            high_priority_leads:  src.high_priority_leads ?? 0,
+            evals_done:           src.evals_done ?? 0,
+            narratives_generated: src.narratives_generated ?? 0,
+          });
+          setLeads(d.recent_leads ?? []);
           setEvals(d.recent_evals ?? []); setEvents(d.upcoming_events ?? []);
         } else { setKpis(EMPTY_KPIS); }
       })
