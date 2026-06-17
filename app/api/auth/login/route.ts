@@ -27,11 +27,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const ip = clientIpFromRequest(req);
 
-  const existing = await getSession(req);
-  if (existing) {
-    return NextResponse.json({ redirectTo: roleRedirect(existing.userRole) });
-  }
-
   let rawEmail: string, password: string;
   try {
     const body = await req.json() as { email?: string; password?: string };
@@ -39,6 +34,15 @@ export async function POST(req: NextRequest) {
     password  = body.password ?? '';
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  // If already signed in AND no new credentials are being submitted, just route
+  // to the existing dashboard. If credentials ARE provided, fall through and
+  // re-authenticate so the user can switch accounts (the freshly issued session
+  // cookie overwrites the old one).
+  const existing = await getSession(req);
+  if (existing && !rawEmail && !password) {
+    return NextResponse.json({ redirectTo: roleRedirect(existing.userRole) });
   }
 
   const email = sanitizeEmail(rawEmail);
