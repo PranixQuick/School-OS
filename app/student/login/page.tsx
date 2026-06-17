@@ -34,6 +34,10 @@ export default function StudentLoginPage() {
     <div style={{ minHeight: '100vh', background: '#F0F4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: '#fff', borderRadius: 16, padding: 36, width: '100%', maxWidth: 380, boxShadow: '0 4px 24px #0000000f' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+            <span style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#0EA5E9,#1E40AF)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700 }}>∞</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>EdPro<span style={{ color: '#0EA5E9' }}>Sys</span></span>
+          </div>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🎓</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111827' }}>Student Portal</div>
           <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Sign in with your admission number and PIN</div>
