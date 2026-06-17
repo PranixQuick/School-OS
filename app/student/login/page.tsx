@@ -52,16 +52,22 @@ export default function StudentLoginPage() {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>PIN</label>
-            <input
-              type="password"
-              value={form.pin}
-              onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
-              placeholder="4-6 digit PIN"
-              maxLength={6}
-              style={inputStyle}
-              autoComplete="current-password"
-              onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPin ? 'text' : 'password'}
+                value={form.pin}
+                onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
+                placeholder="4-6 digit PIN"
+                maxLength={6}
+                style={{ ...inputStyle, paddingRight: 56 }}
+                autoComplete="current-password"
+                onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
+              />
+              <button type="button" onClick={() => setShowPin(v => !v)} aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
+                style={{ position: 'absolute', right: 12, top: 4, bottom: 0, background: 'none', border: 'none', color: '#4F46E5', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {showPin ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
         </div>
 
