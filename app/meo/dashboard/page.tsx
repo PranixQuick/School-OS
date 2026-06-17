@@ -14,6 +14,7 @@ interface SchoolSummary {
   present_today: number; total_students: number;
   teachers_checked_in: number; total_teachers: number;
   teachers_late_today: number; compliance_score: number;
+  attendance_as_of: string | null; has_attendance: boolean;
 }
 interface MEOData {
   mandal_name: string; district_name: string;
@@ -57,10 +58,19 @@ export default function MEODashboardPage() {
   useEffect(() => { void load(); }, [load]);
 
   const schools = data?.schools ?? [];
-  const compliant = schools.filter(s => s.compliance_score >= 90).length;
-  const warning   = schools.filter(s => s.compliance_score >= 75 && s.compliance_score < 90).length;
-  const critical  = schools.filter(s => s.compliance_score < 75).length;
-  const avgScore  = schools.length > 0 ? Math.round(schools.reduce((s, x) => s + x.compliance_score, 0) / schools.length) : 0;
+  // A school with no attendance records yet is "awaiting data", not critical.
+  // Only schools that have reported count toward compliance figures.
+  const reporting = schools.filter(s => s.has_attendance);
+  const compliant = reporting.filter(s => s.compliance_score >= 90).length;
+  const warning   = reporting.filter(s => s.compliance_score >= 75 && s.compliance_score < 90).length;
+  const critical  = reporting.filter(s => s.compliance_score < 75).length;
+  const avgScore  = reporting.length > 0 ? Math.round(reporting.reduce((s, x) => s + x.compliance_score, 0) / reporting.length) : 0;
+  // Latest attendance date across the mandal — used for an honest "as of" note
+  // so a healthy score from a past day isn't mistaken for today's.
+  const latestAsOf = reporting.reduce<string | null>((m, s) => (s.attendance_as_of && (!m || s.attendance_as_of > m) ? s.attendance_as_of : m), null);
+  const staleAsOf = latestAsOf && latestAsOf !== data?.date
+    ? new Date(latestAsOf).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
 
   const filteredSchools = schools
     .filter(s => {
@@ -96,6 +106,7 @@ export default function MEODashboardPage() {
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>MEO Mandal Governance Monitor</div>
         <div style={{ fontSize: 18, fontWeight: 800 }}>{data?.mandal_name ?? '—'}</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{data?.district_name ?? '—'} · {today}</div>
+        {staleAsOf && <div style={{ fontSize: 11, color: '#FDE68A', marginTop: 3 }}>⚠ Latest attendance data as of {staleAsOf}</div>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
           {[
             { v: schools.length, l: 'Schools' },
