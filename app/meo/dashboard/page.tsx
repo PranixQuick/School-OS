@@ -7,6 +7,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface SchoolSummary {
   institution_id: string; school_id: string; school_name: string;
@@ -39,6 +41,7 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function MEODashboardPage() {
+  const { lang } = useLang();
   const [data, setData]     = useState<MEOData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
@@ -82,11 +85,11 @@ export default function MEODashboardPage() {
 
   // Governance alerts
   const govAlerts: { icon: string; text: string; sev: 'red'|'amber' }[] = [];
-  if (critical > 0) govAlerts.push({ icon: '🔴', text: `${critical} school(s) below 75% compliance`, sev: 'red' });
-  if ((data?.action_items_pending ?? 0) > 0) govAlerts.push({ icon: '📋', text: `${data!.action_items_pending} action item(s) pending closure`, sev: 'amber' });
-  if ((data?.inspections_due ?? 0) > 0) govAlerts.push({ icon: '🔍', text: `${data!.inspections_due} school inspection(s) due`, sev: 'amber' });
-  if ((data?.teacher_vacancies_total ?? 0) > 0) govAlerts.push({ icon: '🧑‍🏫', text: `${data!.teacher_vacancies_total} teacher vacancy(ies) in mandal`, sev: 'amber' });
-  if ((data?.infrastructure_deficiencies ?? 0) > 0) govAlerts.push({ icon: '🏗️', text: `${data!.infrastructure_deficiencies} infrastructure issue(s) reported`, sev: 'amber' });
+  if (critical > 0) govAlerts.push({ icon: '🔴', text: T('ov_alert_below', lang).replace('{n}', String(critical)), sev: 'red' });
+  if ((data?.action_items_pending ?? 0) > 0) govAlerts.push({ icon: '📋', text: T('ov_alert_actions', lang).replace('{n}', String(data!.action_items_pending)), sev: 'amber' });
+  if ((data?.inspections_due ?? 0) > 0) govAlerts.push({ icon: '🔍', text: T('ov_alert_inspections', lang).replace('{n}', String(data!.inspections_due)), sev: 'amber' });
+  if ((data?.teacher_vacancies_total ?? 0) > 0) govAlerts.push({ icon: '🧑‍🏫', text: T('ov_alert_vacancies', lang).replace('{n}', String(data!.teacher_vacancies_total)), sev: 'amber' });
+  if ((data?.infrastructure_deficiencies ?? 0) > 0) govAlerts.push({ icon: '🏗️', text: T('ov_alert_infra', lang).replace('{n}', String(data!.infrastructure_deficiencies)), sev: 'amber' });
 
   const SEV = {
     red:   { bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C' },
@@ -94,7 +97,7 @@ export default function MEODashboardPage() {
   };
 
   return (
-    <Layout title="MEO Dashboard" subtitle={data?.mandal_name ?? '…'}>
+    <Layout title={T('ov_meo_dashboard', lang)} subtitle={data?.mandal_name ?? '…'}>
       <style>{`
         .filter-btn{padding:5px 14px;border-radius:20px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
         .filter-btn.active{background:#1E40AF;color:#fff}
@@ -103,16 +106,16 @@ export default function MEODashboardPage() {
 
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%)', borderRadius: 14, padding: '16px 18px', marginBottom: 14, color: '#fff' }}>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>MEO Mandal Governance Monitor</div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{T('ov_meo_monitor', lang)}</div>
         <div style={{ fontSize: 18, fontWeight: 800 }}>{data?.mandal_name ?? '—'}</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{data?.district_name ?? '—'} · {today}</div>
-        {staleAsOf && <div style={{ fontSize: 11, color: '#FDE68A', marginTop: 3 }}>⚠ Latest attendance data as of {staleAsOf}</div>}
+        {staleAsOf && <div style={{ fontSize: 11, color: '#FDE68A', marginTop: 3 }}>⚠ {T('ov_attendance_as_of', lang).replace('{date}', staleAsOf)}</div>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
           {[
-            { v: schools.length, l: 'Schools' },
-            { v: `${avgScore}%`, l: 'Avg Score' },
-            { v: compliant, l: '✅ Compliant' },
-            { v: critical, l: '🔴 Critical' },
+            { v: schools.length, l: T('ov_schools', lang) },
+            { v: `${avgScore}%`, l: T('ov_avg_score', lang) },
+            { v: compliant, l: `✅ ${T('ov_compliant', lang)}` },
+            { v: critical, l: `🔴 ${T('ov_critical', lang)}` },
           ].map(s => (
             <div key={s.l} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 8, padding: '8px 4px', textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.v}</div>
@@ -126,7 +129,7 @@ export default function MEODashboardPage() {
       {govAlerts.length > 0 && (
         <>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 8 }}>
-            ⚡ Governance Actions Required
+            ⚡ {T('ov_gov_actions', lang)}
           </div>
           {govAlerts.map((a, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid', background: SEV[a.sev].bg, borderColor: SEV[a.sev].border, marginBottom: 6 }}>
@@ -141,9 +144,9 @@ export default function MEODashboardPage() {
       {data && (data.action_items_pending > 0 || data.teacher_vacancies_total > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
           {[
-            { label: 'Action Items', value: data.action_items_pending, color: data.action_items_pending > 0 ? '#B91C1C' : '#15803D', bg: data.action_items_pending > 0 ? '#FEF2F2' : '#F0FDF4' },
-            { label: 'Vacancies', value: data.teacher_vacancies_total, color: data.teacher_vacancies_total > 0 ? '#D97706' : '#15803D', bg: data.teacher_vacancies_total > 0 ? '#FFF7ED' : '#F0FDF4' },
-            { label: 'Infra Issues', value: data.infrastructure_deficiencies, color: data.infrastructure_deficiencies > 0 ? '#D97706' : '#15803D', bg: data.infrastructure_deficiencies > 0 ? '#FFF7ED' : '#F0FDF4' },
+            { label: T('ov_action_items', lang), value: data.action_items_pending, color: data.action_items_pending > 0 ? '#B91C1C' : '#15803D', bg: data.action_items_pending > 0 ? '#FEF2F2' : '#F0FDF4' },
+            { label: T('ov_vacancies', lang), value: data.teacher_vacancies_total, color: data.teacher_vacancies_total > 0 ? '#D97706' : '#15803D', bg: data.teacher_vacancies_total > 0 ? '#FFF7ED' : '#F0FDF4' },
+            { label: T('ov_infra_issues', lang), value: data.infrastructure_deficiencies, color: data.infrastructure_deficiencies > 0 ? '#D97706' : '#15803D', bg: data.infrastructure_deficiencies > 0 ? '#FFF7ED' : '#F0FDF4' },
           ].map(e => (
             <div key={e.label} style={{ background: e.bg, borderRadius: 11, padding: '10px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: e.color }}>{e.value}</div>
@@ -157,7 +160,7 @@ export default function MEODashboardPage() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {(['all','warning','critical'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} className={`filter-btn${filter===f?' active':''}`}>
-            {f === 'all' ? `All (${schools.length})` : f === 'warning' ? `⚠ <90% (${warning+critical})` : `🔴 Critical (${critical})`}
+            {f === 'all' ? `${T('ov_all', lang)} (${schools.length})` : f === 'warning' ? `⚠ <90% (${warning+critical})` : `🔴 ${T('ov_critical', lang)} (${critical})`}
           </button>
         ))}
         <button onClick={() => void load()} style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #E5E7EB', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -167,13 +170,13 @@ export default function MEODashboardPage() {
 
       {/* SCHOOL LIST */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading mandal data…</div>
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>{T('ov_loading_mandal', lang)}</div>
       ) : error ? (
         <div style={{ padding: 20, background: '#FEF2F2', borderRadius: 12, color: '#B91C1C', fontSize: 13, fontWeight: 600 }}>⚠️ {error}</div>
       ) : filteredSchools.length === 0 ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🏫</div>
-          <div>No schools found. UDISE codes may not be configured.</div>
+          <div>{T('ov_no_schools', lang)}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -187,7 +190,7 @@ export default function MEODashboardPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{s.school_name}</div>
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>
                       UDISE: {s.udise_code}
-                      {s.teachers_late_today > 0 && <span style={{ color: '#D97706', marginLeft: 8 }}>⏰ {s.teachers_late_today} late</span>}
+                      {s.teachers_late_today > 0 && <span style={{ color: '#D97706', marginLeft: 8 }}>⏰ {T('ov_late', lang).replace('{n}', String(s.teachers_late_today))}</span>}
                     </div>
                   </div>
                   <span style={{ fontSize: 11, background: '#F3F4F6', color: '#6B7280', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>
@@ -196,10 +199,10 @@ export default function MEODashboardPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
                   <div style={{ fontSize: 11, color: '#6B7280' }}>
-                    👩‍🎓 <b style={{ color: '#111827' }}>{s.present_today}/{s.total_students}</b> students
+                    👩‍🎓 <b style={{ color: '#111827' }}>{s.present_today}/{s.total_students}</b> {T('ov_students', lang)}
                   </div>
                   <div style={{ fontSize: 11, color: '#6B7280' }}>
-                    🧑‍🏫 <b style={{ color: '#111827' }}>{s.teachers_checked_in}/{s.total_teachers}</b> teachers in
+                    🧑‍🏫 <b style={{ color: '#111827' }}>{s.teachers_checked_in}/{s.total_teachers}</b> {T('ov_teachers_in', lang)}
                   </div>
                 </div>
                 <ScoreBar score={sc} />
@@ -213,7 +216,7 @@ export default function MEODashboardPage() {
       <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
         <a href="/api/reports/meo/compliance-export?format=csv"
           style={{ flex: 1, height: 44, borderRadius: 10, background: '#1E40AF', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-          📥 Export Compliance CSV
+          📥 {T('ov_export_compliance', lang)}
         </a>
       </div>
     </Layout>
