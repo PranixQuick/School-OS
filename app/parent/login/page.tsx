@@ -86,7 +86,7 @@ export default function ParentLoginPage() {
                 maxLength={6}
                 autoComplete="current-password"
                 inputMode="numeric"
-                style={{ width: '100%', padding: '14px 56px 14px 14px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 10, fontSize: 18, outline: 'none', letterSpacing: 6, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 56px 14px 14px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 10, fontSize: 18, outline: 'none', letterSpacing: 2, boxSizing: 'border-box' }}
                 onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
               />
               <button type="button" onClick={() => setShowPin(v => !v)} aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
