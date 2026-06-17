@@ -23,7 +23,7 @@ interface DashData {
   schedule: ScheduleItem[];
   recent_homework: HomeworkItem[];
   leave_pending: number; leave_approved: number;
-  students_count: number; attendance_today: number | null;
+  classes_count: number; students_count: number; attendance_today: number | null;
   low_att_students: LowAttStudent[];
   substitute_duties: SubstituteAlert[];
   health_alerts: number;
