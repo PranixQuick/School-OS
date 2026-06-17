@@ -123,6 +123,9 @@ export default function StudentsPage() {
   });
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
+  const [loginBusyId, setLoginBusyId] = useState<string | null>(null);
+  const [loginMsg, setLoginMsg] = useState<Record<string, string>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
