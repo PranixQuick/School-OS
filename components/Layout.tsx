@@ -348,7 +348,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
   ],
   counsellor: [
     { groupKey: 'overview', items: [
-      { key: 'dashboard',     href: '/dashboard', icon: '🏠' },
+      { key: 'dashboard',     href: '/counsellor', icon: '🏠' },
       { key: 'students',      href: '/students',  icon: '👨‍🎓' },
     ]},
   ],
