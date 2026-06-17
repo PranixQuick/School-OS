@@ -14,6 +14,7 @@ interface SchoolSummary {
   present_today: number; total_students: number;
   teachers_checked_in: number; total_teachers: number;
   teachers_late_today: number; compliance_score: number;
+  attendance_as_of: string | null; has_attendance: boolean;
 }
 interface MEOData {
   mandal_name: string; district_name: string;
