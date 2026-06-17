@@ -77,17 +77,23 @@ export default function ParentLoginPage() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>
               PIN
             </label>
-            <input
-              type="password"
-              value={pin}
-              onChange={e => setPin(e.target.value)}
-              placeholder="4–6 digit PIN"
-              maxLength={6}
-              autoComplete="current-password"
-              inputMode="numeric"
-              style={{ width: '100%', padding: '14px 14px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 10, fontSize: 18, outline: 'none', letterSpacing: 6, boxSizing: 'border-box' }}
-              onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPin ? 'text' : 'password'}
+                value={pin}
+                onChange={e => setPin(e.target.value)}
+                placeholder="4–6 digit PIN"
+                maxLength={6}
+                autoComplete="current-password"
+                inputMode="numeric"
+                style={{ width: '100%', padding: '14px 56px 14px 14px', border: `1px solid ${error ? '#FCA5A5' : '#D1D5DB'}`, borderRadius: 10, fontSize: 18, outline: 'none', letterSpacing: 6, boxSizing: 'border-box' }}
+                onKeyDown={e => { if (e.key === 'Enter') void handleLogin(); }}
+              />
+              <button type="button" onClick={() => setShowPin(v => !v)} aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
+                style={{ position: 'absolute', right: 12, top: 0, bottom: 0, background: 'none', border: 'none', color: '#4F46E5', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {showPin ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           {error && (
