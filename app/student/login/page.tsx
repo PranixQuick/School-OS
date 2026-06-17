@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 export default function StudentLoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ admission_number: '', pin: '' });
+  const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
