@@ -247,6 +247,38 @@ export default function StudentsPage() {
           onConfirm={doAction} onClose={() => { setActionModal(null); setSelected(null); }} />
       )}
 
+      {bulkPreview && (
+        <div onClick={() => { if (!bulkCommitting) setBulkPreview(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 380, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Bulk Enable Login</div>
+            {bulkPreview.willEnable === 0 ? (
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+                There are no students to enable right now — everyone already has a PIN, or they have no admission number to build one from.
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+                This creates a login PIN for <strong>{bulkPreview.willEnable}</strong> student(s) who don&apos;t have one yet, using the last 4 digits of their admission number.
+                {bulkPreview.skippedExisting > 0 && <>{' '}{bulkPreview.skippedExisting} student(s) already have a PIN and will be left unchanged.</>}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button onClick={() => setBulkPreview(null)} disabled={bulkCommitting}
+                style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {bulkPreview.willEnable === 0 ? 'Close' : T('cancel', lang as never)}
+              </button>
+              {bulkPreview.willEnable > 0 && (
+                <button onClick={() => void bulkCommit()} disabled={bulkCommitting}
+                  style={{ padding: '8px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: bulkCommitting ? 'default' : 'pointer', opacity: bulkCommitting ? 0.7 : 1 }}>
+                  {bulkCommitting ? 'Enabling…' : `Enable ${bulkPreview.willEnable}`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status filter */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         {STATUSES.map(s => (
