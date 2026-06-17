@@ -128,7 +128,7 @@ export default function LoginPage() {
             ∞
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>School <span style={{ color: '#7DD3FC' }}>OS</span></div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>EdPro<span style={{ color: '#7DD3FC' }}>Sys</span></div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>School Management Platform</div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function LoginPage() {
 
               {/* Setup guidance — shown when no auth accounts provisioned */}
               <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 9, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
-                <strong>First time?</strong> Check your email for a setup invitation from School OS. Click &quot;Set Password&quot; in that email before logging in here.
+                <strong>First time?</strong> Check your email for a setup invitation from EdProSys. Click &quot;Set Password&quot; in that email before logging in here.
                 <br />Can&apos;t find it? Use <button type="button" onClick={() => setShowMagicLink(true)} style={{ background: 'none', border: 'none', color: '#4F46E5', cursor: 'pointer', fontWeight: 700, fontSize: 12, padding: 0, fontFamily: 'inherit' }}>Sign in with email link</button> below.
               </div>
 

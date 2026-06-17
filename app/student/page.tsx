@@ -127,17 +127,23 @@ export default function StudentHomePage() {
       {attendance && (
         <div style={cardStyle}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>✅ Attendance (30 days)</div>
-          <div style={{ display: 'flex', gap: 0, marginBottom: 10 }}>
-            {statBox('Present', attendance.present, '#065F46')}
-            {statBox('Absent', attendance.absent, '#DC2626')}
-            {statBox('%', attendance.percentage + '%', attendance.percentage >= 75 ? '#065F46' : '#D97706')}
-          </div>
-          {/* Simple progress bar */}
-          <div style={{ background: '#F3F4F6', borderRadius: 4, height: 6 }}>
-            <div style={{ width: `${attendance.percentage}%`, background: attendance.percentage >= 75 ? '#16A34A' : '#F59E0B', height: 6, borderRadius: 4, transition: 'width 0.5s' }} />
-          </div>
-          {attendance.percentage < 75 && (
-            <div style={{ fontSize: 10, color: '#D97706', fontWeight: 600, marginTop: 6 }}>⚠️ Attendance below 75%</div>
+          {attendance.total > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: 0, marginBottom: 10 }}>
+                {statBox('Present', attendance.present, '#065F46')}
+                {statBox('Absent', attendance.absent, '#DC2626')}
+                {statBox('%', attendance.percentage + '%', attendance.percentage >= 75 ? '#065F46' : '#D97706')}
+              </div>
+              {/* Simple progress bar */}
+              <div style={{ background: '#F3F4F6', borderRadius: 4, height: 6 }}>
+                <div style={{ width: `${attendance.percentage}%`, background: attendance.percentage >= 75 ? '#16A34A' : '#F59E0B', height: 6, borderRadius: 4, transition: 'width 0.5s' }} />
+              </div>
+              {attendance.percentage < 75 && (
+                <div style={{ fontSize: 10, color: '#D97706', fontWeight: 600, marginTop: 6 }}>⚠️ Attendance below 75%</div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: '#6B7280' }}>No attendance recorded yet for this period.</div>
           )}
         </div>
       )}
