@@ -349,9 +349,14 @@ export default function StudentsPage() {
                         {T(labelKey, lang as never)}
                       </button>
                     ))}
+                    <button onClick={() => void enableLogin(s)} disabled={loginBusyId === s.id}
+                      style={{ padding: '4px 10px', fontSize: 12, background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 6, cursor: loginBusyId === s.id ? 'default' : 'pointer', color: '#4F46E5' }}>
+                      Enable Login
+                    </button>
+                    {loginMsg[s.id] && <span style={{ fontSize: 11, fontWeight: 600, color: '#15803D', alignSelf: 'center' }}>{loginMsg[s.id]}</span>}
                   </div>
                 )}
-                {s.status !== 'active' && s.status !== 'graduated' && (
+                {!s.is_active && s.status !== 'graduated' && (
                   <div style={{ marginTop: 8 }}>
                     <button onClick={async () => {
                       const r = await fetch('/api/students', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id, action: 'reactivate' }) });
