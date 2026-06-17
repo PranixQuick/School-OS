@@ -23,8 +23,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   const [studentName, setStudentName] = useState('');
   const [studentClass, setStudentClass] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  const isLoginPage = pathname === '/student/login';
 
   useEffect(() => {
+    if (isLoginPage) return;
     void fetch('/api/student/profile')
       .then(r => r.ok ? r.json() : null)
       .then((d: { profile?: { name: string; class: string; section: string } } | null) => {
@@ -33,12 +35,18 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         setStudentClass(`Class ${d.profile.class}-${d.profile.section}`);
       })
       .catch(() => router.push('/student/login'));
-  }, [router]);
+  }, [router, isLoginPage]);
 
   async function logout() {
     setLoggingOut(true);
     await fetch('/api/student/logout', { method: 'POST' });
     router.push('/student/login');
+  }
+
+  // On the login screen there is no session yet — render the bare page
+  // without the portal chrome (header 'Sign out' + bottom nav).
+  if (isLoginPage) {
+    return <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>{children}</div>;
   }
 
   return (
