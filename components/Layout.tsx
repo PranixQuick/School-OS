@@ -87,6 +87,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
     ]},
     { groupKey: 'school', items: [
       { key: 'students',      href: '/students',                     icon: '👨‍🎓' },
+      { key: 'parents',       href: '/admin/parents',                icon: '👨‍👩‍👧' },
       { key: 'staff',         href: '/admin/staff',                  icon: '👥' },
       { key: 'timetable',     href: '/admin/timetable',              icon: '🗓',
         // Coaching uses batch schedules; anganwadi has no formal timetable.
