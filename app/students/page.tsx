@@ -258,6 +258,10 @@ export default function StudentsPage() {
         <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           {showAdd ? T('cancel', lang as never) : '+ ' + T('add_student', lang as never)}
         </button>
+        <button onClick={() => void bulkEnableLogin()} disabled={bulkBusy}
+          style={{ padding: '8px 16px', background: '#fff', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: bulkBusy ? 'default' : 'pointer', opacity: bulkBusy ? 0.6 : 1 }}>
+          {bulkBusy ? T('loading', lang as never) : 'Bulk Enable Login'}
+        </button>
       </div>
 
       {/* Add form */}
