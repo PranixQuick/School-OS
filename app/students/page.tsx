@@ -126,6 +126,8 @@ export default function StudentsPage() {
   const [loginBusyId, setLoginBusyId] = useState<string | null>(null);
   const [loginMsg, setLoginMsg] = useState<Record<string, string>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState<{ willEnable: number; skippedExisting: number } | null>(null);
+  const [bulkCommitting, setBulkCommitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -192,8 +194,9 @@ export default function StudentsPage() {
     finally { setLoginBusyId(null); }
   }
 
-  // Bulk: enable login for all active students who have no PIN yet (NULL-only,
-  // never overwrites). Previews counts via dry-run, then asks to confirm.
+  // Bulk: preview how many active students have no PIN yet (dry-run), then show
+  // an in-app confirmation modal. Native confirm() is unreliable (some browsers
+  // auto-dismiss it), so we use a real modal that previews the counts.
   async function bulkEnableLogin() {
     if (bulkBusy) return;
     setBulkBusy(true);
@@ -202,12 +205,16 @@ export default function StudentsPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ default_pin_pattern: 'last4_admission', dry_run: true }),
       });
-      const dd = await dry.json().catch(() => ({})) as { enabled?: number; skipped_existing?: number; skipped_no_admission?: number; error?: string };
+      const dd = await dry.json().catch(() => ({})) as { enabled?: number; skipped_existing?: number; error?: string };
       if (!dry.ok) { showToast(dd.error ?? T('error', lang as never), 'err'); return; }
-      const willEnable = dd.enabled ?? 0;
-      if (willEnable === 0) { showToast('No students to enable (all have PINs or lack an admission number).'); return; }
-      const ok = window.confirm(`Enable login for ${willEnable} student(s) who have no PIN yet, using the last 4 digits of their admission number. ${dd.skipped_existing ?? 0} already have a PIN and will be left unchanged. Proceed?`);
-      if (!ok) return;
+      setBulkPreview({ willEnable: dd.enabled ?? 0, skippedExisting: dd.skipped_existing ?? 0 });
+    } catch { showToast(T('error', lang as never), 'err'); }
+    finally { setBulkBusy(false); }
+  }
+
+  async function bulkCommit() {
+    setBulkCommitting(true);
+    try {
       const r = await fetch('/api/admin/students/bulk-enable-login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ default_pin_pattern: 'last4_admission' }),
@@ -216,9 +223,10 @@ export default function StudentsPage() {
       if (!r.ok) { showToast(rd.error ?? T('error', lang as never), 'err'); return; }
       const extra = (rd.skipped_no_admission ?? 0) > 0 ? ` ${rd.skipped_no_admission} skipped (no admission number).` : '';
       showToast(`Enabled login for ${rd.enabled ?? 0} student(s).${extra}`);
+      setBulkPreview(null);
       void load();
     } catch { showToast(T('error', lang as never), 'err'); }
-    finally { setBulkBusy(false); }
+    finally { setBulkCommitting(false); }
   }
 
   const STATUSES = ['active', 'graduated', 'transferred', 'withdrawn', 'archived', 'all'];
@@ -237,6 +245,38 @@ export default function StudentsPage() {
       {selected && actionModal && (
         <ActionModal student={selected} action={actionModal} acting={acting} lang={lang}
           onConfirm={doAction} onClose={() => { setActionModal(null); setSelected(null); }} />
+      )}
+
+      {bulkPreview && (
+        <div onClick={() => { if (!bulkCommitting) setBulkPreview(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 380, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Bulk Enable Login</div>
+            {bulkPreview.willEnable === 0 ? (
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+                There are no students to enable right now — everyone already has a PIN, or they have no admission number to build one from.
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+                This creates a login PIN for <strong>{bulkPreview.willEnable}</strong> student(s) who don&apos;t have one yet, using the last 4 digits of their admission number.
+                {bulkPreview.skippedExisting > 0 && <>{' '}{bulkPreview.skippedExisting} student(s) already have a PIN and will be left unchanged.</>}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button onClick={() => setBulkPreview(null)} disabled={bulkCommitting}
+                style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {bulkPreview.willEnable === 0 ? 'Close' : T('cancel', lang as never)}
+              </button>
+              {bulkPreview.willEnable > 0 && (
+                <button onClick={() => void bulkCommit()} disabled={bulkCommitting}
+                  style={{ padding: '8px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: bulkCommitting ? 'default' : 'pointer', opacity: bulkCommitting ? 0.7 : 1 }}>
+                  {bulkCommitting ? 'Enabling…' : `Enable ${bulkPreview.willEnable}`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Status filter */}
