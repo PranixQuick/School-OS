@@ -106,6 +106,7 @@ export default function MEODashboardPage() {
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>MEO Mandal Governance Monitor</div>
         <div style={{ fontSize: 18, fontWeight: 800 }}>{data?.mandal_name ?? '—'}</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{data?.district_name ?? '—'} · {today}</div>
+        {staleAsOf && <div style={{ fontSize: 11, color: '#FDE68A', marginTop: 3 }}>⚠ Latest attendance data as of {staleAsOf}</div>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
           {[
             { v: schools.length, l: 'Schools' },
