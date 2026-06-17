@@ -216,9 +216,104 @@ const S: Record<string, Partial<Record<Lang, string>>> = {
  * Translate a key to the given language.
  * Falls back to English, then to the key itself.
  */
+// English labels for keys whose humanized-key fallback reads badly (internal
+// suffixes/prefixes/abbreviations). Other languages keep their own entries in S;
+// this only supplies proper English where S has no `en` value.
+const EN_OVERRIDES: Record<string, string> = {
+  // table column headers
+  name_col: 'Name', email_col: 'Email', role_col: 'Role', last_login_col: 'Last Login', status_col: 'Status',
+  sl_no: 'Sl. No.', actions: 'Actions', student_name: 'Student Name', staff_name: 'Staff Name', fee_type: 'Fee Type',
+  collected: 'Collected', outstanding: 'Outstanding', vendor_type: 'Vendor Type', contact: 'Contact',
+  // tabs
+  general_tab: 'General', team_tab: 'Team', usage_plan: 'Usage & Plan', school_config: 'School',
+  // generic field labels
+  collected_label: 'Collected', outstanding_label: 'Outstanding', leave_pending_label: 'Leave Pending',
+  recent_homework_label: 'Recent Homework', school_name_label: 'School Name', board_label: 'Board',
+  contact_email_label: 'Contact Email', contact_phone_label: 'Contact Phone', address_label: 'Address',
+  academic_terms_label: 'Academic Terms', subject_label: 'Subject', message_label: 'Message',
+  parent_name_label: 'Parent Name', graduation_year_label: 'Graduation Year', event_name_label: 'Event Name',
+  event_type_label: 'Event Type', reports_generated_label: 'Reports Generated', evaluations_done_label: 'Evaluations Done',
+  broadcasts_sent_label: 'Broadcasts Sent', leads_scored_label: 'Leads Scored', reason_label: 'Reason',
+  // buttons
+  mark_paid_btn: 'Mark Paid', add_staff_member_btn: 'Add Staff Member', mark_paid: 'Mark Paid', new_inquiry: 'New Inquiry',
+  // placeholders
+  vendor_name_ph: 'Vendor name', contact_name_ph: 'Contact name', gst_number_ph: 'GST number', notes_ph: 'Notes',
+  // admissions enquiry fields
+  parent_name_field: 'Parent Name', phone_number_field: 'Phone Number', child_name_field: 'Child Name',
+  child_age_field: 'Child Age', grade_interested: 'Grade Interested In', how_they_found: 'How did you hear about us?',
+  email_address: 'Email Address', sibling_enrolled: 'Sibling already enrolled?', submit_inquiry: 'Submit Inquiry',
+  scoring_with_ai: 'Scoring with AI…', lead_scored: 'Lead scored', ai_insight: 'AI Insight', lead_saved_to_crm: 'Lead saved to CRM',
+  // weekday short forms
+  mon_short: 'Mon', tue_short: 'Tue', wed_short: 'Wed', thu_short: 'Thu', fri_short: 'Fri', sat_short: 'Sat',
+  // student lifecycle actions
+  transfer_action: 'Transfer', graduate_action: 'Graduate', withdraw_action: 'Withdraw', archive_action: 'Archive',
+  processing_: 'Processing…', no_students_found: 'No students found', destination_school: 'Destination School',
+  parent_phone: 'Parent Phone',
+  // teacher dashboard
+  classes_today: 'Classes Today', not_marked: 'Not Marked', marked_today: 'Marked Today', quick_actions: 'Quick Actions',
+  todays_schedule: "Today's Schedule", no_classes_today: 'No classes today', mark_now: 'Mark Now',
+  attendance_not_marked: 'Attendance not marked', lesson_plans: 'Lesson Plans', check_in: 'Check In',
+  // settings
+  school_information: 'School Information', save_changes: 'Save Changes', saving_: 'Saving…', saved_success: 'Saved successfully',
+  classes_grades: 'Classes / Grades', fee_categories_config: 'Fee Categories', school_timings: 'School Timings',
+  save_configuration: 'Save Configuration', config_saved: 'Configuration saved', classes_grades_s: 'Classes / Grades',
+  // payroll
+  staff_on_payroll: 'Staff on Payroll', monthly_payroll: 'Monthly Payroll', total_runs: 'Total Runs',
+  run_new_payroll: 'Run New Payroll', salary_structures: 'Salary Structures', add_salary_structure: 'Add Salary Structure',
+  set_salary_structure: 'Set Salary Structure', select_staff_member: 'Select Staff Member', deductions_section: 'Deductions',
+  basic_salary: 'Basic Salary', medical_allowance: 'Medical Allowance', other_allowance: 'Other Allowance',
+  pf_employee_pct: 'PF (Employee %)', pf_employer_pct: 'PF (Employer %)', tds_monthly: 'TDS (Monthly)',
+  other_deduction: 'Other Deduction', esi_applicable: 'ESI Applicable', gross_monthly: 'Gross (Monthly)',
+  approve_action: 'Approve', mark_as_paid: 'Mark as Paid', export_csv: 'Export CSV', no_payroll_runs: 'No payroll runs yet',
+  no_salary_structures: 'No salary structures yet', add_structures_first: 'Add salary structures first',
+  payroll_run_created: 'Payroll run created', structure_saved: 'Structure saved', payroll_approved: 'Payroll approved',
+  payroll_marked_paid: 'Payroll marked paid', payroll_cancelled: 'Payroll cancelled', staff_salary_required: 'Staff and salary required',
+  view_arrow: 'View →', hint_add_structure: 'Add a salary structure first',
+  // staff
+  add_new_staff: 'Add New Staff', all_roles: 'All Roles', add_staff_member: 'Add Staff Member', remove_staff: 'Remove Staff',
+  no_staff_found: 'No staff found', full_name: 'Full Name',
+  // broadcasts
+  new_announcement: 'New Announcement', send_to_all: 'Send to All', sending_: 'Sending…', broadcast_history: 'Broadcast History',
+  no_broadcasts: 'No broadcasts yet', announcements_will_appear: 'Announcements will appear here.',
+  // reports & evaluations
+  reports_ready: 'Reports Ready', generate_all_reports: 'Generate All Reports', no_reports_yet: 'No reports yet',
+  total_evaluations: 'Total Evaluations', avg_score: 'Avg Score', excellent_label: 'Excellent',
+  upload_recording: 'Upload Recording', no_evaluations_yet: 'No evaluations yet',
+  // galleries / events
+  event_description: 'Event Description', share_with: 'Share With', allow_download: 'Allow Download',
+  create_gallery: 'Create Gallery', gallery_created: 'Gallery created', gallery_published: 'Gallery published',
+  gallery_archived: 'Gallery archived', new_gallery: 'New Gallery', upload_photos: 'Upload Photos',
+  manage_gallery: 'Manage Gallery', publish_gallery: 'Publish Gallery', archive_gallery: 'Archive Gallery',
+  no_galleries: 'No galleries yet', create_first_gallery: 'Create your first gallery', share_moments: 'Share moments with parents',
+  all_filter: 'All', status_draft: 'Draft', status_published: 'Published', status_archived: 'Archived',
+  // broadcast audiences
+  aud_all_parents: 'All Parents', aud_all: 'Everyone', aud_staff_only: 'Staff Only', aud_teachers_only: 'Teachers Only',
+  aud_class_parents: 'Class Parents',
+  // event types
+  et_annual_day: 'Annual Day', et_sports_day: 'Sports Day', et_farewell: 'Farewell', et_cultural: 'Cultural', et_general: 'General',
+  // vendors
+  add_vendor: 'Add Vendor', edit_vendor: 'Edit Vendor', update_vendor: 'Update Vendor', deactivate: 'Deactivate',
+  activate: 'Activate', contract_until: 'Contract Until', no_vendors_yet: 'No vendors yet', saving_vendor: 'Saving vendor…',
+  vendor_saved: 'Vendor saved',
+  // transfer certificates
+  requested_on: 'Requested On', approved_on: 'Approved On', tc_approve: 'Approve', tc_reject: 'Reject', tc_issue: 'Issue TC',
+  tc_none: 'No certificates', tc_will_appear: 'Transfer certificate requests will appear here.', tc_no_pending: 'No pending requests',
+  reason_transfer: 'Transfer', reason_migration: 'Migration', reason_fees: 'Fees', reason_academic: 'Academic',
+  reason_family: 'Family', reason_other: 'Other', issued_status: 'Issued',
+  // analytics
+  analytics_coming_soon: 'Analytics coming soon', analytics_coming_desc: "We're building detailed analytics. In the meantime, use the reports available in each section.",
+  quick_access_reports: 'Quick-access reports', att_analytics: 'Attendance Analytics', fee_collection_graph: 'Fee Collection',
+  teacher_trends: 'Teacher Trends', admissions_funnel: 'Admissions Funnel', next_sprint: 'Coming next',
+  // usage / team
+  view_billing: 'View Billing', team_members: 'Team Members', never_logged_in: 'Never logged in',
+  active_badge: 'Active', inactive_badge: 'Inactive', leads_hp: 'Leads',
+  // misc abbreviations
+  dob: 'DOB', ptm: 'PTM',
+};
+
 export function T(key: string, lang: Lang): string {
-  if (lang === 'en') return S[key]?.en ?? key.replace(/_/g, ' ');
-  return S[key]?.[lang] ?? S[key]?.en ?? key.replace(/_/g, ' ');
+  if (lang === 'en') return S[key]?.en ?? EN_OVERRIDES[key] ?? key.replace(/_/g, ' ');
+  return S[key]?.[lang] ?? S[key]?.en ?? EN_OVERRIDES[key] ?? key.replace(/_/g, ' ');
 }
 
 /** Deprecated alias — use T() */
