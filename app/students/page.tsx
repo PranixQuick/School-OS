@@ -126,6 +126,8 @@ export default function StudentsPage() {
   const [loginBusyId, setLoginBusyId] = useState<string | null>(null);
   const [loginMsg, setLoginMsg] = useState<Record<string, string>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState<{ willEnable: number; skippedExisting: number } | null>(null);
+  const [bulkCommitting, setBulkCommitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
