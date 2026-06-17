@@ -209,16 +209,22 @@ export default function LoginPage() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, letterSpacing: '0.04em' }}>
                     PASSWORD
                   </label>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    disabled={loading}
-                    style={{ width: '100%', height: 46, borderRadius: 9, border: '1px solid #D1D5DB', background: loading ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 14px', outline: 'none', fontFamily: 'inherit', color: '#111827' }}
-                    placeholder="Enter your password"
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      disabled={loading}
+                      style={{ width: '100%', height: 46, borderRadius: 9, border: '1px solid #D1D5DB', background: loading ? '#F3F4F6' : '#F9FAFB', fontSize: 14, padding: '0 56px 0 14px', outline: 'none', fontFamily: 'inherit', color: '#111827' }}
+                      placeholder="Enter your password"
+                    />
+                    <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
+                      style={{ position: 'absolute', right: 10, top: 0, height: 46, background: 'none', border: 'none', color: '#4F46E5', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {showPw ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right', marginBottom: 20 }}>
                   <button type="button" onClick={() => setShowMagicLink(true)}
