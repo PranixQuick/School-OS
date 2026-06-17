@@ -260,7 +260,12 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
     ]},
     { groupKey: 'finance', items: [
       { key: 'fees',          href: '/admin/fees',  icon: '💰',
-        showFor: (ctx) => !ctx.isGovernment && !ctx.isAnganwadi },
+        // Government colleges run fees + ePASS; only plain govt schools and
+        // anganwadi are excluded from platform-managed fees.
+        showFor: (ctx) => (!ctx.isGovernment || ctx.isHigherEducation) && !ctx.isAnganwadi },
+      { key: 'scholarships',  href: '/admin/scholarships', icon: '🏅',
+        // ePASS / scholarship tracking — relevant to colleges and schools.
+        showFor: (ctx) => !ctx.isAnganwadi },
       { key: 'payroll',       href: '/admin/payroll', icon: '💼',
         showFor: (ctx) => !ctx.isAnganwadi },
     ]},
