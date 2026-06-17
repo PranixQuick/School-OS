@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const districtCode = mappings[0].district_code ?? null;
   let summaryQuery = supabaseAdmin
     .from('v_meo_school_summary')
-    .select('school_id, school_name, mandal_code, district_code, total_students, compliance_score');
+    .select('school_id, school_name, mandal_code, district_code, total_students, compliance_score, has_attendance');
   if (districtCode) summaryQuery = summaryQuery.eq('district_code', districtCode);
   const { data: summary } = await summaryQuery;
   const rows = summary ?? [];
@@ -48,10 +48,13 @@ export async function GET(req: NextRequest) {
     nums.length ? Math.round(nums.reduce((s, n) => s + n, 0) / nums.length) : 0;
 
   // Build per-mandal summary from real data, grouped by mandal_code.
+  // Schools with no attendance records yet are "awaiting data", not critical —
+  // they are excluded from scores and the critical count.
   const mandals = mappings.map(m => {
     const mandalRows = rows.filter(r => r.mandal_code === m.mandal_code);
-    const scores = mandalRows.map(r => Number(r.compliance_score ?? 0));
-    const worst = mandalRows.slice().sort(
+    const reportingRows = mandalRows.filter(r => r.has_attendance);
+    const scores = reportingRows.map(r => Number(r.compliance_score ?? 0));
+    const worst = reportingRows.slice().sort(
       (a, b) => Number(a.compliance_score ?? 0) - Number(b.compliance_score ?? 0)
     )[0];
     return {
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
       mandal_name: m.mandal_name,
       school_count: mandalRows.length,
       avg_compliance: avg(scores),
-      critical_schools: mandalRows.filter(r => Number(r.compliance_score ?? 0) < 50).length,
+      critical_schools: reportingRows.filter(r => Number(r.compliance_score ?? 0) < 50).length,
       teacher_vacancies: 0,
       open_action_items: openByNothing,
       inspections_due: 0,
@@ -67,7 +70,7 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  const allScores = rows.map(r => Number(r.compliance_score ?? 0));
+  const allScores = rows.filter(r => r.has_attendance).map(r => Number(r.compliance_score ?? 0));
 
   return NextResponse.json({
     district_name: districtName,
