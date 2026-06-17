@@ -44,6 +44,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showMagicLink, setShowMagicLink] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkError, setMagicLinkError] = useState('');
