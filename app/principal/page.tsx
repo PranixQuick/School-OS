@@ -134,8 +134,8 @@ export default function PrincipalPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🤖</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>AI Daily Briefing — Unavailable</div>
-              <div style={{ fontSize: 12, color: '#9CA3AF' }}>Add Anthropic credits to enable automated summaries</div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>Daily Briefing</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF' }}>Automated daily summaries aren&apos;t enabled for your school yet.</div>
             </div>
           </div>
         ) : (

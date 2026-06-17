@@ -61,6 +61,20 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Form label + input helper classes (used by the admissions form and others) */
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+}
+
 /* ── Modal/overlay scroll lock ─────────────────────────────── */
 .modal-open body { overflow: hidden; }
 
