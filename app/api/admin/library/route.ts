@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { canDo } from '@/lib/permissions';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
