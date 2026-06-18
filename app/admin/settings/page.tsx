@@ -7,9 +7,12 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 // Batch 4A: Inline institution config widget
 function InstitutionConfig() {
+  const { lang } = useLang();
   const [config, setConfig] = useState<{institution_type:string;ownership_type:string;feature_flags:Record<string,unknown>}|null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string|null>(null);
@@ -26,45 +29,45 @@ function InstitutionConfig() {
       method: 'PATCH', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ institution_type: config.institution_type, feature_flags_patch: config.feature_flags }),
     });
-    setSaveMsg(res.ok ? '✓ Saved' : 'Error saving'); setSaving(false);
+    setSaveMsg(res.ok ? '✓ ' + T('ov_saved', lang) : T('ov_error_saving', lang)); setSaving(false);
     setTimeout(() => setSaveMsg(null), 3000);
   }
 
   const INSTITUTION_TYPES = [
-    {value:'school_k10',label:'School (K-10)'},{value:'school_k12',label:'School (K-12)'},
-    {value:'govt_school',label:'Government School'},{value:'govt_aided_school',label:'Govt-Aided School'},
-    {value:'junior_college',label:'Junior College'},{value:'degree_college',label:'Degree College'},
-    {value:'engineering',label:'Engineering College'},{value:'coaching',label:'Coaching Centre'},
-    {value:'anganwadi',label:'Anganwadi'},{value:'vocational',label:'Vocational'},
+    {value:'school_k10',label:'ov_inst_school_k10'},{value:'school_k12',label:'ov_inst_school_k12'},
+    {value:'govt_school',label:'ov_inst_govt_school'},{value:'govt_aided_school',label:'ov_inst_govt_aided'},
+    {value:'junior_college',label:'ov_inst_junior_college'},{value:'degree_college',label:'ov_inst_degree_college'},
+    {value:'engineering',label:'ov_inst_engineering'},{value:'coaching',label:'ov_inst_coaching'},
+    {value:'anganwadi',label:'ov_inst_anganwadi'},{value:'vocational',label:'ov_inst_vocational'},
   ];
 
   const TOGGLES: {key:string;label:string;desc:string}[] = [
-    {key:'fee_module_enabled',label:'Fee Module',desc:'Disable for government institutions with no fee collection'},
-    {key:'meal_tracking_enabled',label:'Mid-Day Meal Tracking',desc:'Track daily meal distribution for government schemes'},
-    {key:'scholarship_tracking_enabled',label:'Scholarship Tracking',desc:'NSP, state, PM POSHAN and custom scholarships'},
-    {key:'rte_mode_enabled',label:'RTE Mode (Phase 4B)',desc:'Right to Education admission workflow — full features in next batch'},
-    {key:'online_payment_enabled',label:'Online Payments',desc:'Razorpay fee collection (disable for govt schools)'},
+    {key:'fee_module_enabled',label:'ov_tg_fee_module',desc:'ov_tg_fee_desc'},
+    {key:'meal_tracking_enabled',label:'ov_tg_meal',desc:'ov_tg_meal_desc'},
+    {key:'scholarship_tracking_enabled',label:'ov_tg_scholarship',desc:'ov_tg_scholarship_desc'},
+    {key:'rte_mode_enabled',label:'ov_tg_rte',desc:'ov_tg_rte_desc'},
+    {key:'online_payment_enabled',label:'ov_tg_online',desc:'ov_tg_online_desc'},
   ];
 
   if (!config) return null;
 
   return (
     <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 16 }}>🏫 Institution Configuration</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 16 }}>🏫 {T('ov_institution_config', lang)}</div>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 5 }}>INSTITUTION TYPE</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 5 }}>{T('ov_institution_type', lang)}</div>
         <select value={config.institution_type} onChange={e => setConfig(c => c ? {...c, institution_type: e.target.value} : c)}
           style={{ padding: '6px 10px', border: '1px solid #D1D5DB', borderRadius: 7, fontSize: 12, width: '100%', maxWidth: 280 }}>
-          {INSTITUTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          {INSTITUTION_TYPES.map(t => <option key={t.value} value={t.value}>{T(t.label, lang)}</option>)}
         </select>
       </div>
       <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 10 }}>FEATURE TOGGLES</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 10 }}>{T('ov_feature_toggles', lang)}</div>
         {TOGGLES.map(t => (
           <div key={t.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 0', borderBottom: '1px solid #F9FAFB' }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{t.label}</div>
-              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{t.desc}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{T(t.label, lang)}</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{T(t.desc, lang)}</div>
             </div>
             <label style={{ position: 'relative', display: 'inline-block', width: 36, height: 20, flexShrink: 0, marginTop: 1 }}>
               <input type="checkbox" checked={!!(config.feature_flags?.[t.key])}
@@ -80,7 +83,7 @@ function InstitutionConfig() {
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <button onClick={() => void save()} disabled={saving}
           style={{ padding: '7px 18px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
-          {saving ? 'Saving...' : 'Save Institution Settings'}
+          {saving ? T('ov_saving', lang) : T('ov_save_inst_settings', lang)}
         </button>
         {saveMsg && <span style={{ fontSize: 11, color: saveMsg.startsWith('✓') ? '#065F46' : '#B91C1C' }}>{saveMsg}</span>}
       </div>
@@ -92,6 +95,7 @@ function InstitutionConfig() {
 // Manual button only (no auto-run). Authorization is enforced server-side by
 // requireAdminSession on the route; nothing new is added here.
 function VidyaGridSync() {
+  const { lang } = useLang();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -117,7 +121,7 @@ function VidyaGridSync() {
         remaining_eligible_unlinked: d.remaining_eligible_unlinked ?? null,
       });
     } catch {
-      setError('Network error. Please try again.');
+      setError(T('ov_network_try_again', lang));
     } finally {
       setRunning(false);
     }
@@ -125,14 +129,14 @@ function VidyaGridSync() {
 
   return (
     <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 4 }}>🎓 VidyaGrid Enrollment Sync</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 4 }}>🎓 {T('ov_vidyagrid_sync_title', lang)}</div>
       <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
-        Enrolls eligible Class 9–10 students (with parent details, in a VidyaGrid-mapped school) into VidyaGrid and links their accounts. Processes up to 30 students per run — re-run until none remain.
+        {T('ov_vidyagrid_desc', lang)}
       </div>
 
       <button onClick={() => void runSync()} disabled={running}
         style={{ padding: '9px 20px', background: running ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: running ? 'not-allowed' : 'pointer' }}>
-        {running ? 'Syncing…' : 'Sync to VidyaGrid'}
+        {running ? T('ov_syncing', lang) : T('ov_sync_to_vidyagrid', lang)}
       </button>
 
       {error && (
@@ -143,20 +147,20 @@ function VidyaGridSync() {
 
       {result && (
         <div style={{ marginTop: 14, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 10 }}>LAST RUN RESULT</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 10 }}>{T('ov_last_run_result', lang)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 13 }}>
-            <div>Processed: <b>{result.processed}</b></div>
-            <div>Linked: <b style={{ color: '#065F46' }}>{result.linked}</b></div>
-            <div>Skipped: <b style={{ color: '#92400E' }}>{result.skipped}</b></div>
-            <div>Failed: <b style={{ color: '#991B1B' }}>{result.failed}</b></div>
-            <div style={{ gridColumn: '1 / -1' }}>Remaining eligible unlinked: <b>{result.remaining_eligible_unlinked ?? '—'}</b></div>
+            <div>{T('ov_processed', lang)}: <b>{result.processed}</b></div>
+            <div>{T('ov_linked', lang)}: <b style={{ color: '#065F46' }}>{result.linked}</b></div>
+            <div>{T('ov_skipped', lang)}: <b style={{ color: '#92400E' }}>{result.skipped}</b></div>
+            <div>{T('ov_failed', lang)}: <b style={{ color: '#991B1B' }}>{result.failed}</b></div>
+            <div style={{ gridColumn: '1 / -1' }}>{T('ov_remaining_unlinked', lang)}: <b>{result.remaining_eligible_unlinked ?? '—'}</b></div>
           </div>
           {result.remaining_eligible_unlinked && result.remaining_eligible_unlinked > 0 ? (
             <div style={{ marginTop: 10, fontSize: 11, color: '#6B7280' }}>
-              {result.remaining_eligible_unlinked} still eligible — run again (VidyaGrid limits enrollment to ~30 per hour).
+              {T('ov_still_eligible', lang).replace('{n}', String(result.remaining_eligible_unlinked))}
             </div>
           ) : result.remaining_eligible_unlinked === 0 ? (
-            <div style={{ marginTop: 10, fontSize: 11, color: '#065F46', fontWeight: 600 }}>✓ All eligible students are linked.</div>
+            <div style={{ marginTop: 10, fontSize: 11, color: '#065F46', fontWeight: 600 }}>✓ {T('ov_all_linked', lang)}</div>
           ) : null}
         </div>
       )}
@@ -174,6 +178,7 @@ interface RazorpayStatus {
 }
 
 export default function AdminSettingsPage() {
+  const { lang } = useLang();
   const [status, setStatus] = useState<RazorpayStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -203,7 +208,7 @@ export default function AdminSettingsPage() {
 
   async function saveConfig() {
     if (onlineEnabled && (!keyId.trim() || !keySecret.trim())) {
-      showToast('Both Key ID and Key Secret required when enabling online payments', false);
+      showToast(T('ov_both_keys_required', lang), false);
       return;
     }
     setSaving(true);
@@ -219,11 +224,11 @@ export default function AdminSettingsPage() {
       });
       const d = await res.json();
       if (res.ok) {
-        showToast('Payment configuration saved.');
+        showToast(T('ov_payment_saved', lang));
         setKeyId(''); setKeySecret('');
         void loadStatus();
       } else {
-        showToast(d.error ?? 'Save failed', false);
+        showToast(d.error ?? T('ov_save_failed', lang), false);
       }
     } finally { setSaving(false); }
   }
@@ -233,7 +238,7 @@ export default function AdminSettingsPage() {
   const labelStyle = { fontSize: 11, fontWeight: 600 as const, color: '#6B7280', marginBottom: 4, display: 'block' as const };
 
   return (
-    <Layout title="Settings" subtitle="School configuration">
+    <Layout title={T('ov_settings', lang)} subtitle={T('ov_school_config', lang)}>
 
       {toast && (
         <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, padding: '10px 18px',
@@ -244,11 +249,11 @@ export default function AdminSettingsPage() {
 
       {/* Payment Configuration */}
       <div style={cardStyle}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Payment Configuration</div>
-        <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 20 }}>Configure Razorpay to enable online fee collection from parents.</div>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{T('ov_payment_config', lang)}</div>
+        <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 20 }}>{T('ov_configure_razorpay', lang)}</div>
 
         {loading ? (
-          <div style={{ color: '#6B7280', fontSize: 13 }}>Loading...</div>
+          <div style={{ color: '#6B7280', fontSize: 13 }}>{T('ov_loading', lang)}</div>
         ) : (
           <>
             {/* Current status */}
@@ -256,7 +261,7 @@ export default function AdminSettingsPage() {
               <div style={{ padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                 background: status?.online_payment_enabled ? '#D1FAE5' : '#FEE2E2',
                 color: status?.online_payment_enabled ? '#065F46' : '#991B1B' }}>
-                {status?.online_payment_enabled ? '✓ Online payments enabled' : '✗ Online payments disabled'}
+                {status?.online_payment_enabled ? `✓ ${T('ov_online_enabled', lang)}` : `✗ ${T('ov_online_disabled', lang)}`}
               </div>
               {status?.key_id_configured && (
                 <div style={{ padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: '#1E40AF' }}>
@@ -272,23 +277,23 @@ export default function AdminSettingsPage() {
 
             {/* Online payments toggle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-              <span style={{ fontWeight: 600, fontSize: 13 }}>Enable Online Payments</span>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>{T('ov_enable_online_payments', lang)}</span>
               <button onClick={() => setOnlineEnabled(v => !v)}
                 style={{ padding: '4px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
                   background: onlineEnabled ? '#065F46' : '#E5E7EB', color: onlineEnabled ? '#fff' : '#374151' }}>
-                {onlineEnabled ? 'ON' : 'OFF'}
+                {onlineEnabled ? T('ov_on', lang) : T('ov_off', lang)}
               </button>
             </div>
 
             {/* Key inputs — always shown so admin can update keys */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 20 }}>
               <div>
-                <label style={labelStyle}>Razorpay Key ID {status?.key_id_configured ? '(leave blank to keep existing)' : '*'}</label>
+                <label style={labelStyle}>Razorpay Key ID {status?.key_id_configured ? T('ov_leave_blank', lang) : '*'}</label>
                 <input style={inputStyle} value={keyId} onChange={e => setKeyId(e.target.value)}
                   placeholder={status?.key_id_configured ? `Current: ${status.key_id_preview}` : 'rzp_live_…'} />
               </div>
               <div>
-                <label style={labelStyle}>Razorpay Key Secret {status?.key_secret_configured ? '(leave blank to keep existing)' : '*'}</label>
+                <label style={labelStyle}>Razorpay Key Secret {status?.key_secret_configured ? T('ov_leave_blank', lang) : '*'}</label>
                 <input type="password" style={inputStyle} value={keySecret} onChange={e => setKeySecret(e.target.value)}
                   placeholder={status?.key_secret_configured ? '••••••••••••••••' : 'Your Razorpay key secret'} />
               </div>
@@ -296,14 +301,14 @@ export default function AdminSettingsPage() {
 
             {onlineEnabled && !keyId.trim() && !status?.key_id_configured && (
               <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 7, padding: '8px 12px', fontSize: 12, color: '#92400E', marginBottom: 12 }}>
-                ⚠️ Key ID and Key Secret required to enable online payments.
+                ⚠️ {T('ov_keys_required_warn', lang)}
               </div>
             )}
 
             <button onClick={() => void saveConfig()} disabled={saving}
               style={{ padding: '10px 24px', background: saving ? '#9CA3AF' : '#4F46E5',
                 color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              {saving ? 'Saving…' : 'Save Configuration'}
+              {saving ? T('ov_saving', lang) : T('ov_save_configuration', lang)}
             </button>
           </>
         )}
@@ -311,8 +316,8 @@ export default function AdminSettingsPage() {
 
       {/* Placeholder for future settings sections */}
       <div style={{ ...cardStyle, opacity: 0.5 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: '#9CA3AF' }}>School Profile</div>
-        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Edit school name, address, board and contact details. (Coming soon)</div>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#9CA3AF' }}>{T('ov_school_profile', lang)}</div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{T('ov_school_profile_desc', lang)}</div>
       </div>
 
       {/* Batch 4A: Institution Configuration */}
