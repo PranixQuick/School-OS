@@ -21,7 +21,7 @@ interface DashData {
   active_child_id?: string;
 }
 
-const ACTION_KEYS = [
+const ACTION_KEYS: { href: string; icon: string; key: string; bg: string; label?: string }[] = [
   { href: '/parent/attendance', icon: '✅', key: 'attendance', bg: '#F0FDF4' },
   { href: '/parent/homework',   icon: '📚', key: 'homework',   bg: '#FDF4FF' },
   { href: '/parent/fees',       icon: '💳', key: 'fees',       bg: '#FFFBEB' },
