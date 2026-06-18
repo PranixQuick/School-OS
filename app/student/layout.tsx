@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { label: 'Homework', href: '/student/homework', icon: '📚' },
   { label: 'Attendance', href: '/student/attendance', icon: '✅' },
   { label: 'Marks', href: '/student/marks', icon: '📊' },
+  { label: 'Syllabus', href: '/student/curriculum', icon: '📖' },
 ];
 
 // Routes where the back affordance is intentionally hidden (tab-root home).
