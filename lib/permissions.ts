@@ -53,6 +53,7 @@ export async function canDo(
   fallback: boolean,
 ): Promise<boolean> {
   try {
+    const { supabaseAdmin } = await import('@/lib/supabaseClient');
     const { data, error } = await supabaseAdmin
       .from('role_permissions')
       .select('can_view, can_create, can_edit, can_delete')
