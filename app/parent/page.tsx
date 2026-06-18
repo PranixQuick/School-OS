@@ -31,6 +31,7 @@ const ACTION_KEYS: { href: string; icon: string; key: string; bg: string; label?
   { href: '/parent/notices',    icon: '📢', key: 'announcements', bg: '#F9FAFB' },
   { href: '/parent/events',     icon: '📸', key: 'events',     bg: '#FDF4FF' },
   { href: '/parent/complaints', icon: '📣', key: 'complaints', bg: '#FEF2F2' },
+  { href: '/parent/curriculum', icon: '📖', key: 'syllabus', bg: '#EEF2FF', label: 'Syllabus' },
 ];
 
 const LANG_SHORT: Partial<Record<Lang, string>> = {
