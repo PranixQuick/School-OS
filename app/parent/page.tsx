@@ -218,7 +218,7 @@ export default function ParentHomePage() {
             <Link key={a.href} href={a.href} className="p-action">
               <div style={{ fontSize: 22, marginBottom: 4 }}>{a.icon}</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>
-                {T(a.key as never, lang as never)}
+                {a.label ?? T(a.key as never, lang as never)}
               </div>
             </Link>
           ))}
