@@ -13,6 +13,7 @@ const NAV_ITEMS = [
 
 const MENU_ITEMS = [
   { href: '/teacher/lesson-plans', label: 'Lesson Plans', icon: '📄' },
+  { href: '/teacher/curriculum',   label: 'Curriculum',   icon: '📖' },
   { href: '/teacher/leave',        label: 'Leave',         icon: '📅' },
   { href: '/teacher/check-in',     label: 'Check In',      icon: '📍' },
   { href: '/teacher/proofs',       label: 'Proofs',        icon: '📷' },
