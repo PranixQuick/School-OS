@@ -29,6 +29,9 @@ export default function TimetablePage() {
 
   return (
     <Layout title={T('timetable', lang as never)} subtitle={T('timetable', lang as never)}>
+      <div style={{ marginBottom: 12 }}>
+        <a href="/admin/subjects" style={{ fontSize: 13, fontWeight: 600, color: '#4F46E5', textDecoration: 'none' }}>📘 Manage subjects →</a>
+      </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {(['3','4','5','6','7','8','9','10'] as const).map(c => (
           <button key={c} onClick={() => setClassFilter(c)}
