@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity, logError } from '@/lib/logger';
+import { validateId, dedupBatch, type DedupRecord, type ReasonCode } from '@/lib/csv-id-validation';
 
 interface StudentCSVRow {
   name: string;
@@ -41,6 +42,8 @@ function parseCSV(text: string): StudentCSVRow[] {
 
   return rows;
 }
+
+interface RowError { row: number; name: string; error: string; codes?: ReasonCode[] }
 
 export async function POST(req: NextRequest) {
   const schoolId = getSchoolId(req);
@@ -86,11 +89,56 @@ export async function POST(req: NextRequest) {
     // Phase 1 Task 1.4 — resolve institution context once per import; reused
     // on every students.insert below.
     const instCtx = await getInstitutionForSchool(schoolId);
+    const academicYear = instCtx.academic_year_id ?? null;
 
+    const failed: RowError[] = [];
+
+    // ── ISS-12 (App. C): validate + dedup admission_number before insert ──
+    // admission_number is optional; blank stays NULL. Hard-invalid rows and
+    // in-file hard/critical duplicates are quarantined (not inserted). Soft
+    // re-admissions (same number, different academic year) are allowed.
+    const normalizedAdmno: (string | null)[] = rows.map(() => null);
+    const quarantined: boolean[] = rows.map(() => false);
+    const dedupRecords: DedupRecord[] = [];
+
+    rows.forEach((row, i) => {
+      const rawAdm = row.admission_number ?? '';
+      if (!rawAdm) return; // optional — leave NULL
+      const v = validateId(rawAdm, 'admission');
+      if (v.severity === 'error') {
+        failed.push({
+          row: i + 2,
+          name: row.name,
+          error: `Invalid admission number "${rawAdm}" (${v.codes.join(', ')})`,
+          codes: v.codes,
+        });
+        quarantined[i] = true;
+        return;
+      }
+      normalizedAdmno[i] = v.value;
+      dedupRecords.push({ rowIndex: i, bareKey: v.bareKey, schoolId, year: academicYear, name: row.name });
+    });
+
+    for (const verdict of dedupBatch(dedupRecords)) {
+      if (verdict.code === 'DUP_HARD' || verdict.code === 'DUP_CRITICAL_NAME_MISMATCH') {
+        const i = verdict.rowIndex;
+        const conflictRow = (verdict.conflictRow ?? 0) + 2;
+        failed.push({
+          row: i + 2,
+          name: rows[i].name,
+          error: `Duplicate admission number "${normalizedAdmno[i]}" in file (${verdict.code}; conflicts with row ${conflictRow})`,
+          codes: [verdict.code],
+        });
+        quarantined[i] = true;
+      }
+      // DUP_SOFT_READMISSION (different academic year) is allowed through.
+    }
+
+    // ── Insert the surviving rows ──
     const imported: string[] = [];
-    const failed: { row: number; name: string; error: string }[] = [];
 
     for (let i = 0; i < rows.length; i++) {
+      if (quarantined[i]) continue;
       const row = rows[i];
       try {
         const { error: insertErr } = await supabaseAdmin.from('students').insert({
@@ -103,7 +151,7 @@ export async function POST(req: NextRequest) {
           phone_parent: row.phone_parent ?? null,
           parent_name: row.parent_name ?? null,
           roll_number: row.roll_number ?? null,
-          admission_number: row.admission_number ?? null,
+          admission_number: normalizedAdmno[i],
           is_active: true,
         });
 
@@ -116,6 +164,8 @@ export async function POST(req: NextRequest) {
         failed.push({ row: i + 2, name: row.name, error: String(e) });
       }
     }
+
+    failed.sort((a, b) => a.row - b.row);
 
     // Update import job
     await supabaseAdmin.from('import_jobs').update({
