@@ -5,6 +5,8 @@
 // Shows today's timetable, pending homework count, attendance summary, recent marks.
 
 import { useState, useEffect } from 'react';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface TimetableSlot { id: string; day_of_week: number; period: number; start_time: string; end_time: string; subject_name: string; teacher_name: string; }
 interface HomeworkItem { id: string; title: string; due_date: string; subject_name: string; submission_status: string | null; is_overdue: boolean; }
@@ -15,12 +17,13 @@ function today_dow(): number { return new Date().getDay(); } // 0=Sun,1=Mon...
 
 function greet(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'ov_good_morning';
+  if (h < 17) return 'ov_good_afternoon';
+  return 'ov_good_evening';
 }
 
 export default function StudentHomePage() {
+  const { lang } = useLang();
   const [profile, setProfile] = useState<{ name: string; class: string; section: string } | null>(null);
   const [todaySlots, setTodaySlots] = useState<TimetableSlot[]>([]);
   const [pendingHW, setPendingHW] = useState<HomeworkItem[]>([]);
@@ -60,7 +63,7 @@ export default function StudentHomePage() {
   );
 
   if (loading) return (
-    <div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>Loading…</div>
+    <div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>{T('ov_loading', lang)}</div>
   );
 
   const dueToday = pendingHW.filter(h => h.due_date === new Date().toISOString().slice(0,10));
@@ -69,16 +72,16 @@ export default function StudentHomePage() {
     <div>
       {/* Welcome card */}
       <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 14, padding: '20px 18px', marginBottom: 16, color: '#fff' }}>
-        <div style={{ fontSize: 13, opacity: 0.85 }}>{greet()},</div>
+        <div style={{ fontSize: 13, opacity: 0.85 }}>{T(greet(), lang)},</div>
         <div style={{ fontSize: 22, fontWeight: 800, marginTop: 2 }}>{profile?.name ?? '…'}</div>
-        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>Class {profile?.class}-{profile?.section}</div>
+        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{T('ov_class', lang)} {profile?.class}-{profile?.section}</div>
       </div>
 
       {/* Today's timetable */}
       <div style={cardStyle}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>📅 Today&apos;s Schedule</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>📅 {T('ov_todays_schedule', lang)}</div>
         {todaySlots.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#9CA3AF' }}>No classes scheduled today or timetable not set up.</div>
+          <div style={{ fontSize: 12, color: '#9CA3AF' }}>{T('ov_no_classes_today', lang)}</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {todaySlots.map(s => (
@@ -97,16 +100,16 @@ export default function StudentHomePage() {
       {/* Pending homework */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>📚 Pending Homework</div>
-          <span style={{ fontSize: 11, fontWeight: 700, background: pendingHW.length > 0 ? '#FEF3C7' : '#F0FDF4', color: pendingHW.length > 0 ? '#92400E' : '#065F46', padding: '2px 8px', borderRadius: 5 }}>{pendingHW.length} pending</span>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>📚 {T('ov_pending_homework', lang)}</div>
+          <span style={{ fontSize: 11, fontWeight: 700, background: pendingHW.length > 0 ? '#FEF3C7' : '#F0FDF4', color: pendingHW.length > 0 ? '#92400E' : '#065F46', padding: '2px 8px', borderRadius: 5 }}>{T('ov_pending_count', lang).replace('{n}', String(pendingHW.length))}</span>
         </div>
         {dueToday.length > 0 && (
           <div style={{ background: '#FFF7ED', borderRadius: 7, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#C2410C', fontWeight: 600 }}>
-            ⚠️ {dueToday.length} assignment{dueToday.length > 1 ? 's' : ''} due today
+            ⚠️ {T('ov_due_today', lang).replace('{n}', String(dueToday.length))}
           </div>
         )}
         {pendingHW.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#9CA3AF' }}>All caught up! 🎉</div>
+          <div style={{ fontSize: 12, color: '#9CA3AF' }}>{T('ov_all_caught_up', lang)} 🎉</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {pendingHW.slice(0, 4).map(h => (
@@ -118,7 +121,7 @@ export default function StudentHomePage() {
                 <span style={{ fontSize: 10, color: h.is_overdue ? '#DC2626' : '#6B7280', fontWeight: h.is_overdue ? 700 : 400 }}>{h.due_date}</span>
               </div>
             ))}
-            {pendingHW.length > 4 && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>+{pendingHW.length - 4} more</div>}
+            {pendingHW.length > 4 && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{T('ov_n_more', lang).replace('{n}', String(pendingHW.length - 4))}</div>}
           </div>
         )}
       </div>
@@ -126,12 +129,12 @@ export default function StudentHomePage() {
       {/* Attendance */}
       {attendance && (
         <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>✅ Attendance (30 days)</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>✅ {T('ov_attendance_30d', lang)}</div>
           {attendance.total > 0 ? (
             <>
               <div style={{ display: 'flex', gap: 0, marginBottom: 10 }}>
-                {statBox('Present', attendance.present, '#065F46')}
-                {statBox('Absent', attendance.absent, '#DC2626')}
+                {statBox(T('ov_present', lang), attendance.present, '#065F46')}
+                {statBox(T('ov_absent', lang), attendance.absent, '#DC2626')}
                 {statBox('%', attendance.percentage + '%', attendance.percentage >= 75 ? '#065F46' : '#D97706')}
               </div>
               {/* Simple progress bar */}
@@ -139,11 +142,11 @@ export default function StudentHomePage() {
                 <div style={{ width: `${attendance.percentage}%`, background: attendance.percentage >= 75 ? '#16A34A' : '#F59E0B', height: 6, borderRadius: 4, transition: 'width 0.5s' }} />
               </div>
               {attendance.percentage < 75 && (
-                <div style={{ fontSize: 10, color: '#D97706', fontWeight: 600, marginTop: 6 }}>⚠️ Attendance below 75%</div>
+                <div style={{ fontSize: 10, color: '#D97706', fontWeight: 600, marginTop: 6 }}>⚠️ {T('ov_attendance_below_75', lang)}</div>
               )}
             </>
           ) : (
-            <div style={{ fontSize: 12, color: '#6B7280' }}>No attendance recorded yet for this period.</div>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>{T('ov_no_attendance_period', lang)}</div>
           )}
         </div>
       )}
@@ -151,7 +154,7 @@ export default function StudentHomePage() {
       {/* Recent marks */}
       {recentMarks.length > 0 && (
         <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>📊 Recent Marks</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>📊 {T('ov_recent_marks', lang)}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {recentMarks.map(m => (
               <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
