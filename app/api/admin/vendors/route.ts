@@ -1,9 +1,11 @@
 // app/api/admin/vendors/route.ts
-// Real workflow: admin maintains list of contracted vendors with contact info
-// No portal for vendors — they are tracked entities, not system users
+// Real workflow: admin maintains list of contracted vendors with contact info.
+// ISS-7: admin can also grant/revoke a vendor portal login (has_portal_access,
+// portal_email, and a bcrypt PIN) so vendors can sign in to /vendor.
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
@@ -67,9 +69,18 @@ export async function PATCH(req: NextRequest) {
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const { data: school } = await supabaseAdmin.from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
-  const allowed = ['name','vendor_type','contact_name','contact_phone','contact_email','gst_number','address','contract_start','contract_end','notes','is_active'];
+  const allowed = ['name','vendor_type','contact_name','contact_phone','contact_email','gst_number','address','contract_start','contract_end','notes','is_active','has_portal_access','portal_email'];
   const update: Record<string, unknown> = {};
   for (const k of allowed) if (body[k] !== undefined) update[k] = body[k];
+
+  // Normalize portal_email (used as the vendor's login id).
+  if (typeof update.portal_email === 'string') update.portal_email = update.portal_email.trim().toLowerCase() || null;
+
+  // ISS-7: grant portal access by setting a PIN. Hash it and enable access.
+  if (typeof body.portal_pin === 'string' && body.portal_pin.trim()) {
+    update.access_pin_hashed = await bcrypt.hash(body.portal_pin.trim(), 10);
+    update.has_portal_access = true;
+  }
 
   if (!Object.keys(update).length) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
 
