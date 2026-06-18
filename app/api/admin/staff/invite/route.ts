@@ -17,6 +17,22 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
 }
 
+// Stamp the staff member's role + school into the auth user's app_metadata so the
+// minted JWT carries `user_role`, which DB-level RLS reads via current_user_role().
+// This is what activates role-scoped policies (e.g. the Accountant fee policies)
+// for every provisioned staff member. Best-effort: a failure here must never block
+// the invitation itself (the app layer still authorises via the session).
+async function stampRoleClaim(authUserId: string | null | undefined, role: string | null | undefined, schoolId: string) {
+  if (!authUserId) return;
+  try {
+    await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+      app_metadata: { user_role: role ?? null, school_id: schoolId },
+    });
+  } catch (e) {
+    console.error('[invite] app_metadata role stamp failed (non-fatal):', e);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,7 +49,7 @@ export async function POST(req: NextRequest) {
     // Send invitations to ALL uninvited staff in this school
     const { data: uninvited } = await supabaseAdmin
       .from('school_users')
-      .select('id, email, name, invite_status')
+      .select('id, email, name, invite_status, role')
       .eq('school_id', schoolId)
       .eq('is_active', true)
       .in('invite_status', ['pending', 'failed'])
@@ -70,6 +86,7 @@ export async function POST(req: NextRequest) {
           invite_sent_at: new Date().toISOString(),
           auth_user_id: inviteData.user?.id ?? null,
         }).eq('id', user.id);
+        await stampRoleClaim(inviteData.user?.id, user.role, schoolId);
       }
     }
 
@@ -88,8 +105,8 @@ export async function POST(req: NextRequest) {
 
   // Look up by ID or email
   const query = staffUserId
-    ? supabaseAdmin.from('school_users').select('id, email, name, invite_status, auth_user_id, is_active').eq('id', staffUserId).eq('school_id', schoolId).maybeSingle()
-    : supabaseAdmin.from('school_users').select('id, email, name, invite_status, auth_user_id, is_active').eq('email', sanitizeEmail(rawEmail)).eq('school_id', schoolId).maybeSingle();
+    ? supabaseAdmin.from('school_users').select('id, email, name, invite_status, auth_user_id, is_active, role').eq('id', staffUserId).eq('school_id', schoolId).maybeSingle()
+    : supabaseAdmin.from('school_users').select('id, email, name, invite_status, auth_user_id, is_active, role').eq('email', sanitizeEmail(rawEmail)).eq('school_id', schoolId).maybeSingle();
 
   const { data: user } = await query;
   if (!user) return NextResponse.json({ error: 'Staff member not found in this school.' }, { status: 404 });
@@ -106,6 +123,8 @@ export async function POST(req: NextRequest) {
 
   // Already has auth account
   if (user.auth_user_id) {
+    // Backfill the role claim in case this account predates claim stamping.
+    await stampRoleClaim(user.auth_user_id, user.role, schoolId);
     return NextResponse.json({
       message: 'Staff member already has a login account.',
       invite_status: user.invite_status,
@@ -128,6 +147,8 @@ export async function POST(req: NextRequest) {
     invite_sent_at: new Date().toISOString(),
     auth_user_id: inviteData.user?.id ?? null,
   }).eq('id', user.id);
+
+  await stampRoleClaim(inviteData.user?.id, user.role, schoolId);
 
   return NextResponse.json({
     success: true,
