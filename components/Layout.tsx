@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
+import GlobalSearch from './GlobalSearch';
+
+// Roles permitted to use the admin global search (matches requireAdminSession's
+// allowed set, minus accountant whose access is restricted to fee routes).
+const SEARCH_ROLES = new Set(['owner', 'principal', 'admin', 'admin_staff', 'viewer', 'counsellor']);
 
 // ── P3 INSTITUTION POLYMORPHISM ────────────────────────────────────────────
 // Each nav item may declare a `showFor(institutionType)` predicate. When the
@@ -555,6 +560,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             {title && <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
             {subtitle && <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>}
           </div>
+          {SEARCH_ROLES.has(role) && <GlobalSearch />}
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
         <main style={{ flex: 1, padding: '20px 16px 80px', maxWidth: 1100, width: '100%', boxSizing: 'border-box' }}>
