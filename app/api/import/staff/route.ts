@@ -1,14 +1,17 @@
 // app/api/import/staff/route.ts
 // EdProSys — Staff Bulk Importer (Mission 2) — corrected to repo conventions.
 // staff(school_id NN, institution_id, name NN, role NN, subject, phone, email,
-//   is_active, data_source NN default 'live', designation, joined_at, import_batch_id)
-// No DB unique -> dedupe by (school_id, lower(email)) when email present.
+//   is_active, data_source NN default 'live', designation, joined_at, employee_code,
+//   import_batch_id)
+// Dedupe by (school_id, lower(email)) when email present, and by
+// (school_id, employee_code) when an employee code is present (ISS-12).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSchoolId, getUserRole, MissingSchoolIdError } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity, logError } from '@/lib/logger';
+import { validateId } from '@/lib/csv-id-validation';
 import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
@@ -56,7 +59,7 @@ function requireRole(req: NextRequest): { schoolId: string } | { error: string; 
   return { schoolId };
 }
 
-type ValidRow = { name: string; role: string; email: string | null; phone: string | null; subject: string | null; designation: string | null; joined_at: string | null };
+type ValidRow = { name: string; role: string; email: string | null; phone: string | null; subject: string | null; designation: string | null; joined_at: string | null; employee_code: string | null };
 type RowError = { row: number; name?: string; reason: string };
 function str(v: unknown): string { return typeof v === 'string' ? v.trim() : (typeof v === 'number' ? String(v) : ''); }
 
@@ -72,7 +75,10 @@ function validateRow(raw: RawRow, index: number): { ok: true; value: ValidRow } 
   const phone = str(raw.phone) || null; const subject = str(raw.subject) || null; const designation = str(raw.designation) || null;
   let joined_at: string | null = null; const jr = str(raw.joined_at);
   if (jr) { if (!ISO_DATE.test(jr) || Number.isNaN(Date.parse(jr))) return { ok: false, error: { row, name, reason: 'joined_at must be YYYY-MM-DD' } }; joined_at = jr; }
-  return { ok: true, value: { name, role, email, phone, subject, designation, joined_at } };
+  // ISS-12: optional employee_code (accept 'employee_code' or 'employee_id').
+  let employee_code: string | null = null; const empRaw = str(raw.employee_code) || str(raw.employee_id);
+  if (empRaw) { const ev = validateId(empRaw, 'employee'); if (ev.severity === 'error') return { ok: false, error: { row, name, reason: `employee_code invalid (${ev.codes.join(', ')})` } }; employee_code = ev.value; }
+  return { ok: true, value: { name, role, email, phone, subject, designation, joined_at, employee_code } };
 }
 
 export async function POST(req: NextRequest) {
@@ -91,8 +97,16 @@ export async function POST(req: NextRequest) {
     const valid: ValidRow[] = []; const validationErrors: RowError[] = [];
     rows.forEach((row, i) => { const v = validateRow(row, i); if (v.ok) valid.push(v.value); else validationErrors.push(v.error); });
 
-    const seenEmail = new Set<string>(); const duplicatesInBatch: RowError[] = []; const deduped: ValidRow[] = [];
-    valid.forEach((v, i) => { if (v.email && seenEmail.has(v.email)) duplicatesInBatch.push({ row: i + 1, name: v.name, reason: 'duplicate email within this import' }); else { if (v.email) seenEmail.add(v.email); deduped.push(v); } });
+    // In-batch dedupe by email and by employee_code (both per school).
+    const seenEmail = new Set<string>(); const seenEmp = new Set<string>();
+    const duplicatesInBatch: RowError[] = []; const deduped: ValidRow[] = [];
+    valid.forEach((v, i) => {
+      if (v.email && seenEmail.has(v.email)) { duplicatesInBatch.push({ row: i + 1, name: v.name, reason: 'duplicate email within this import' }); return; }
+      if (v.employee_code && seenEmp.has(v.employee_code)) { duplicatesInBatch.push({ row: i + 1, name: v.name, reason: 'duplicate employee_code within this import' }); return; }
+      if (v.email) seenEmail.add(v.email);
+      if (v.employee_code) seenEmp.add(v.employee_code);
+      deduped.push(v);
+    });
 
     if (validationErrors.length && mode === 'error') return NextResponse.json({ error: 'Validation failed', validation_errors: validationErrors, duplicates_in_batch: duplicatesInBatch }, { status: 422 });
 
@@ -103,14 +117,28 @@ export async function POST(req: NextRequest) {
       if (exErr) throw new Error(`existing-check failed: ${exErr.message}`);
       (existing ?? []).forEach((x: any) => { if (x.email) existingSet.add(String(x.email).toLowerCase()); });
     }
-    const duplicatesInDb: string[] = [];
-    const toInsert = deduped.filter((v) => { if (v.email && existingSet.has(v.email)) { duplicatesInDb.push(v.email); return false; } return true; });
-    if (duplicatesInDb.length && mode === 'error') return NextResponse.json({ error: 'Duplicate staff (by email) already exist', duplicates_in_db: duplicatesInDb }, { status: 409 });
 
-    if (toInsert.length === 0) return NextResponse.json({ import_batch_id: null, summary: { received: rows.length, inserted: 0, skipped_existing: duplicatesInDb.length, duplicates_in_batch: duplicatesInBatch.length, validation_failed: validationErrors.length }, duplicates_in_db: duplicatesInDb, duplicates_in_batch: duplicatesInBatch, validation_errors: validationErrors });
+    // Existing employee_codes for this school (Migration B per-school unique).
+    const empCodes = deduped.map((v) => v.employee_code).filter((e): e is string => !!e);
+    const existingEmpSet = new Set<string>();
+    if (empCodes.length) {
+      const { data: existingEmp, error: exEmpErr } = await supabaseAdmin.from('staff').select('employee_code').eq('school_id', schoolId).in('employee_code', empCodes);
+      if (exEmpErr) throw new Error(`existing employee_code check failed: ${exEmpErr.message}`);
+      (existingEmp ?? []).forEach((x: any) => { if (x.employee_code) existingEmpSet.add(String(x.employee_code)); });
+    }
+
+    const duplicatesInDb: string[] = []; const duplicateEmpCodesInDb: string[] = [];
+    const toInsert = deduped.filter((v) => {
+      if (v.email && existingSet.has(v.email)) { duplicatesInDb.push(v.email); return false; }
+      if (v.employee_code && existingEmpSet.has(v.employee_code)) { duplicateEmpCodesInDb.push(v.employee_code); return false; }
+      return true;
+    });
+    if ((duplicatesInDb.length || duplicateEmpCodesInDb.length) && mode === 'error') return NextResponse.json({ error: 'Duplicate staff already exist', duplicates_in_db: duplicatesInDb, duplicate_employee_codes_in_db: duplicateEmpCodesInDb }, { status: 409 });
+
+    if (toInsert.length === 0) return NextResponse.json({ import_batch_id: null, summary: { received: rows.length, inserted: 0, skipped_existing: duplicatesInDb.length + duplicateEmpCodesInDb.length, duplicates_in_batch: duplicatesInBatch.length, validation_failed: validationErrors.length }, duplicates_in_db: duplicatesInDb, duplicate_employee_codes_in_db: duplicateEmpCodesInDb, duplicates_in_batch: duplicatesInBatch, validation_errors: validationErrors });
 
     const importBatchId = randomUUID();
-    const payload = toInsert.map((v) => ({ school_id: schoolId, institution_id, name: v.name, role: v.role, email: v.email, phone: v.phone, subject: v.subject, designation: v.designation, joined_at: v.joined_at, is_active: true, data_source: 'live', import_batch_id: importBatchId }));
+    const payload = toInsert.map((v) => ({ school_id: schoolId, institution_id, name: v.name, role: v.role, email: v.email, phone: v.phone, subject: v.subject, designation: v.designation, joined_at: v.joined_at, employee_code: v.employee_code, is_active: true, data_source: 'live', import_batch_id: importBatchId }));
     const { data: inserted, error: insErr } = await supabaseAdmin.from('staff').insert(payload).select('id, name');
     if (insErr) throw new Error(`insert failed: ${insErr.message}`);
 
@@ -119,9 +147,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       import_batch_id: importBatchId,
       rollback: { method: 'DELETE', endpoint: '/api/import/staff', body: { import_batch_id: importBatchId } },
-      summary: { received: rows.length, inserted: inserted?.length ?? 0, skipped_existing: duplicatesInDb.length, duplicates_in_batch: duplicatesInBatch.length, validation_failed: validationErrors.length },
+      summary: { received: rows.length, inserted: inserted?.length ?? 0, skipped_existing: duplicatesInDb.length + duplicateEmpCodesInDb.length, duplicates_in_batch: duplicatesInBatch.length, validation_failed: validationErrors.length },
       inserted: (inserted ?? []).map((x: any) => ({ id: x.id, name: x.name })),
-      duplicates_in_db: duplicatesInDb, duplicates_in_batch: duplicatesInBatch, validation_errors: validationErrors,
+      duplicates_in_db: duplicatesInDb, duplicate_employee_codes_in_db: duplicateEmpCodesInDb, duplicates_in_batch: duplicatesInBatch, validation_errors: validationErrors,
     });
   } catch (err) {
     await logError({ route: '/api/import/staff', error: String(err), schoolId });
@@ -150,8 +178,8 @@ export async function DELETE(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     resource: 'staff', methods: ['POST (CSV multipart or JSON)', 'DELETE (rollback)'],
-    fields: { name: 'required <=120', role: 'required <=40', email: 'optional validated (dedupe key)', phone: 'optional', subject: 'optional', designation: 'optional', joined_at: 'optional YYYY-MM-DD' },
-    duplicate_handling: 'by email within school; rows without email are not deduped',
+    fields: { name: 'required <=120', role: 'required <=40', email: 'optional validated (dedupe key)', phone: 'optional', subject: 'optional', designation: 'optional', joined_at: 'optional YYYY-MM-DD', employee_code: 'optional, validated + normalized (per-school dedupe key); header employee_code or employee_id' },
+    duplicate_handling: 'by email and by employee_code within school; rows without either are not deduped on that key',
     rollback: 'DELETE /api/import/staff with { import_batch_id }',
   });
 }
