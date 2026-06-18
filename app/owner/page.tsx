@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface SchoolStat {
   school_id: string; school_name: string; plan: string; is_active: boolean;
@@ -53,6 +55,7 @@ function MiniBarChart({ data }: { data: FeePoint[] }) {
 }
 
 export default function OwnerPage() {
+  const { lang } = useLang();
   const [data, setData] = useState<OwnerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSchool, setActiveSchool] = useState<string>('all');
@@ -78,7 +81,7 @@ export default function OwnerPage() {
 
   if (loading && !data) {
     return (
-      <Layout title="Owner Dashboard" subtitle={today}>
+      <Layout title={T('ov_owner_dashboard', lang)} subtitle={today}>
         <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 16 }}>
           {[0,1,2,3].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
@@ -89,7 +92,7 @@ export default function OwnerPage() {
   }
 
   return (
-    <Layout title="Owner Dashboard" subtitle={today}>
+    <Layout title={T('ov_owner_dashboard', lang)} subtitle={today}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         .kpi2{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
@@ -104,7 +107,7 @@ export default function OwnerPage() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           <button onClick={() => setActiveSchool('all')}
             style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: activeSchool === 'all' ? '#4F46E5' : '#F3F4F6', color: activeSchool === 'all' ? '#fff' : '#374151' }}>
-            All Schools ({schools.length})
+            {T('ov_all_schools', lang)} ({schools.length})
           </button>
           {schools.map(s => (
             <button key={s.school_id} onClick={() => setActiveSchool(s.school_id)}
@@ -118,10 +121,10 @@ export default function OwnerPage() {
       {/* KPI cards */}
       <div className="kpi2" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Total Students', value: aggStudents, color: '#4F46E5', sub: `across ${filtered.length} school${filtered.length !== 1 ? 's' : ''}` },
-          { label: 'Total Staff', value: aggStaff, color: '#0284C7', sub: 'active staff members' },
-          { label: 'Fees Pending', value: `₹${(aggFeesAmt / 1000).toFixed(1)}K`, color: aggFeesAmt > 0 ? '#B91C1C' : '#065F46', sub: aggFeesAmt > 0 ? 'requires follow-up' : 'all collected' },
-          { label: 'At-Risk Students', value: aggRisk, color: aggRisk > 0 ? '#B91C1C' : '#065F46', sub: aggRisk > 0 ? 'needs intervention' : 'no alerts' },
+          { label: T('ov_total_students', lang), value: aggStudents, color: '#4F46E5', sub: T('ov_across_schools', lang).replace('{n}', String(filtered.length)) },
+          { label: T('ov_total_staff', lang), value: aggStaff, color: '#0284C7', sub: T('ov_active_staff_members', lang) },
+          { label: T('ov_fees_pending', lang), value: `₹${(aggFeesAmt / 1000).toFixed(1)}K`, color: aggFeesAmt > 0 ? '#B91C1C' : '#065F46', sub: aggFeesAmt > 0 ? T('ov_requires_followup', lang) : T('ov_all_collected', lang) },
+          { label: T('ov_at_risk_students', lang), value: aggRisk, color: aggRisk > 0 ? '#B91C1C' : '#065F46', sub: aggRisk > 0 ? T('ov_needs_intervention', lang) : T('ov_no_alerts', lang) },
         ].map(k => (
           <div key={k.label} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '14px 16px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{k.label}</div>
@@ -134,7 +137,7 @@ export default function OwnerPage() {
       {/* Fee collection trend — inline bar chart, no library */}
       {data?.fee_collection_trend && data.fee_collection_trend.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>📈 Fee Collection Trend</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>📈 {T('ov_fee_collection_trend', lang)}</div>
           <MiniBarChart data={data.fee_collection_trend} />
         </div>
       )}
@@ -142,7 +145,7 @@ export default function OwnerPage() {
       {/* Per-school health cards */}
       {filtered.length > 0 && (
         <>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>School Health</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>{T('ov_school_health', lang)}</div>
           <div className="school-grid" style={{ marginBottom: 20 }}>
             {filtered.map(sc => {
               const h = healthScore(sc);
@@ -151,7 +154,7 @@ export default function OwnerPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 14, color: '#111827' }}>{sc.school_name}</div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{sc.plan.toUpperCase()} · {sc.students} students</div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{sc.plan.toUpperCase()} · {sc.students} {T('ov_students', lang)}</div>
                     </div>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: h.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 900, color: h.color, lineHeight: 1 }}>{h.grade}</div>
@@ -160,9 +163,9 @@ export default function OwnerPage() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
                     {[
-                      { label: 'Students', val: sc.students, color: '#4F46E5' },
-                      { label: 'Attendance', val: sc.attendance_today_pct !== null ? `${Math.round(sc.attendance_today_pct)}%` : 'N/A', color: (sc.attendance_today_pct ?? 100) >= 85 ? '#065F46' : '#D97706' },
-                      { label: 'Risk Cases', val: sc.risk_count, color: sc.risk_count > 0 ? '#B91C1C' : '#065F46' },
+                      { label: T('ov_students', lang), val: sc.students, color: '#4F46E5' },
+                      { label: T('ov_attendance', lang), val: sc.attendance_today_pct !== null ? `${Math.round(sc.attendance_today_pct)}%` : T('ov_na', lang), color: (sc.attendance_today_pct ?? 100) >= 85 ? '#065F46' : '#D97706' },
+                      { label: T('ov_risk_cases', lang), val: sc.risk_count, color: sc.risk_count > 0 ? '#B91C1C' : '#065F46' },
                     ].map(k => (
                       <div key={k.label} style={{ background: '#F9FAFB', borderRadius: 8, padding: '8px 8px', textAlign: 'center' }}>
                         <div style={{ fontSize: 14, fontWeight: 800, color: k.color }}>{k.val}</div>
@@ -173,11 +176,11 @@ export default function OwnerPage() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     <Link href="/dashboard"
                       style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: '#EEF2FF', color: '#4F46E5', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-                      Dashboard
+                      {T('ov_dashboard', lang)}
                     </Link>
                     <Link href="/admin/fees"
                       style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: sc.pending_fees > 0 ? '#FEF2F2' : '#F0FDF4', color: sc.pending_fees > 0 ? '#B91C1C' : '#065F46', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-                      {sc.pending_fees > 0 ? `${sc.pending_fees} pending` : 'Fees ✓'}
+                      {sc.pending_fees > 0 ? T('ov_pending_count', lang).replace('{n}', String(sc.pending_fees)) : `${T('ov_fees', lang)} ✓`}
                     </Link>
                   </div>
                 </div>
@@ -190,10 +193,10 @@ export default function OwnerPage() {
       {/* Quick actions */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {[
-          { href: '/admin/staff', icon: '👥', label: 'View All Staff', color: '#0284C7' },
-          { href: '/students', icon: '👨‍🎓', label: 'View All Students', color: '#4F46E5' },
-          { href: '/admin/fees', icon: '💰', label: 'Fee Collection', color: '#065F46' },
-          { href: '/analytics', icon: '📊', label: 'Analytics', color: '#7C3AED' },
+          { href: '/admin/staff', icon: '👥', label: T('ov_view_all_staff', lang), color: '#0284C7' },
+          { href: '/students', icon: '👨‍🎓', label: T('ov_view_all_students', lang), color: '#4F46E5' },
+          { href: '/admin/fees', icon: '💰', label: T('ov_fee_collection', lang), color: '#065F46' },
+          { href: '/analytics', icon: '📊', label: T('ov_analytics', lang), color: '#7C3AED' },
         ].map(a => (
           <Link key={a.href} href={a.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontSize: 22 }}>{a.icon}</div>
