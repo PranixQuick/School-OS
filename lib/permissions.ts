@@ -8,8 +8,10 @@
 // layer additive and structurally lockout-proof.
 //
 // Not wired into any route yet — call sites adopt it module-by-module.
-
-import { supabaseAdmin } from '@/lib/supabaseClient';
+//
+// Note: the Supabase client is imported lazily inside canDo() so that the pure
+// helpers (normRole/resolvePerm) can be unit-tested without resolving the '@/'
+// path alias or initializing the DB client.
 
 export type PermAction = 'view' | 'create' | 'edit' | 'delete';
 
