@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface AttData    { today_pct: number|null; today_present: number; today_total: number; today_marked: boolean; month_avg_pct: number; status: string; }
 interface FeeData    { pending_amount: number; pending_students: number; overdue_count: number; collected_month: number; collection_pct: number; status: string; }
@@ -45,6 +47,7 @@ const RISK_COLORS: Record<string, { bg: string; color: string }> = {
 };
 
 export default function PrincipalPage() {
+  const { lang } = useLang();
   const [data, setData]       = useState<DashboardData | null>(null);
   const [extras, setExtras]   = useState<ExtraKPIs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +79,7 @@ export default function PrincipalPage() {
 
   if (loading && !data) {
     return (
-      <Layout title="Principal Dashboard" subtitle={today}>
+      <Layout title={T('ov_principal_dashboard', lang)} subtitle={today}>
         <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 16 }}>
           {[0,1,2,3].map(i => <div key={i} style={{ height: 88, borderRadius: 12, background: '#F3F4F6', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
@@ -85,7 +88,7 @@ export default function PrincipalPage() {
       </Layout>
     );
   }
-  if (!data) return <Layout title="Principal Dashboard" subtitle={today}><div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF' }}>Dashboard unavailable.</div></Layout>;
+  if (!data) return <Layout title={T('ov_principal_dashboard', lang)} subtitle={today}><div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF' }}>{T('ov_dashboard_unavailable', lang)}</div></Layout>;
 
   // Guard against a partial payload — a missing nested object must not
   // crash the whole page. Defaults fill only absent keys (JSON omits
@@ -103,13 +106,13 @@ export default function PrincipalPage() {
 
   // Operational alerts — institution and context aware
   const alerts: { icon: string; text: string; href: string; sev: 'red'|'amber'|'blue' }[] = [];
-  if (teachers.absent_today.length > 0) alerts.push({ icon: '🧑‍🏫', text: `${teachers.absent_today.length} teacher(s) absent — substitute needed`, href: '/admin/staff', sev: 'red' });
-  if ((extras?.open_complaints_count ?? 0) > 0) alerts.push({ icon: '📩', text: `${extras!.open_complaints_count} unresolved complaint(s)`, href: '/admin/complaints', sev: 'red' });
-  if ((extras?.sanitary_low_stock_count ?? 0) > 0) alerts.push({ icon: '🧼', text: `${extras!.sanitary_low_stock_count} sanitary item(s) low on stock`, href: '/admin/sanitary-inventory', sev: 'amber' });
-  if ((extras?.pending_leave_count ?? 0) > 0) alerts.push({ icon: '📅', text: `${extras!.pending_leave_count} leave request(s) pending approval`, href: '/principal/leave-approvals', sev: 'amber' });
-  if ((extras?.transport_alert_count ?? 0) > 0) alerts.push({ icon: '🚌', text: `${extras!.transport_alert_count} transport alert(s)`, href: '/admin/transport', sev: 'amber' });
-  if (isGovt && extras?.govt_reporting_pending) alerts.push({ icon: '📋', text: 'DISE/government reporting data pending verification', href: '/admin/dise-export', sev: 'amber' });
-  if (risk.critical > 0) alerts.push({ icon: '⚠️', text: `${risk.critical} student(s) at critical attendance/fee risk`, href: '/students', sev: 'amber' });
+  if (teachers.absent_today.length > 0) alerts.push({ icon: '🧑‍🏫', text: T('ov_palert_absent', lang).replace('{n}', String(teachers.absent_today.length)), href: '/admin/staff', sev: 'red' });
+  if ((extras?.open_complaints_count ?? 0) > 0) alerts.push({ icon: '📩', text: T('ov_palert_complaints', lang).replace('{n}', String(extras!.open_complaints_count)), href: '/admin/complaints', sev: 'red' });
+  if ((extras?.sanitary_low_stock_count ?? 0) > 0) alerts.push({ icon: '🧼', text: T('ov_palert_sanitary', lang).replace('{n}', String(extras!.sanitary_low_stock_count)), href: '/admin/sanitary-inventory', sev: 'amber' });
+  if ((extras?.pending_leave_count ?? 0) > 0) alerts.push({ icon: '📅', text: T('ov_palert_leave', lang).replace('{n}', String(extras!.pending_leave_count)), href: '/principal/leave-approvals', sev: 'amber' });
+  if ((extras?.transport_alert_count ?? 0) > 0) alerts.push({ icon: '🚌', text: T('ov_palert_transport', lang).replace('{n}', String(extras!.transport_alert_count)), href: '/admin/transport', sev: 'amber' });
+  if (isGovt && extras?.govt_reporting_pending) alerts.push({ icon: '📋', text: T('ov_palert_dise', lang), href: '/admin/dise-export', sev: 'amber' });
+  if (risk.critical > 0) alerts.push({ icon: '⚠️', text: T('ov_palert_risk', lang).replace('{n}', String(risk.critical)), href: '/students', sev: 'amber' });
 
   const SEV_STYLE = {
     red:   { bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C' },
@@ -118,7 +121,7 @@ export default function PrincipalPage() {
   };
 
   return (
-    <Layout title="Principal Dashboard" subtitle={today}>
+    <Layout title={T('ov_principal_dashboard', lang)} subtitle={today}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         .kpi2{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:14px}
@@ -134,15 +137,15 @@ export default function PrincipalPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🤖</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>Daily Briefing</div>
-              <div style={{ fontSize: 12, color: '#9CA3AF' }}>Automated daily summaries aren&apos;t enabled for your school yet.</div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>{T('ov_daily_briefing', lang)}</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF' }}>{T('ov_briefing_disabled', lang)}</div>
             </div>
           </div>
         ) : (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E' }} />
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E7FF' }}>AI Briefing</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E7FF' }}>{T('ov_ai_briefing', lang)}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>
                 {data.briefing?.generated_at ? new Date(data.briefing.generated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
               </div>
@@ -153,7 +156,7 @@ export default function PrincipalPage() {
             {(data.briefing?.briefing_text?.length ?? 0) > 250 && (
               <button onClick={() => setBriefingExpanded(!briefingExpanded)}
                 style={{ marginTop: 6, background: 'none', border: 'none', color: '#A5B4FC', fontSize: 12, cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontWeight: 600 }}>
-                {briefingExpanded ? 'Less ↑' : 'Full briefing ↓'}
+                {briefingExpanded ? `${T('ov_less', lang)} ↑` : `${T('ov_full_briefing', lang)} ↓`}
               </button>
             )}
           </div>
@@ -164,7 +167,7 @@ export default function PrincipalPage() {
       {alerts.length > 0 && (
         <>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 8 }}>
-            ⚡ Needs Your Attention ({alerts.length})
+            ⚡ {T('ov_needs_attention', lang)} ({alerts.length})
           </div>
           {alerts.map((a, i) => {
             const st = SEV_STYLE[a.sev];
@@ -182,10 +185,10 @@ export default function PrincipalPage() {
       {/* KPI GRID */}
       <div className="kpi2">
         {[
-          { label: 'Attendance', value: att.today_marked ? `${Math.round(att.today_pct ?? 0)}%` : '—', sub: `${att.today_present}/${att.today_total}`, ...attSt, href: '/students' },
-          { label: 'Fees Pending', value: `₹${(fee.pending_amount/1000).toFixed(1)}K`, sub: `${fee.overdue_count} overdue`, ...feeSt, href: '/admin/fees' },
-          { label: 'Student Risk', value: risk.total, sub: `${risk.critical} critical`, bg: risk.critical > 0 ? '#FEE2E2' : '#FEF9C3', color: risk.critical > 0 ? '#B91C1C' : '#A16207', dot: risk.critical > 0 ? '#EF4444' : '#F59E0B', href: '/students' },
-          { label: 'Staff Today', value: teachers.total_tracked > 0 ? `${teachers.present_today}/${teachers.total_tracked}` : 'N/A', sub: teachers.absent_today.length > 0 ? `${teachers.absent_today.length} absent` : 'All in', bg: teachers.absent_today.length > 0 ? '#FEF9C3' : '#DCFCE7', color: teachers.absent_today.length > 0 ? '#A16207' : '#15803D', dot: teachers.absent_today.length > 0 ? '#F59E0B' : '#22C55E', href: '/admin/staff' },
+          { label: T('ov_attendance', lang), value: att.today_marked ? `${Math.round(att.today_pct ?? 0)}%` : '—', sub: `${att.today_present}/${att.today_total}`, ...attSt, href: '/students' },
+          { label: T('ov_fees_pending', lang), value: `₹${(fee.pending_amount/1000).toFixed(1)}K`, sub: `${fee.overdue_count} ${T('ov_overdue', lang)}`, ...feeSt, href: '/admin/fees' },
+          { label: T('ov_student_risk', lang), value: risk.total, sub: `${risk.critical} ${T('ov_critical', lang)}`, bg: risk.critical > 0 ? '#FEE2E2' : '#FEF9C3', color: risk.critical > 0 ? '#B91C1C' : '#A16207', dot: risk.critical > 0 ? '#EF4444' : '#F59E0B', href: '/students' },
+          { label: T('ov_staff_today', lang), value: teachers.total_tracked > 0 ? `${teachers.present_today}/${teachers.total_tracked}` : 'N/A', sub: teachers.absent_today.length > 0 ? `${teachers.absent_today.length} ${T('ov_absent', lang)}` : T('ov_all_in', lang), bg: teachers.absent_today.length > 0 ? '#FEF9C3' : '#DCFCE7', color: teachers.absent_today.length > 0 ? '#A16207' : '#15803D', dot: teachers.absent_today.length > 0 ? '#F59E0B' : '#22C55E', href: '/admin/staff' },
         ].map(k => (
           <Link key={k.label} href={k.href} className="kpi-chip" style={{ borderLeft: `3px solid ${k.dot}` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{k.label}</div>
@@ -199,9 +202,9 @@ export default function PrincipalPage() {
       {extras && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
           {[
-            { label: 'Leave Pending', value: extras.pending_leave_count, href: '/principal/leave-approvals', icon: '📅', color: extras.pending_leave_count > 0 ? '#D97706' : '#15803D' },
-            { label: 'Complaints', value: extras.open_complaints_count, href: '/admin/complaints', icon: '📩', color: extras.open_complaints_count > 0 ? '#B91C1C' : '#15803D' },
-            { label: 'Proof Review', value: extras.proofs_to_review_count, href: '/teacher-eval', icon: '🎙', color: extras.proofs_to_review_count > 0 ? '#7C3AED' : '#15803D' },
+            { label: T('ov_leave_pending', lang), value: extras.pending_leave_count, href: '/principal/leave-approvals', icon: '📅', color: extras.pending_leave_count > 0 ? '#D97706' : '#15803D' },
+            { label: T('ov_complaints', lang), value: extras.open_complaints_count, href: '/admin/complaints', icon: '📩', color: extras.open_complaints_count > 0 ? '#B91C1C' : '#15803D' },
+            { label: T('ov_proof_review', lang), value: extras.proofs_to_review_count, href: '/teacher-eval', icon: '🎙', color: extras.proofs_to_review_count > 0 ? '#7C3AED' : '#15803D' },
           ].map(e => (
             <Link key={e.label} href={e.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 11, padding: '10px 12px', textAlign: 'center', display: 'block' }}>
               <div style={{ fontSize: 16, marginBottom: 2 }}>{e.icon}</div>
@@ -216,8 +219,8 @@ export default function PrincipalPage() {
       {risk.total > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 13, overflow: 'hidden', marginBottom: 14 }}>
           <div style={{ padding: '11px 14px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>⚠️ At-Risk Students</div>
-            <div style={{ fontSize: 11, color: '#6B7280' }}>{risk.total} flagged</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>⚠️ {T('ov_at_risk_students', lang)}</div>
+            <div style={{ fontSize: 11, color: '#6B7280' }}>{T('ov_n_flagged', lang).replace('{n}', String(risk.total))}</div>
           </div>
           {risk.top_cases.slice(0, 4).map((c, i) => {
             const rc = RISK_COLORS[c.risk_level] ?? RISK_COLORS.medium;
@@ -225,7 +228,7 @@ export default function PrincipalPage() {
               <div key={i} style={{ padding: '10px 14px', borderBottom: i < 3 ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>Class {c.class} · {(c.summary ?? '').slice(0, 55)}</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{T('ov_class', lang)} {c.class} · {(c.summary ?? '').slice(0, 55)}</div>
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: rc.bg, color: rc.color, flexShrink: 0, marginLeft: 8 }}>
                   {c.risk_level.toUpperCase()}
@@ -240,7 +243,7 @@ export default function PrincipalPage() {
       {data.upcoming_events.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 13, overflow: 'hidden', marginBottom: 14 }}>
           <div style={{ padding: '11px 14px', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>📅 Upcoming</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>📅 {T('ov_upcoming', lang)}</div>
           </div>
           {data.upcoming_events.slice(0, 4).map((ev, i) => {
             const d = new Date(ev.event_date);
@@ -260,14 +263,14 @@ export default function PrincipalPage() {
       {/* QUICK ACTIONS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 9 }}>
         {[
-          { href: '/admin/broadcasts',        icon: '📢', label: 'Broadcast',          color: '#4F46E5' },
-          { href: '/principal/leave-approvals',icon: '📅', label: 'Leave Approvals',    color: '#C2410C' },
-          { href: '/admin/complaints',        icon: '📩', label: 'Complaints',          color: '#B91C1C' },
-          { href: '/admin/sanitary-inventory',icon: '🧼', label: 'Sanitary Stock',      color: '#0D9488' },
-          { href: '/teacher-eval',            icon: '🎙', label: 'Teacher Eval',        color: '#7C3AED' },
-          { href: '/admin/staff',             icon: '👥', label: 'Staff',               color: '#0284C7' },
-          { href: '/admin/fees',              icon: '💰', label: 'Fees',                color: '#065F46' },
-          { href: '/report-cards',            icon: '📄', label: 'Report Cards',        color: '#D97706' },
+          { href: '/admin/broadcasts',        icon: '📢', label: T('ov_broadcast', lang),          color: '#4F46E5' },
+          { href: '/principal/leave-approvals',icon: '📅', label: T('ov_leave_approvals', lang),    color: '#C2410C' },
+          { href: '/admin/complaints',        icon: '📩', label: T('ov_complaints', lang),          color: '#B91C1C' },
+          { href: '/admin/sanitary-inventory',icon: '🧼', label: T('ov_sanitary_stock', lang),      color: '#0D9488' },
+          { href: '/teacher-eval',            icon: '🎙', label: T('ov_teacher_eval', lang),        color: '#7C3AED' },
+          { href: '/admin/staff',             icon: '👥', label: T('ov_staff', lang),               color: '#0284C7' },
+          { href: '/admin/fees',              icon: '💰', label: T('ov_fees', lang),                color: '#065F46' },
+          { href: '/report-cards',            icon: '📄', label: T('ov_report_cards', lang),        color: '#D97706' },
         ].map(a => (
           <Link key={a.href} href={a.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>{a.icon}</span>
