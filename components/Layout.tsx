@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -378,6 +378,7 @@ interface LayoutProps {
 
 export default function Layout({ children, title, subtitle, actions }: LayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { lang, setLang } = useLang();
   const [role, setRole] = useState<string>('admin');
   const [userName, setUserName] = useState('');
@@ -433,6 +434,22 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
+  }
+
+  // Back navigation (ISS-08): shown on every non-home screen that uses this
+  // shared Layout. Pops in-app history when present; otherwise falls back to the
+  // role's home route so the user is never stranded.
+  const homeHref = navGroups[0]?.items?.[0]?.href ?? '/dashboard';
+  const HOME_ROUTES = new Set<string>([
+    '/dashboard', '/teacher', '/principal', '/owner', '/parent', '/student',
+    '/hod/dashboard', '/registrar/dashboard', '/meo/dashboard', '/deo/dashboard',
+    '/anganwadi', '/hostel-admin', '/counsellor', '/librarian', '/placement',
+    '/super-admin', homeHref,
+  ]);
+  const showBack = !HOME_ROUTES.has(pathname);
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push(homeHref);
   }
 
   return (
@@ -528,6 +545,12 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             style={{ width: 40, height: 40, borderRadius: 8, border: 'none', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0, fontSize: 18 }}>
             ☰
           </button>
+          {showBack && (
+            <button onClick={goBack} aria-label={T('ov_back', lang)} title={T('ov_back', lang)}
+              style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0, fontSize: 18, color: '#374151', lineHeight: 1 }}>
+              ←
+            </button>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             {title && <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
             {subtitle && <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>}

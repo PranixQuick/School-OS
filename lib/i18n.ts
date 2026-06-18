@@ -19,6 +19,7 @@ export const LANG_LABELS: Record<Lang, string> = {
 };
 
 const S: Record<string, Partial<Record<Lang, string>>> = {
+  ov_back:{ en:'Back', hi:'वापस', te:'వెనుకకు', ta:'பின்', kn:'ಹಿಂದೆ', mr:'मागे', ml:'പിന്നോട്ട്' },
   // ── ADMIN · SETTINGS ──────────────────────────
   ov_inst_school_k10:{ en:'School (K-10)', hi:'विद्यालय (K-10)', te:'పాఠశాల (K-10)', ta:'பள்ளி (K-10)', kn:'ಶಾಲೆ (K-10)', mr:'शाळा (K-10)', ml:'സ്കൂൾ (K-10)' },
   ov_inst_school_k12:{ en:'School (K-12)', hi:'विद्यालय (K-12)', te:'పాఠశాల (K-12)', ta:'பள்ளி (K-12)', kn:'ಶಾಲೆ (K-12)', mr:'शाळा (K-12)', ml:'സ്കൂൾ (K-12)' },
