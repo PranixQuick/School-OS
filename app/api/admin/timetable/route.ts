@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   if (!isUuid(class_id)) return NextResponse.json({ error: 'class_id (uuid) required' }, { status: 400 });
   if (!isUuid(subject_id)) return NextResponse.json({ error: 'subject_id (uuid) required' }, { status: 400 });
-  if (!isUuid(staff_id)) return NextResponse.json({ error: 'staff_id (uuid) required' }, { status: 400 });
+  if (staff_id != null && staff_id !== '' && !isUuid(staff_id)) return NextResponse.json({ error: 'staff_id must be a uuid or null' }, { status: 400 });
   if (typeof day_of_week !== 'number') return NextResponse.json({ error: 'day_of_week (0=Sun, 1=Mon, …) required' }, { status: 400 });
   if (typeof period !== 'number') return NextResponse.json({ error: 'period (number) required' }, { status: 400 });
   if (!start_time || typeof start_time !== 'string') return NextResponse.json({ error: 'start_time (HH:MM) required' }, { status: 400 });
@@ -79,7 +79,8 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin.from('timetable').insert({
     school_id: schoolId,
-    class_id, subject_id, staff_id,
+    class_id, subject_id,
+    staff_id: (typeof staff_id === 'string' && staff_id) ? staff_id : null,
     day_of_week, period, start_time, end_time,
   }).select(ENRICHED).single();
 
