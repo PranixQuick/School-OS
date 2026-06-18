@@ -11,8 +11,8 @@ interface StaffMember {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  teacher: 'Teacher', principal: 'Principal', admin_staff: 'Admin Staff',
-  accountant: 'Accountant', librarian: 'Librarian', owner: 'Owner', admin: 'Admin',
+  teacher: 'ov_teacher', principal: 'ov_principal', admin_staff: 'ov_admin_staff',
+  accountant: 'ov_accountant', librarian: 'ov_librarian', owner: 'ov_owner', admin: 'ov_admin',
 };
 const ROLE_COLOR: Record<string, string> = {
   teacher: '#4F46E5', principal: '#065F46', admin_staff: '#9333EA',
@@ -21,15 +21,16 @@ const ROLE_COLOR: Record<string, string> = {
 
 // invite_status → display config
 const INVITE_BADGE: Record<string, { label: string; bg: string; color: string; icon: string }> = {
-  pending:  { label: 'Not Invited', bg: '#F3F4F6', color: '#6B7280', icon: '⏳' },
-  invited:  { label: 'Invited',     bg: '#FFF7ED', color: '#D97706', icon: '📧' },
-  accepted: { label: 'Setup Done',  bg: '#EFF6FF', color: '#2563EB', icon: '✔' },
-  verified: { label: 'Logged In',   bg: '#F0FDF4', color: '#15803D', icon: '✅' },
-  failed:   { label: 'Failed',      bg: '#FEF2F2', color: '#B91C1C', icon: '❌' },
+  pending:  { label: 'ov_not_invited', bg: '#F3F4F6', color: '#6B7280', icon: '⏳' },
+  invited:  { label: 'ov_invited',     bg: '#FFF7ED', color: '#D97706', icon: '📧' },
+  accepted: { label: 'ov_setup_done',  bg: '#EFF6FF', color: '#2563EB', icon: '✔' },
+  verified: { label: 'ov_logged_in',   bg: '#F0FDF4', color: '#15803D', icon: '✅' },
+  failed:   { label: 'ov_failed',      bg: '#FEF2F2', color: '#B91C1C', icon: '❌' },
 };
 
 export default function AdminStaffPage() {
   const { lang } = useLang();
+  const roleLabel = (r: string) => ROLE_LABEL[r] ? T(ROLE_LABEL[r], lang) : r;
   const [staff, setStaff]     = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
@@ -68,7 +69,7 @@ export default function AdminStaffPage() {
   }
 
   async function deactivate(id: string) {
-    if (!confirm('Deactivate this staff member?')) return;
+    if (!confirm(T('ov_confirm_deactivate', lang))) return;
     await fetch('/api/admin/staff', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, is_active: false }),
@@ -84,22 +85,22 @@ export default function AdminStaffPage() {
         body: JSON.stringify({ staff_user_id: staffUserId }),
       });
       const d = await res.json() as { message?: string; error?: string };
-      alert(res.ok ? (d.message ?? 'Invitation sent to ' + email) : ('Error: ' + (d.error ?? 'Failed')));
+      alert(res.ok ? (d.message ?? T('ov_invitation_sent_to', lang).replace('{email}', email)) : (T('ov_error_prefix', lang) + (d.error ?? T('ov_failed', lang))));
       await loadStaff();
-    } catch { alert('Network error sending invitation.'); }
+    } catch { alert(T('ov_network_error_invite', lang)); }
     setInvitingId(null);
   }
 
   async function sendAllInvites() {
-    if (!confirm(`Send login invitations to all uninvited staff?`)) return;
+    if (!confirm(T('ov_confirm_send_all', lang))) return;
     setBulkInviting(true);
     setBulkResult('');
     try {
       const res = await fetch('/api/admin/staff/invite?bulk=1', { method: 'POST' });
       const d = await res.json() as { message?: string; invited?: number; failed?: number };
-      setBulkResult(d.message ?? `Invited: ${d.invited ?? 0}, Failed: ${d.failed ?? 0}`);
+      setBulkResult(d.message ?? T('ov_invited_failed_count', lang).replace('{ok}', String(d.invited ?? 0)).replace('{fail}', String(d.failed ?? 0)));
       await loadStaff();
-    } catch { setBulkResult('Network error. Please retry.'); }
+    } catch { setBulkResult(T('ov_network_retry', lang)); }
     setBulkInviting(false);
   }
 
@@ -120,17 +121,17 @@ export default function AdminStaffPage() {
       {uninvitedCount > 0 && (
         <button onClick={() => void sendAllInvites()} disabled={bulkInviting}
           style={{ padding: '7px 14px', background: bulkInviting ? '#9CA3AF' : '#15803D', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkInviting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-          {bulkInviting ? 'Sending…' : `📧 Send All Invitations (${uninvitedCount})`}
+          {bulkInviting ? T('ov_sending', lang) : `📧 ${T('ov_send_all_invitations', lang).replace('{n}', String(uninvitedCount))}`}
         </button>
       )}
       <button onClick={() => setShowAdd(true)} style={{ padding: '7px 14px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        + Add Staff
+        + {T('ov_add_staff', lang)}
       </button>
     </div>
   );
 
   return (
-    <Layout title={T('staff_management', lang)} subtitle={`${staff.length} staff`}
+    <Layout title={T('staff_management', lang)} subtitle={T('ov_n_staff', lang).replace('{n}', String(staff.length))}
       actions={headerActions}>
 
       {/* Bulk invite result banner */}
@@ -149,7 +150,7 @@ export default function AdminStaffPage() {
             if (count === 0) return null;
             return (
               <div key={status} style={{ padding: '5px 12px', borderRadius: 8, background: cfg.bg, border: `1px solid ${cfg.color}30`, fontSize: 12, fontWeight: 600, color: cfg.color }}>
-                {cfg.icon} {cfg.label}: {count}
+                {cfg.icon} {T(cfg.label, lang)}: {count}
               </div>
             );
           })}
@@ -159,30 +160,30 @@ export default function AdminStaffPage() {
       {/* Search + filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name or email…"
+          placeholder={T('ov_search_name_email', lang)}
           style={{ flex: 1, minWidth: 160, height: 36, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 12px', outline: 'none', fontFamily: 'inherit' }} />
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           style={{ height: 36, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', fontSize: 13, background: '#fff', color: '#374151', fontFamily: 'inherit' }}>
-          {roles.map(r => <option key={r} value={r}>{r === 'all' ? 'All Roles' : (ROLE_LABEL[r] ?? r)}</option>)}
+          {roles.map(r => <option key={r} value={r}>{r === 'all' ? T('ov_all_roles', lang) : roleLabel(r)}</option>)}
         </select>
       </div>
 
       {/* Add form */}
       {showAdd && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Add New Staff Member</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{T('ov_add_new_staff', lang)}</div>
           <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#92400E' }}>
-            <strong>Email must be correct</strong> — An invitation will be sent to this email so the staff member can set their password. Type carefully. No spaces allowed.
+            <strong>{T('ov_email_must_correct', lang)}</strong> — {T('ov_email_warning_detail', lang)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { key: 'name',        label: 'Full Name',   placeholder: 'Ravi Kumar' },
-              { key: 'email',       label: 'Email',       placeholder: 'ravi@school.edu.in' },
-              { key: 'phone',       label: 'Phone',       placeholder: '+91 98765 43210' },
-              { key: 'designation', label: 'Designation', placeholder: 'Class Teacher' },
+              { key: 'name',        label: 'ov_full_name',   placeholder: 'Ravi Kumar' },
+              { key: 'email',       label: 'ov_email',       placeholder: 'ravi@school.edu.in' },
+              { key: 'phone',       label: 'ov_phone',       placeholder: '+91 98765 43210' },
+              { key: 'designation', label: 'ov_designation', placeholder: 'Class Teacher' },
             ].map(f => (
               <div key={f.key}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{T(f.label, lang)}</label>
                 <input
                   value={form[f.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [f.key]: f.key === 'email' ? e.target.value.replace(/\s+/g,'').toLowerCase() : e.target.value })}
@@ -194,15 +195,15 @@ export default function AdminStaffPage() {
               </div>
             ))}
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Role</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{T('ov_role', lang)}</label>
               <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
                 style={{ width: '100%', height: 34, borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, padding: '0 8px', boxSizing: 'border-box', fontFamily: 'inherit' }}>
-                {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{T(v, lang)}</option>)}
               </select>
             </div>
             {form.role === 'teacher' && (
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Subject</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{T('ov_subject', lang)}</label>
                 <input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })}
                   placeholder="Mathematics"
                   style={{ width: '100%', height: 34, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
@@ -210,9 +211,9 @@ export default function AdminStaffPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
-            <button onClick={() => setShowAdd(false)} style={{ padding: '7px 14px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={() => setShowAdd(false)} style={{ padding: '7px 14px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{T('ov_cancel', lang)}</button>
             <button onClick={() => void addStaff()} disabled={saving} style={{ padding: '7px 14px', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {saving ? 'Adding…' : 'Add Staff'}
+              {saving ? T('ov_adding', lang) : T('ov_add_staff', lang)}
             </button>
           </div>
         </div>
@@ -220,12 +221,12 @@ export default function AdminStaffPage() {
 
       {/* Staff list */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading staff…</div>
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>{T('ov_loading_staff', lang)}</div>
       ) : visible.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#9CA3AF' }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#374151' }}>No staff found</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Add your first staff member to get started.</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#374151' }}>{T('ov_no_staff_found', lang)}</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>{T('ov_add_first_staff', lang)}</div>
         </div>
       ) : (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
@@ -243,20 +244,20 @@ export default function AdminStaffPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{s.name}</div>
                   <div style={{ fontSize: 12, color: '#6B7280', marginTop: 1 }}>
-                    {s.email ? <span style={{ fontFamily: 'monospace' }}>{s.email}</span> : <em>No email</em>}
+                    {s.email ? <span style={{ fontFamily: 'monospace' }}>{s.email}</span> : <em>{T('ov_no_email', lang)}</em>}
                     {s.subject ? ` · ${s.subject}` : ''}
                   </div>
                   {/* Invite status badge */}
                   <div style={{ marginTop: 5, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 6, background: (ROLE_COLOR[s.role] ?? '#6B7280') + '18', color: ROLE_COLOR[s.role] ?? '#6B7280', fontSize: 11, fontWeight: 700 }}>
-                      {ROLE_LABEL[s.role] ?? s.role}
+                      {roleLabel(s.role)}
                     </span>
                     <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 6, background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 600 }}>
-                      {badge.icon} {badge.label}
+                      {badge.icon} {T(badge.label, lang)}
                     </span>
                     {s.first_login_at && (
                       <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-                        First login: {new Date(s.first_login_at).toLocaleDateString('en-IN')}
+                        {T('ov_first_login', lang)} {new Date(s.first_login_at).toLocaleDateString('en-IN')}
                       </span>
                     )}
                   </div>
@@ -268,12 +269,12 @@ export default function AdminStaffPage() {
                       onClick={() => void sendInvite(s.id, s.email!)}
                       disabled={invitingId === s.id}
                       style={{ padding: '5px 10px', background: invitingId === s.id ? '#9CA3AF' : '#EEF2FF', color: invitingId === s.id ? '#fff' : '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: invitingId === s.id ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
-                      {invitingId === s.id ? 'Sending…' : inviteStatus === 'failed' ? '↩ Resend' : '📧 Invite'}
+                      {invitingId === s.id ? T('ov_sending', lang) : inviteStatus === 'failed' ? `↩ ${T('ov_resend', lang)}` : `📧 ${T('ov_invite', lang)}`}
                     </button>
                   )}
                   <button onClick={() => void deactivate(s.id)}
                     style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 11, cursor: 'pointer', padding: '2px 0', fontFamily: 'inherit' }}>
-                    Remove
+                    {T('ov_remove', lang)}
                   </button>
                 </div>
               </div>
