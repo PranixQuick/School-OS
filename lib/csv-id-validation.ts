@@ -1,0 +1,241 @@
+// lib/csv-id-validation.ts
+// ISS-12 (P2.3) — Universal CSV identifier ruleset (App. C).
+//
+// Pure, dependency-free helpers for normalizing and validating the various
+// identifiers that arrive via CSV onboarding, plus per-institution dedup.
+//
+// Scope of uniqueness (App. C):
+//   * admission number / employee code  -> per institution (admission also per
+//     academic year for re-admission handling). NEVER deduped across schools.
+//   * UDISE / APAAR / PAN / UAN / ESIC / NSP -> national identifiers.
+// DPDP note: there is intentionally NO 'aadhaar' type here. Aadhaar must never
+// be stored as plain text; mask/tokenise it elsewhere if ever required.
+
+export type IdType =
+  | 'admission'
+  | 'employee'
+  | 'udise'
+  | 'cbse_roll'
+  | 'apaar'
+  | 'uan'
+  | 'esic'
+  | 'nsp'
+  | 'pan'
+  | 'jntu';
+
+export type Severity = 'ok' | 'warn' | 'error';
+
+export type ReasonCode =
+  | 'EMPTY'
+  | 'ILLEGAL_CHAR'
+  | 'REGEX_FAIL'
+  | 'EXCEL_ZERO_STRIP'
+  | 'MIXED_SEPARATORS'
+  | 'ALL_ZEROS'
+  | 'TEST_DUMMY'
+  | 'DUP_HARD'
+  | 'DUP_SOFT_READMISSION'
+  | 'DUP_CRITICAL_NAME_MISMATCH';
+
+export interface NormalizeResult {
+  value: string;        // normalized value
+  changed: boolean;     // whether normalization altered the raw input
+  warnings: ReasonCode[];
+}
+
+export interface ValidationResult {
+  raw: string;
+  value: string;        // normalized
+  type: IdType;
+  severity: Severity;   // 'ok' | 'warn' | 'error'
+  codes: ReasonCode[];  // reason codes (errors and/or warnings)
+  bareKey: string;      // dedup key (empty when value is empty)
+}
+
+// ── Character handling (explicit code points, no unicode literals) ──────────
+// Stripped entirely: NUL, TAB, LF, CR, zero-width space/ZWNJ/ZWJ, BOM.
+const STRIP_CP = new Set<number>([
+  0x0000, 0x0009, 0x000a, 0x000d,           // control
+  0x200b, 0x200c, 0x200d, 0xfeff,           // zero-width + BOM
+]);
+// Dash/hyphen variants + minus sign -> ASCII '-'.
+const DASH_CP = new Set<number>([0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212]);
+const SQUOTE_CP = new Set<number>([0x2018, 0x2019]);   // ' ' -> '
+const DQUOTE_CP = new Set<number>([0x201c, 0x201d]);   // " " -> "
+
+// Single pass: strip junk, fold dash/quote variants, and map full-width
+// (U+FF10–19), Devanagari (U+0966–6F) and Telugu (U+0C66–6F) digits to ASCII.
+function cleanChars(s: string): string {
+  let out = '';
+  for (const ch of s) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (STRIP_CP.has(cp)) continue;
+    if (DASH_CP.has(cp)) { out += '-'; continue; }
+    if (SQUOTE_CP.has(cp)) { out += "'"; continue; }
+    if (DQUOTE_CP.has(cp)) { out += '"'; continue; }
+    if (cp >= 0xff10 && cp <= 0xff19) { out += String.fromCharCode(0x30 + (cp - 0xff10)); continue; }
+    if (cp >= 0x0966 && cp <= 0x096f) { out += String.fromCharCode(0x30 + (cp - 0x0966)); continue; }
+    if (cp >= 0x0c66 && cp <= 0x0c6f) { out += String.fromCharCode(0x30 + (cp - 0x0c66)); continue; }
+    out += ch;
+  }
+  return out;
+}
+
+const ILLEGAL = /[@#*%]/; // explicitly illegal in IDs
+
+/**
+ * Pre-normalize a raw identifier: strip control/zero-width/BOM, fold dash and
+ * smart-quote variants, convert non-ASCII digits to ASCII, collapse whitespace,
+ * trim and uppercase. Separators "/ - . _" are preserved. Excel leading-zero
+ * loss is NOT silently fixed (flagged later as a soft warn).
+ */
+export function normalizeId(raw: string | null | undefined): NormalizeResult {
+  const original = raw ?? '';
+  let v = cleanChars(original);
+  v = v.replace(/\s+/g, ' ').trim();
+  v = v.toUpperCase();
+
+  const warnings: ReasonCode[] = [];
+  if (v.length > 0 && /^0+$/.test(v)) warnings.push('ALL_ZEROS');
+  if (/TEST|DUMMY/.test(v)) warnings.push('TEST_DUMMY');
+
+  return { value: v, changed: v !== original, warnings };
+}
+
+// Type-aware patterns (operate on the normalized, uppercased value).
+const PATTERNS: Record<IdType, RegExp> = {
+  admission: /^[A-Z0-9][A-Z0-9/\-.]{0,29}$/,
+  employee: /^[A-Z0-9][A-Z0-9/\-_.]{0,24}$/,
+  udise: /^\d{11}$/,
+  cbse_roll: /^\d{7}$/,
+  apaar: /^\d{12}$/,
+  uan: /^\d{12}$/,
+  esic: /^\d{17}$/,
+  nsp: /^\d{16}$/,
+  pan: /^[A-Z]{5}[0-9]{4}[A-Z]$/,
+  jntu: /^[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{4}$/,
+};
+
+// Fixed-length national numeric IDs — used to distinguish a likely Excel
+// leading-zero strip (soft warn) from a genuine format error (hard error).
+const FIXED_NUMERIC_LEN: Partial<Record<IdType, number>> = {
+  udise: 11,
+  cbse_roll: 7,
+  apaar: 12,
+  uan: 12,
+  esic: 17,
+  nsp: 16,
+};
+
+/**
+ * Strip the separators "/ - _ ." from a (normalized) value to form the bare
+ * dedup key, per App. C: UPPERCASE(strip / - _ . (TRIM)).
+ */
+export function bareKey(value: string): string {
+  return normalizeId(value).value.replace(/[/\-_.]/g, '');
+}
+
+/**
+ * Validate a single identifier of a given type. Returns a severity plus the
+ * reason codes behind it. `mandatory` marks a blank value as a hard error.
+ */
+export function validateId(
+  raw: string | null | undefined,
+  type: IdType,
+  opts: { mandatory?: boolean } = {},
+): ValidationResult {
+  const norm = normalizeId(raw);
+  const value = norm.value;
+  const codes: ReasonCode[] = [...norm.warnings];
+  let severity: Severity = norm.warnings.length > 0 ? 'warn' : 'ok';
+
+  const push = (code: ReasonCode, sev: Severity) => {
+    if (!codes.includes(code)) codes.push(code);
+    if (sev === 'error' || (sev === 'warn' && severity === 'ok')) severity = sev;
+  };
+
+  if (!value) {
+    if (opts.mandatory) push('EMPTY', 'error');
+    return { raw: raw ?? '', value, type, severity, codes, bareKey: '' };
+  }
+
+  if (ILLEGAL.test(value)) push('ILLEGAL_CHAR', 'error');
+
+  if (!PATTERNS[type].test(value)) {
+    const expected = FIXED_NUMERIC_LEN[type];
+    if (expected !== undefined && /^\d+$/.test(value) && value.length < expected) {
+      // All digits but short for a fixed-length national ID — most likely an
+      // Excel leading-zero strip. Soft warn; we do not silently re-pad.
+      push('EXCEL_ZERO_STRIP', 'warn');
+    } else {
+      push('REGEX_FAIL', 'error');
+    }
+  }
+
+  // Mixed separators in free-form internal IDs — soft warn (still valid).
+  if ((type === 'admission' || type === 'employee') && value.includes('/') && value.includes('-')) {
+    push('MIXED_SEPARATORS', 'warn');
+  }
+
+  return { raw: raw ?? '', value, type, severity, codes, bareKey: bareKey(value) };
+}
+
+// ── Dedup ────────────────────────────────────────────────────────────────────
+export interface DedupRecord {
+  rowIndex: number;
+  bareKey: string;
+  schoolId: string;
+  year?: string | null;   // academic year (admission only); null/undefined = ignore
+  name?: string | null;   // student/staff name, for name-mismatch detection
+}
+
+export interface DedupVerdict {
+  rowIndex: number;
+  code: ReasonCode | null;   // null = unique within its institution
+  conflictRow?: number;      // the earlier row it conflicts with
+}
+
+function nameKey(n: string | null | undefined): string {
+  return (n ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+/**
+ * Per-institution dedup over already-normalized bare keys. Scoped strictly by
+ * schoolId — identifiers are NEVER deduped across institutions.
+ *   * same key, same school, same name, same year         -> DUP_HARD
+ *   * same key, same school, same name, different year     -> DUP_SOFT_READMISSION
+ *   * same key, same school, different (both present) name -> DUP_CRITICAL_NAME_MISMATCH
+ * Rows with an empty bare key are passed through (code null).
+ */
+export function dedupBatch(records: DedupRecord[]): DedupVerdict[] {
+  const seen = new Map<string, DedupRecord>();
+  const verdicts: DedupVerdict[] = [];
+
+  for (const r of records) {
+    if (!r.bareKey) {
+      verdicts.push({ rowIndex: r.rowIndex, code: null });
+      continue;
+    }
+    const k = `${r.schoolId}|${r.bareKey}`;
+    const prev = seen.get(k);
+    if (!prev) {
+      seen.set(k, r);
+      verdicts.push({ rowIndex: r.rowIndex, code: null });
+      continue;
+    }
+
+    const prevName = nameKey(prev.name);
+    const curName = nameKey(r.name);
+    const namesDiffer = prevName !== '' && curName !== '' && prevName !== curName;
+    const sameYear = (prev.year ?? null) === (r.year ?? null);
+
+    let code: ReasonCode;
+    if (namesDiffer) code = 'DUP_CRITICAL_NAME_MISMATCH';
+    else if (sameYear) code = 'DUP_HARD';
+    else code = 'DUP_SOFT_READMISSION';
+
+    verdicts.push({ rowIndex: r.rowIndex, code, conflictRow: prev.rowIndex });
+  }
+
+  return verdicts;
+}
