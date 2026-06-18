@@ -21,7 +21,7 @@ interface DashData {
   active_child_id?: string;
 }
 
-const ACTION_KEYS = [
+const ACTION_KEYS: { href: string; icon: string; key: string; bg: string; label?: string }[] = [
   { href: '/parent/attendance', icon: '✅', key: 'attendance', bg: '#F0FDF4' },
   { href: '/parent/homework',   icon: '📚', key: 'homework',   bg: '#FDF4FF' },
   { href: '/parent/fees',       icon: '💳', key: 'fees',       bg: '#FFFBEB' },
@@ -31,6 +31,7 @@ const ACTION_KEYS = [
   { href: '/parent/notices',    icon: '📢', key: 'announcements', bg: '#F9FAFB' },
   { href: '/parent/events',     icon: '📸', key: 'events',     bg: '#FDF4FF' },
   { href: '/parent/complaints', icon: '📣', key: 'complaints', bg: '#FEF2F2' },
+  { href: '/parent/curriculum', icon: '📖', key: 'syllabus', bg: '#EEF2FF', label: 'Syllabus' },
 ];
 
 const LANG_SHORT: Partial<Record<Lang, string>> = {
@@ -217,7 +218,7 @@ export default function ParentHomePage() {
             <Link key={a.href} href={a.href} className="p-action">
               <div style={{ fontSize: 22, marginBottom: 4 }}>{a.icon}</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>
-                {T(a.key as never, lang as never)}
+                {a.label ?? T(a.key as never, lang as never)}
               </div>
             </Link>
           ))}
