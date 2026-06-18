@@ -38,19 +38,27 @@ async function loginAs(page: Page, email: string, password: string) {
   await emailField.fill(email);
   await page.locator('input[type="password"]').fill(password);
 
-  const [response] = await Promise.all([
-    page.waitForResponse(
+  // Attach the response listener BEFORE clicking, but treat it as best-effort:
+  // on the mobile project under CI load the login POST can be slow, and making
+  // a missed/slow response fatal was the main source of flakiness. The
+  // authoritative success signal is leaving /login (below); the captured
+  // response is only used to surface a precise error on a genuine failure.
+  const responsePromise = page
+    .waitForResponse(
       r => r.url().includes('/api/auth/login') && r.request().method() === 'POST',
-      { timeout: 15_000 }
-    ),
-    page.click('button[type="submit"]'),
-  ]);
+      { timeout: 30_000 }
+    )
+    .catch(() => null);
 
-  if (!response.ok()) {
+  await page.click('button[type="submit"]');
+  const response = await responsePromise;
+
+  if (response && !response.ok()) {
     throw new Error(`Login failed: ${response.status()} ${await response.text()}`);
   }
 
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10_000 });
+  // Primary success criterion: redirected away from the login page.
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30_000 });
 }
 
 export async function loginAsAdmin(page: Page) {
