@@ -7,6 +7,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
+import { useLang } from '@/lib/useLang';
 
 interface MandalSummary {
   mandal_code: string;
@@ -40,6 +42,7 @@ function ComplianceBadge({ score }: { score: number }) {
 }
 
 export default function DEODashboardPage() {
+  const { lang } = useLang();
   const [data, setData]     = useState<DistrictData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
@@ -70,7 +73,7 @@ export default function DEODashboardPage() {
   const avgDistrict     = data?.avg_district_compliance ?? 0;
 
   return (
-    <Layout title="DEO Dashboard" subtitle={data?.district_name ?? 'District Overview'}>
+    <Layout title={T('ov_deo_dashboard', lang)} subtitle={data?.district_name ?? T('ov_district_overview', lang)}>
       <style>{`
         .filter-btn{padding:5px 12px;border-radius:20px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
         .filter-btn.active{background:#1E3A8A;color:#fff}
@@ -80,16 +83,16 @@ export default function DEODashboardPage() {
       {/* Header banner */}
       <div style={{ background: 'linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%)', borderRadius: 14, padding: '16px 18px', marginBottom: 14, color: '#fff' }}>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}>
-          DEO District Governance Console
+          {T('ov_deo_console', lang)}
         </div>
         <div style={{ fontSize: 18, fontWeight: 800 }}>{data?.district_name ?? '—'}</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{today}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
           {[
-            { v: data?.total_mandals ?? '—', l: 'Mandals' },
-            { v: data?.total_schools ?? '—', l: 'Schools' },
-            { v: `${avgDistrict}%`, l: 'Dist. Avg' },
-            { v: totalCritical, l: '🔴 Critical' },
+            { v: data?.total_mandals ?? '—', l: T('ov_mandals', lang) },
+            { v: data?.total_schools ?? '—', l: T('ov_schools', lang) },
+            { v: `${avgDistrict}%`, l: T('ov_dist_avg', lang) },
+            { v: totalCritical, l: `🔴 ${T('ov_critical', lang)}` },
           ].map(s => (
             <div key={s.l} style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 8, padding: '8px 4px', textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.v}</div>
@@ -102,9 +105,9 @@ export default function DEODashboardPage() {
       {/* District KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
         {[
-          { label: 'Critical Schools', value: totalCritical, color: totalCritical > 0 ? '#B91C1C' : '#15803D', bg: totalCritical > 0 ? '#FEF2F2' : '#F0FDF4' },
-          { label: 'Teacher Vacancies', value: totalVacancies, color: totalVacancies > 0 ? '#D97706' : '#15803D', bg: totalVacancies > 0 ? '#FFF7ED' : '#F0FDF4' },
-          { label: 'Open Actions', value: totalActions, color: totalActions > 0 ? '#7C3AED' : '#15803D', bg: totalActions > 0 ? '#F5F3FF' : '#F0FDF4' },
+          { label: T('ov_critical_schools', lang), value: totalCritical, color: totalCritical > 0 ? '#B91C1C' : '#15803D', bg: totalCritical > 0 ? '#FEF2F2' : '#F0FDF4' },
+          { label: T('ov_teacher_vacancies', lang), value: totalVacancies, color: totalVacancies > 0 ? '#D97706' : '#15803D', bg: totalVacancies > 0 ? '#FFF7ED' : '#F0FDF4' },
+          { label: T('ov_open_actions', lang), value: totalActions, color: totalActions > 0 ? '#7C3AED' : '#15803D', bg: totalActions > 0 ? '#F5F3FF' : '#F0FDF4' },
         ].map(k => (
           <div key={k.label} style={{ background: k.bg, borderRadius: 11, padding: '10px 8px', textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
@@ -115,28 +118,28 @@ export default function DEODashboardPage() {
 
       {/* Sort controls */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF' }}>SORT BY:</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF' }}>{T('ov_sort_by', lang)}</span>
         {(['compliance','vacancies','actions'] as const).map(s => (
           <button key={s} onClick={() => setSortBy(s)} className={`filter-btn${sortBy===s?' active':''}`}>
-            {s === 'compliance' ? '📊 Compliance' : s === 'vacancies' ? '🧑‍🏫 Vacancies' : '📋 Actions'}
+            {s === 'compliance' ? `📊 ${T('ov_compliance', lang)}` : s === 'vacancies' ? `🧑‍🏫 ${T('ov_vacancies', lang)}` : `📋 ${T('ov_actions', lang)}`}
           </button>
         ))}
       </div>
 
       {/* Mandal heatmap list */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading district data…</div>
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>{T('ov_loading_district', lang)}</div>
       ) : error ? (
         <div style={{ padding: 20, background: '#F9FAFB', borderRadius: 12, color: '#6B7280', fontSize: 13 }}>
-          <p style={{ fontWeight: 700 }}>DEO Dashboard</p>
-          <p>District aggregation is available once MEO mandal mappings are populated. Each MEO must be provisioned in the system.</p>
-          <Link href="/meo/dashboard" style={{ color: '#1E40AF', fontWeight: 700, textDecoration: 'none' }}>→ View MEO Dashboard</Link>
+          <p style={{ fontWeight: 700 }}>{T('ov_deo_dashboard', lang)}</p>
+          <p>{T('ov_deo_empty_desc', lang)}</p>
+          <Link href="/meo/dashboard" style={{ color: '#1E40AF', fontWeight: 700, textDecoration: 'none' }}>→ {T('ov_view_meo', lang)}</Link>
         </div>
       ) : mandals.length === 0 ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF', background: '#F9FAFB', borderRadius: 12 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>🏛️</div>
-          <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>No mandal data yet</div>
-          <div style={{ fontSize: 12 }}>Provision MEO users and mandal mappings to enable district aggregation.</div>
+          <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>{T('ov_no_mandal_data', lang)}</div>
+          <div style={{ fontSize: 12 }}>{T('ov_provision_meo', lang)}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -152,7 +155,7 @@ export default function DEODashboardPage() {
                       {m.mandal_name}
                     </div>
                     <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>
-                      {m.school_count} schools · Worst: {m.worst_school || 'N/A'}
+                      {m.school_count} {T('ov_schools', lang)} · {T('ov_worst', lang)} {m.worst_school || T('ov_na', lang)}
                     </div>
                   </div>
                   <ComplianceBadge score={m.avg_compliance} />
@@ -163,9 +166,9 @@ export default function DEODashboardPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
                   {[
-                    { icon: '🔴', v: m.critical_schools, l: 'Critical' },
-                    { icon: '🧑‍🏫', v: m.teacher_vacancies, l: 'Vacancies' },
-                    { icon: '📋', v: m.open_action_items, l: 'Actions' },
+                    { icon: '🔴', v: m.critical_schools, l: T('ov_critical', lang) },
+                    { icon: '🧑‍🏫', v: m.teacher_vacancies, l: T('ov_vacancies', lang) },
+                    { icon: '📋', v: m.open_action_items, l: T('ov_actions', lang) },
                   ].map(s => (
                     <div key={s.l} style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: s.v > 0 ? '#B91C1C' : '#15803D' }}>{s.v}</div>
@@ -182,7 +185,7 @@ export default function DEODashboardPage() {
       {/* Export */}
       <div style={{ marginTop: 14 }}>
         <a href="/api/deo/compliance-export?format=csv" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10, background: '#1E3A8A', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-          📥 Export District Report CSV
+          📥 {T('ov_export_district', lang)}
         </a>
       </div>
     </Layout>
