@@ -15,6 +15,11 @@ const NAV_ITEMS = [
   { label: 'Marks', href: '/student/marks', icon: '📊' },
 ];
 
+// Routes where the back affordance is intentionally hidden (tab-root home).
+// Mirrors the HOME_ROUTES exclusion in components/Layout.tsx (PR #152): the
+// student home is a bottom-nav root, so "back" there would leave the portal.
+const HOME_ROUTES = new Set<string>(['/student']);
+
 interface StudentLayoutProps { children: ReactNode; }
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
@@ -24,6 +29,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   const [studentClass, setStudentClass] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const isLoginPage = pathname === '/student/login';
+  const showBack = !HOME_ROUTES.has(pathname);
 
   useEffect(() => {
     if (isLoginPage) return;
@@ -43,6 +49,14 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     router.push('/student/login');
   }
 
+  // Back navigation: use browser history when available, else fall back to the
+  // student home so the control never dead-ends. Additive — does not change
+  // the existing bottom-nav links.
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push('/student');
+  }
+
   // On the login screen there is no session yet — render the bare page
   // without the portal chrome (header 'Sign out' + bottom nav).
   if (isLoginPage) {
@@ -54,6 +68,12 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       {/* Top bar */}
       <header style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {showBack && (
+            <button onClick={goBack} aria-label="Back" title="Back"
+              style={{ fontSize: 18, lineHeight: 1, color: '#374151', background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}>
+              ←
+            </button>
+          )}
           <span style={{ fontSize: 22 }}>🎓</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{studentName || '…'}</div>
