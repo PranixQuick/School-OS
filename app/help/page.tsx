@@ -143,9 +143,9 @@ export default function HelpPage() {
               <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
                 <span style={{ marginRight: 8 }}>{section.icon}</span>{section.title}
               </span>
-              <span style={{ fontSize: 18, color: '#9CA3AF' }}>{open[section.id] ? '▾' : '▸'}</span>
+              <span style={{ fontSize: 18, color: '#9CA3AF' }}>{(q || open[section.id]) ? '▾' : '▸'}</span>
             </button>
-            {open[section.id] && (
+            {(q || open[section.id]) && (
               <div style={{ borderTop: '1px solid #F3F4F6', padding: '6px 16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {section.topics.map((t, i) => (
                   <div key={i}>
