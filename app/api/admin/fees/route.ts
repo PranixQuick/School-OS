@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       description, fee_receipt_number, gst_rate, tax_amount, payment_method, payment_reference,
       payment_screenshot_url, payment_verified_at, discount_amount, discount_reason,
       intervention_status, created_at,
-      students:student_id ( name, class, section )`)
+      students:student_id ( name, class, section, phone_parent )`)
     .eq('school_id', schoolId)
     .order('due_date', { ascending: false })
     .range(offset, offset + limit - 1);
