@@ -114,6 +114,7 @@ export default function StudentsPage() {
   const [toast, setToast] = useState('');
   const [toastType, setToastType] = useState<'ok' | 'err'>('ok');
   const [selected, setSelected] = useState<Student | null>(null);
+  const [detail, setDetail] = useState<Student | null>(null);
   const [actionModal, setActionModal] = useState<'transfer' | 'graduate' | 'withdraw' | 'archive' | 'edit' | null>(null);
   const [acting, setActing] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
