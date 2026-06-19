@@ -291,6 +291,7 @@ export default function LoginPage() {
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: '#6B7280' }}>
           New school?{' '}
           <a href="/register" style={{ color: '#4F46E5', fontWeight: 600, textDecoration: 'none' }}>Create account →</a>
+          <span style={{ display: 'block', marginTop: 8 }}>First time staff?{' '}<a href="/activate" style={{ color: '#4F46E5', fontWeight: 600, textDecoration: 'none' }}>Activate with OTP →</a></span>
         </div>
       </div>
     </div>
