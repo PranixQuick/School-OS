@@ -90,6 +90,7 @@ export default function StudentLoginPage() {
 
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: 11, color: '#9CA3AF' }}>
           First time? <a href="/student/activate" style={{ color: '#4F46E5', fontWeight: 700 }}>Activate with OTP</a><br />
+          <a href="/student/login-otp" style={{ color: '#4F46E5', fontWeight: 700 }}>Sign in with OTP instead</a><br />
           Forgot your PIN? Contact your school admin.
         </div>
       </div>
