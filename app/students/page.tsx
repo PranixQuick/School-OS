@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -113,6 +114,7 @@ export default function StudentsPage() {
   const [toast, setToast] = useState('');
   const [toastType, setToastType] = useState<'ok' | 'err'>('ok');
   const [selected, setSelected] = useState<Student | null>(null);
+  const [detail, setDetail] = useState<Student | null>(null);
   const [actionModal, setActionModal] = useState<'transfer' | 'graduate' | 'withdraw' | 'archive' | 'edit' | null>(null);
   const [acting, setActing] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -363,7 +365,7 @@ export default function StudentsPage() {
               <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{s.name}</div>
+                    <button onClick={() => setDetail(s)} style={{ fontSize: 14, fontWeight: 700, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{s.name}</button>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>
                       {s.class ? `${T('class_', lang as never)} ${s.class}` : ''}{s.section ? `-${s.section}` : ''}{s.roll_number ? ` · Roll ${s.roll_number}` : ''}{s.admission_number ? ` · Adm ${s.admission_number}` : ''}
                     </div>
@@ -410,6 +412,22 @@ export default function StudentsPage() {
             );
           })}
         </div>
+      )}
+    {detail && (
+        <EntityDetailCard
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          title={detail.name}
+          subtitle={[detail.class ? `Class ${detail.class}${detail.section ? '-' + detail.section : ''}` : '', detail.admission_number ? `Adm ${detail.admission_number}` : ''].filter(Boolean).join(' · ') || undefined}
+          fields={[
+            { label: 'Class', value: [detail.class, detail.section].filter(Boolean).join('-') || '—' },
+            { label: 'Roll number', value: detail.roll_number || '—' },
+            { label: 'Admission no', value: detail.admission_number || '—', mono: true },
+            { label: 'Parent', value: detail.parent_name || '—' },
+            { label: 'Parent phone', value: detail.phone_parent || '—', href: detail.phone_parent ? `tel:${detail.phone_parent}` : undefined },
+            { label: 'Status', value: detail.status || '—' },
+          ]}
+        />
       )}
     </Layout>
   );

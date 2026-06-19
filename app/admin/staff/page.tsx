@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -32,6 +33,7 @@ export default function AdminStaffPage() {
   const { lang } = useLang();
   const roleLabel = (r: string) => ROLE_LABEL[r] ? T(ROLE_LABEL[r], lang) : r;
   const [staff, setStaff]     = useState<StaffMember[]>([]);
+  const [detail, setDetail] = useState<StaffMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -242,7 +244,7 @@ export default function AdminStaffPage() {
                 </div>
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{s.name}</div>
+                  <button onClick={() => setDetail(s)} style={{ fontWeight: 600, fontSize: 14, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{s.name}</button>
                   <div style={{ fontSize: 12, color: '#6B7280', marginTop: 1 }}>
                     {s.email ? <span style={{ fontFamily: 'monospace' }}>{s.email}</span> : <em>{T('ov_no_email', lang)}</em>}
                     {s.subject ? ` · ${s.subject}` : ''}
@@ -281,6 +283,24 @@ export default function AdminStaffPage() {
             );
           })}
         </div>
+      )}
+    {detail && (
+        <EntityDetailCard
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          accent={ROLE_COLOR[detail.role] ?? '#4F46E5'}
+          title={detail.name}
+          subtitle={roleLabel(detail.role)}
+          badge={detail.is_active ? { label: 'Active', bg: '#D1FAE5', color: '#065F46' } : { label: 'Inactive', bg: '#F3F4F6', color: '#6B7280' }}
+          fields={[
+            { label: 'Role', value: roleLabel(detail.role) },
+            { label: 'Email', value: detail.email || '—', href: detail.email ? `mailto:${detail.email}` : undefined, mono: true },
+            { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
+            { label: 'Subject', value: detail.subject || '—' },
+            { label: 'Designation', value: detail.designation || '—' },
+            { label: 'First login', value: detail.first_login_at ? new Date(detail.first_login_at).toLocaleDateString('en-IN') : '—' },
+          ]}
+        />
       )}
     </Layout>
   );
