@@ -14,6 +14,7 @@ export default function AdminParentsPage() {
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [detail, setDetail] = useState<Parent | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/parents').then(r => r.ok ? r.json() : { parents: [] })
