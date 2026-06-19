@@ -69,9 +69,12 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
     // sender must go in the URL or the ##OTP## placeholder is never filled. The
     // code is single-use with a 10-min TTL over server-to-server HTTPS; we never
     // log the URL and the phone is masked.
+    // MSG91 expects the mobile in country-code form WITHOUT a leading '+'
+    // (e.g. 919812345678). normalisePhone yields +91…, so strip the '+' here.
+    const mobile = phone.replace(/^\+/, '');
     const url = `${base}/api/v5/otp`
       + `?template_id=${encodeURIComponent(templateId)}`
-      + `&mobile=${encodeURIComponent(phone)}`
+      + `&mobile=${encodeURIComponent(mobile)}`
       + `&otp=${encodeURIComponent(code)}`
       + `&sender=${encodeURIComponent(sender)}`
       + `&otp_expiry=10`;
@@ -79,8 +82,13 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
       method: 'POST',
       headers: { authkey: authKey },
     });
-    if (!res.ok) {
-      console.error('[otp] MSG91 non-OK status', res.status, 'for', maskPhone(phone));
+    // MSG91 returns HTTP 200 even on logical errors; the JSON body carries
+    // { type: 'success' | 'error', message }. Inspect the body, not just status.
+    let payload: { type?: string; message?: string } = {};
+    try { payload = await res.json(); } catch { /* non-JSON response */ }
+    if (!res.ok || payload.type === 'error') {
+      console.error('[otp] MSG91 send failed for', maskPhone(phone),
+        '— http', res.status, '| type', payload.type ?? '?', '| msg', payload.message ?? '?');
       return false;
     }
     return true;
