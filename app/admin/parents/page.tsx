@@ -118,6 +118,13 @@ export default function AdminParentsPage() {
           })}
         </div>
       )}
+      <EntityDetailCard
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        title={detail?.name ?? 'Parent'}
+        subtitle={detail?.phone}
+        fields={detailFields}
+      />
     </Layout>
   );
 }
