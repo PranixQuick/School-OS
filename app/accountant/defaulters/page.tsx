@@ -48,6 +48,16 @@ export default function DefaultersPage() {
   const total = fees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
   const sorted = [...fees].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
 
+  const dsel = detail ? one(detail.students) : null;
+  const detailFields: DetailField[] = detail ? [
+    { label: 'Class', value: [dsel?.class, dsel?.section].filter(Boolean).join(' · ') || '—' },
+    { label: 'Fee type', value: detail.fee_type || '—' },
+    { label: 'Amount overdue', value: inr(detail.amount), sensitive: true },
+    { label: 'Due date', value: detail.due_date || '—' },
+    { label: 'Days overdue', value: `${daysOverdue(detail.due_date)}d` },
+    { label: 'Parent phone', value: dsel?.phone_parent || '—', href: dsel?.phone_parent ? `tel:${dsel.phone_parent}` : undefined },
+  ] : [];
+
   const th: React.CSSProperties = { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid #E5E7EB', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#111827' };
 
