@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import BiometricLock from '@/components/BiometricLock';
 
 export const viewport: Viewport = {
   width: 'device-width',
