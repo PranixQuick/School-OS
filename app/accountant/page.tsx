@@ -47,6 +47,12 @@ export default function AccountantCockpit() {
       ) : !s ? null : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+          {/* Quick links */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a href="/accountant/defaulters" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>⚠️ Defaulters report →</a>
+            <a href="/admin/fees" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#F9FAFB', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>💰 Fee details →</a>
+          </div>
+
           {/* Today */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Today · {s.today_collections.date}</div>
