@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard, { DetailField } from '@/components/EntityDetailCard';
 
 interface Student { name?: string; class?: string; section?: string; phone_parent?: string }
 interface Fee {
@@ -34,6 +35,7 @@ export default function DefaultersPage() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [detail, setDetail] = useState<Fee | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/fees?status=overdue&limit=200')
@@ -45,6 +47,16 @@ export default function DefaultersPage() {
 
   const total = fees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
   const sorted = [...fees].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+
+  const dsel = detail ? one(detail.students) : null;
+  const detailFields: DetailField[] = detail ? [
+    { label: 'Class', value: [dsel?.class, dsel?.section].filter(Boolean).join(' · ') || '—' },
+    { label: 'Fee type', value: detail.fee_type || '—' },
+    { label: 'Amount overdue', value: inr(detail.amount), sensitive: true },
+    { label: 'Due date', value: detail.due_date || '—' },
+    { label: 'Days overdue', value: `${daysOverdue(detail.due_date)}d` },
+    { label: 'Parent phone', value: dsel?.phone_parent || '—', href: dsel?.phone_parent ? `tel:${dsel.phone_parent}` : undefined },
+  ] : [];
 
   const th: React.CSSProperties = { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid #E5E7EB', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#111827' };
@@ -87,7 +99,9 @@ export default function DefaultersPage() {
                   const phone = s?.phone_parent;
                   return (
                     <tr key={f.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>{s?.name ?? '—'}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>
+                        <button onClick={() => setDetail(f)} style={{ background: 'none', border: 'none', padding: 0, color: '#4F46E5', fontWeight: 600, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>{s?.name ?? '—'}</button>
+                      </td>
                       <td style={td}>{cls || '—'}</td>
                       <td style={td}>{f.fee_type || '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#B91C1C' }}>{inr(f.amount)}</td>
@@ -106,6 +120,14 @@ export default function DefaultersPage() {
           </div>
         </div>
       )}
+      <EntityDetailCard
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        accent="#B91C1C"
+        title={dsel?.name ?? 'Student'}
+        subtitle="Overdue fee detail"
+        fields={detailFields}
+      />
     </Layout>
   );
 }
