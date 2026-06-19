@@ -64,23 +64,23 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
   if (!authKey || !templateId) return false;
 
   try {
-    // MSG91 v5 OTP send. MSG91 reads these params from the QUERY STRING (the JSON
-    // body is only for additional template variables), so template_id/mobile/otp/
-    // sender must go in the URL or the ##OTP## placeholder is never filled. The
-    // code is single-use with a 10-min TTL over server-to-server HTTPS; we never
-    // log the URL and the phone is masked.
+    // These EdProSys DLT templates are TRANSACTIONAL SMS templates, not OTP-product
+    // templates, so MSG91's /api/v5/otp endpoint accepts the request (HTTP 200,
+    // type:success) but then ASYNCHRONOUSLY fails the send as "Template ID Missing
+    // or Invalid Template" (confirmed in MSG91's API Failed Logs). The identical
+    // template delivers correctly via the SMS Flow API, so send through /api/v5/flow
+    // and pass the code as the template's ##OTP## variable. The template's configured
+    // DLT sender (PRANIX) is applied automatically.
     // MSG91 expects the mobile in country-code form WITHOUT a leading '+'
     // (e.g. 919812345678). normalisePhone yields +91…, so strip the '+' here.
     const mobile = phone.replace(/^\+/, '');
-    const url = `${base}/api/v5/otp`
-      + `?template_id=${encodeURIComponent(templateId)}`
-      + `&mobile=${encodeURIComponent(mobile)}`
-      + `&otp=${encodeURIComponent(code)}`
-      + `&sender=${encodeURIComponent(sender)}`
-      + `&otp_expiry=10`;
-    const res = await fetch(url, {
+    const res = await fetch(`${base}/api/v5/flow`, {
       method: 'POST',
-      headers: { authkey: authKey },
+      headers: { 'Content-Type': 'application/json', authkey: authKey },
+      body: JSON.stringify({
+        template_id: templateId,
+        recipients: [{ mobiles: mobile, OTP: code }],
+      }),
     });
     // MSG91 returns HTTP 200 even on logical errors; the JSON body carries
     // { type: 'success' | 'error', message }. Inspect the body, not just status.
