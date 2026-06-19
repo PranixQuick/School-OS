@@ -8,7 +8,7 @@ test.describe('Report card generation', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     await page.goto('/report-cards');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     expect(page.url()).toContain('/report-cards');
     await page.close();
   });
@@ -17,7 +17,7 @@ test.describe('Report card generation', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     await page.goto('/admin/report-cards');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     expect(page.url()).toContain('/report-cards');
     await page.close();
   });

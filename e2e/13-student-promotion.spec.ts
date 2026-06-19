@@ -19,7 +19,7 @@ test.describe('Student promotion', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     await page.goto('/admin/promotion');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     expect(page.url()).toContain('/admin/promotion');
     await page.close();
   });

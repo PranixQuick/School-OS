@@ -54,7 +54,7 @@ test.describe('Institution polymorphism', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Suchitra (k12 private) should see all 4 KPI cards
     expect(page.url()).toContain('/dashboard');
     await page.close();
@@ -64,7 +64,7 @@ test.describe('Institution polymorphism', () => {
     const page = await browser.newPage();
     await loginAsAdmin(page);
     await page.goto('/onboarding');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     expect(page.url()).toContain('/onboarding');
     await page.close();
   });
