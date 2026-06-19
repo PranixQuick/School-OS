@@ -117,6 +117,9 @@ export default function ParentLoginPage() {
             First time? Contact your school admin to get your login PIN.
             PINs are sent to your registered phone number via WhatsApp.
           </p>
+          <div style={{ textAlign: 'center', marginTop: 10 }}>
+            <a href="/parent/login-otp" style={{ fontSize: 13, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>Sign in with OTP instead →</a>
+          </div>
           <div style={{ textAlign: 'center', marginTop: 12 }}>
             <a href="/parent/register" style={{ fontSize: 13, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>
               New? Register here →
