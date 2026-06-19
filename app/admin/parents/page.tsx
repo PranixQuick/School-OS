@@ -95,7 +95,7 @@ export default function AdminParentsPage() {
                   {p.name[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{p.name}</div>
+                  <button onClick={() => setDetail(p)} style={{ fontWeight: 600, fontSize: 14, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{p.name}</button>
                   <div style={{ fontSize: 12, color: '#6B7280' }}>
                     {p.phone}{p.student_name ? ` · ${p.student_name}` : ''}{p.class ? ` (Class ${p.class}${p.section ?? ''})` : ''}
                   </div>
