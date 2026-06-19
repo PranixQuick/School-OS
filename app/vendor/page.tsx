@@ -67,8 +67,12 @@ export default function VendorDashboard() {
       <div style={{ background: 'linear-gradient(135deg,#1E40AF,#0EA5E9)', padding: '16px 16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Vendor Portal</div>
-          <button onClick={() => void logout()}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>Sign out</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a href="/vendor/security" title="Change PIN"
+              style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>🔑 PIN</a>
+            <button onClick={() => void logout()}
+              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>Sign out</button>
+          </div>
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginTop: 8 }}>{loading ? '…' : (vendor?.name ?? 'Vendor')}</div>
         {vendor && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2, textTransform: 'capitalize' }}>{vendor.vendor_type}</div>}
