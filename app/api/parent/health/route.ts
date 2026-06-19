@@ -164,5 +164,26 @@ export async function PATCH(req: NextRequest) {
     user_agent: ua,
   });
 
+  // Append-only field-level audit (App. D).
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if ((prior?.blood_group ?? null) !== (bg || null)) {
+    changes.blood_group = { from: prior?.blood_group ?? null, to: bg || null };
+  }
+  if (JSON.stringify(prior?.allergies ?? []) !== JSON.stringify(allergies)) {
+    changes.allergies = { from: prior?.allergies ?? [], to: allergies };
+  }
+  if ((prior?.medical_notes ?? null) !== (notes || null)) {
+    changes.medical_notes = { from: prior?.medical_notes ?? null, to: notes || null };
+  }
+  if (Object.keys(changes).length > 0) {
+    await supabaseAdmin.from('student_medical_audit').insert({
+      school_id: session.schoolId,
+      student_id: session.studentId,
+      parent_id: session.parentId,
+      changed_by: 'parent',
+      changes,
+    });
+  }
+
   return NextResponse.json({ success: true, message: 'Health information updated.' });
 }
