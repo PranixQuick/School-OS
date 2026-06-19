@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard, { DetailField } from '@/components/EntityDetailCard';
 
 interface Student { name?: string; class?: string; section?: string; phone_parent?: string }
 interface Fee {
