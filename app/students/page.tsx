@@ -365,7 +365,7 @@ export default function StudentsPage() {
               <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{s.name}</div>
+                    <button onClick={() => setDetail(s)} style={{ fontSize: 14, fontWeight: 700, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{s.name}</button>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>
                       {s.class ? `${T('class_', lang as never)} ${s.class}` : ''}{s.section ? `-${s.section}` : ''}{s.roll_number ? ` · Roll ${s.roll_number}` : ''}{s.admission_number ? ` · Adm ${s.admission_number}` : ''}
                     </div>
