@@ -51,6 +51,7 @@ export type AuthEventType =
   | 'session_expired'
   | 'rate_limited'
   | 'password_migrated'
+  | 'password_changed'
   | 'magic_link_sent';
 
 export interface LogAuthEventInput {
