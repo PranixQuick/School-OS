@@ -76,6 +76,7 @@ export default function VendorLoginPage() {
         </div>
 
         <div style={{ marginTop: 18, fontSize: 11, color: '#9CA3AF', textAlign: 'center', lineHeight: 1.5 }}>
+          First time? <a href="/vendor/activate" style={{ color: '#4F46E5', fontWeight: 700 }}>Activate with OTP</a><br />
           No access yet? Ask the school to enable your vendor portal login.
         </div>
       </div>
