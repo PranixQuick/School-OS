@@ -76,7 +76,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
   // requireAdminSession via the ACCOUNTANT_ROUTE_ALLOWLIST in lib/authz.ts.
   accountant: [
     { groupKey: 'overview', items: [
-      { key: 'dashboard',      href: '/dashboard',             icon: '🏠' },
+      { key: 'dashboard',      href: '/accountant',            icon: '🏠' },
     ]},
     { groupKey: 'finance', items: [
       { key: 'fees',           href: '/admin/fees',            icon: '💰' },
