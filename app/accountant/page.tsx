@@ -49,6 +49,7 @@ export default function AccountantCockpit() {
 
           {/* Quick links */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a href="/accountant/demand" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ECFDF5', color: '#15803D', border: '1px solid #A7F3D0', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>⚡ Generate demands →</a>
             <a href="/accountant/ledger" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>📒 Student ledger →</a>
             <a href="/accountant/defaulters" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>⚠️ Defaulters report →</a>
             <a href="/admin/fees" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#F9FAFB', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>💰 Fee details →</a>
