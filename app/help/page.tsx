@@ -96,6 +96,7 @@ export default function HelpPage() {
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/auth/me')
