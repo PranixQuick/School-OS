@@ -284,6 +284,24 @@ export default function AdminStaffPage() {
           })}
         </div>
       )}
+    {detail && (
+        <EntityDetailCard
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          accent={ROLE_COLOR[detail.role] ?? '#4F46E5'}
+          title={detail.name}
+          subtitle={roleLabel(detail.role)}
+          badge={detail.is_active ? { label: 'Active', bg: '#D1FAE5', color: '#065F46' } : { label: 'Inactive', bg: '#F3F4F6', color: '#6B7280' }}
+          fields={[
+            { label: 'Role', value: roleLabel(detail.role) },
+            { label: 'Email', value: detail.email || '—', href: detail.email ? `mailto:${detail.email}` : undefined, mono: true },
+            { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
+            { label: 'Subject', value: detail.subject || '—' },
+            { label: 'Designation', value: detail.designation || '—' },
+            { label: 'First login', value: detail.first_login_at ? new Date(detail.first_login_at).toLocaleDateString('en-IN') : '—' },
+          ]}
+        />
+      )}
     </Layout>
   );
 }
