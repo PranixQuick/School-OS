@@ -123,6 +123,7 @@ export default function SettingsPage() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#111827' }}>{school?.name}</div>
                 <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>/{school?.slug} · {school?.board}</div>
+                <a href="/account/password" style={{ display: 'inline-block', marginTop: 6, fontSize: 12, fontWeight: 700, color: '#4F46E5', textDecoration: 'none' }}>🔑 Change password</a>
               </div>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: pc.bg, color: pc.color, textTransform: 'uppercase' }}>
