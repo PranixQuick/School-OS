@@ -120,6 +120,8 @@ export default function HelpPage() {
   return (
     <Layout title="User Manual" subtitle="Help & how-to guides">
       <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search help…"
+          style={{ width: '100%', height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 13, color: '#6B7280' }}>
             {loaded && role ? <>Showing help for your role: <b style={{ color: '#374151', textTransform: 'capitalize' }}>{role.replace(/_/g, ' ')}</b></> : 'Help topics'}
