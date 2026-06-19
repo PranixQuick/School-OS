@@ -33,6 +33,7 @@ const ACTION_KEYS: { href: string; icon: string; key: string; bg: string; label?
   { href: '/parent/complaints', icon: '📣', key: 'complaints', bg: '#FEF2F2' },
   { href: '/parent/curriculum', icon: '📖', key: 'syllabus', bg: '#EEF2FF', label: 'Syllabus' },
   { href: '/parent/vendors', icon: '🏪', key: 'vendors', bg: '#F0FDF4', label: 'Suppliers' },
+  { href: '/parent/security', icon: '🔑', key: 'change_pin', bg: '#F9FAFB', label: 'Change PIN' },
 ];
 
 const LANG_SHORT: Partial<Record<Lang, string>> = {
