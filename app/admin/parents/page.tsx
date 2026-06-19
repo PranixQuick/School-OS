@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard, { DetailField } from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
