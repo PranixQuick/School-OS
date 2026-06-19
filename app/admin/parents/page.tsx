@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import EntityDetailCard, { DetailField } from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -13,6 +14,7 @@ export default function AdminParentsPage() {
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [detail, setDetail] = useState<Parent | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/parents').then(r => r.ok ? r.json() : { parents: [] })
@@ -24,6 +26,13 @@ export default function AdminParentsPage() {
     !search || p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.phone.includes(search) || (p.student_name ?? '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const detailFields: DetailField[] = detail ? [
+    { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
+    { label: 'Student', value: detail.student_name || '—' },
+    { label: 'Class', value: [detail.class, detail.section].filter(Boolean).join('-') || '—' },
+    { label: 'Last access', value: detail.last_access ? new Date(detail.last_access).toLocaleString() : 'Never' },
+  ] : [];
 
   async function sendCredentials(p: Parent) {
     if (busyId) return;
@@ -86,7 +95,7 @@ export default function AdminParentsPage() {
                   {p.name[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{p.name}</div>
+                  <button onClick={() => setDetail(p)} style={{ fontWeight: 600, fontSize: 14, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{p.name}</button>
                   <div style={{ fontSize: 12, color: '#6B7280' }}>
                     {p.phone}{p.student_name ? ` · ${p.student_name}` : ''}{p.class ? ` (Class ${p.class}${p.section ?? ''})` : ''}
                   </div>
@@ -109,6 +118,13 @@ export default function AdminParentsPage() {
           })}
         </div>
       )}
+      <EntityDetailCard
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        title={detail?.name ?? 'Parent'}
+        subtitle={detail?.phone}
+        fields={detailFields}
+      />
     </Layout>
   );
 }
