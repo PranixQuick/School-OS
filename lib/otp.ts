@@ -84,8 +84,24 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
     });
     // MSG91 returns HTTP 200 even on logical errors; the JSON body carries
     // { type: 'success' | 'error', message }. Inspect the body, not just status.
+    const bodyText = await res.text();
     let payload: { type?: string; message?: string } = {};
-    try { payload = await res.json(); } catch { /* non-JSON response */ }
+    try { payload = JSON.parse(bodyText); } catch { /* non-JSON response */ }
+
+    // TEMP go-live diagnostic (remove after diagnosis): record the exact
+    // template_id we sent and MSG91's full reply into otp_debug_log, since this
+    // project's runtime logs don't surface console output. No raw OTP is stored.
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabaseClient');
+      await supabaseAdmin.from('otp_debug_log').insert({
+        phone_masked: maskPhone(phone),
+        template_id_sent: templateId,
+        sender_sent: sender,
+        http_status: res.status,
+        response_body: (bodyText ?? '').slice(0, 1000),
+      });
+    } catch { /* diagnostic must never block the send */ }
+
     if (!res.ok || payload.type === 'error') {
       console.error('[otp] MSG91 send failed for', maskPhone(phone),
         '— http', res.status, '| type', payload.type ?? '?', '| msg', payload.message ?? '?');
