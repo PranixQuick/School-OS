@@ -120,6 +120,14 @@ export default function DefaultersPage() {
           </div>
         </div>
       )}
+      <EntityDetailCard
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        accent="#B91C1C"
+        title={dsel?.name ?? 'Student'}
+        subtitle="Overdue fee detail"
+        fields={detailFields}
+      />
     </Layout>
   );
 }
