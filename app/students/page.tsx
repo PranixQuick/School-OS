@@ -413,6 +413,22 @@ export default function StudentsPage() {
           })}
         </div>
       )}
+    {detail && (
+        <EntityDetailCard
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          title={detail.name}
+          subtitle={[detail.class ? `Class ${detail.class}${detail.section ? '-' + detail.section : ''}` : '', detail.admission_number ? `Adm ${detail.admission_number}` : ''].filter(Boolean).join(' · ') || undefined}
+          fields={[
+            { label: 'Class', value: [detail.class, detail.section].filter(Boolean).join('-') || '—' },
+            { label: 'Roll number', value: detail.roll_number || '—' },
+            { label: 'Admission no', value: detail.admission_number || '—', mono: true },
+            { label: 'Parent', value: detail.parent_name || '—' },
+            { label: 'Parent phone', value: detail.phone_parent || '—', href: detail.phone_parent ? `tel:${detail.phone_parent}` : undefined },
+            { label: 'Status', value: detail.status || '—' },
+          ]}
+        />
+      )}
     </Layout>
   );
 }
