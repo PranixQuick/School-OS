@@ -33,6 +33,7 @@ export default function AdminStaffPage() {
   const { lang } = useLang();
   const roleLabel = (r: string) => ROLE_LABEL[r] ? T(ROLE_LABEL[r], lang) : r;
   const [staff, setStaff]     = useState<StaffMember[]>([]);
+  const [detail, setDetail] = useState<StaffMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
