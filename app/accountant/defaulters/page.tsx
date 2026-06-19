@@ -99,7 +99,9 @@ export default function DefaultersPage() {
                   const phone = s?.phone_parent;
                   return (
                     <tr key={f.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>{s?.name ?? '—'}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>
+                        <button onClick={() => setDetail(f)} style={{ background: 'none', border: 'none', padding: 0, color: '#4F46E5', fontWeight: 600, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>{s?.name ?? '—'}</button>
+                      </td>
                       <td style={td}>{cls || '—'}</td>
                       <td style={td}>{f.fee_type || '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#B91C1C' }}>{inr(f.amount)}</td>
