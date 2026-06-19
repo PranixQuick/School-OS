@@ -96,6 +96,7 @@ export default function HelpPage() {
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -106,13 +107,21 @@ export default function HelpPage() {
   }, []);
 
   const relevant = SECTIONS.filter(s => s.roles === 'all' || (role != null && s.roles.includes(role)));
-  const shown = showAll || !role ? SECTIONS : (relevant.length > 0 ? relevant : SECTIONS);
+  const base = showAll || !role ? SECTIONS : (relevant.length > 0 ? relevant : SECTIONS);
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? SECTIONS
+        .map(s => ({ ...s, topics: s.topics.filter(t => t.q.toLowerCase().includes(q) || t.a.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)) }))
+        .filter(s => s.topics.length > 0)
+    : base;
 
   function toggle(id: string) { setOpen(o => ({ ...o, [id]: !o[id] })); }
 
   return (
     <Layout title="User Manual" subtitle="Help & how-to guides">
       <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search help…"
+          style={{ width: '100%', height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 13, color: '#6B7280' }}>
             {loaded && role ? <>Showing help for your role: <b style={{ color: '#374151', textTransform: 'capitalize' }}>{role.replace(/_/g, ' ')}</b></> : 'Help topics'}
@@ -134,9 +143,9 @@ export default function HelpPage() {
               <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
                 <span style={{ marginRight: 8 }}>{section.icon}</span>{section.title}
               </span>
-              <span style={{ fontSize: 18, color: '#9CA3AF' }}>{open[section.id] ? '▾' : '▸'}</span>
+              <span style={{ fontSize: 18, color: '#9CA3AF' }}>{(q || open[section.id]) ? '▾' : '▸'}</span>
             </button>
-            {open[section.id] && (
+            {(q || open[section.id]) && (
               <div style={{ borderTop: '1px solid #F3F4F6', padding: '6px 16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {section.topics.map((t, i) => (
                   <div key={i}>
