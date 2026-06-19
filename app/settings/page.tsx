@@ -125,6 +125,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>/{school?.slug} · {school?.board}</div>
                 <a href="/account/password" style={{ display: 'inline-block', marginTop: 6, fontSize: 12, fontWeight: 700, color: '#4F46E5', textDecoration: 'none' }}>🔑 Change password</a>
                 <a href="/help" style={{ display: 'inline-block', marginTop: 6, marginLeft: 14, fontSize: 12, fontWeight: 700, color: '#4F46E5', textDecoration: 'none' }}>📖 User manual</a>
+                <a href="/account/biometric" style={{ display: 'inline-block', marginTop: 6, marginLeft: 14, fontSize: 12, fontWeight: 700, color: '#4F46E5', textDecoration: 'none' }}>🔐 Fingerprint unlock</a>
               </div>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: pc.bg, color: pc.color, textTransform: 'uppercase' }}>
