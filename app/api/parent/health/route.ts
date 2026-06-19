@@ -125,6 +125,14 @@ export async function PATCH(req: NextRequest) {
   const allergies = allergiesRaw.map((s) => String(s).trim()).filter(Boolean).slice(0, 30);
   const notes = String(body.medical_notes ?? '').slice(0, 2000).trim();
 
+  // Capture prior values for the append-only audit.
+  const { data: prior } = await supabaseAdmin
+    .from('students')
+    .select('blood_group, allergies, medical_notes')
+    .eq('id', session.studentId)
+    .eq('school_id', session.schoolId)
+    .maybeSingle();
+
   // Own-child only: scope by the parent session's student_id + school_id.
   const { error: updErr } = await supabaseAdmin
     .from('students')
