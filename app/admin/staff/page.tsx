@@ -244,7 +244,7 @@ export default function AdminStaffPage() {
                 </div>
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{s.name}</div>
+                  <button onClick={() => setDetail(s)} style={{ fontWeight: 600, fontSize: 14, color: '#4F46E5', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{s.name}</button>
                   <div style={{ fontSize: 12, color: '#6B7280', marginTop: 1 }}>
                     {s.email ? <span style={{ fontFamily: 'monospace' }}>{s.email}</span> : <em>{T('ov_no_email', lang)}</em>}
                     {s.subject ? ` · ${s.subject}` : ''}
