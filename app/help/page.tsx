@@ -107,7 +107,13 @@ export default function HelpPage() {
   }, []);
 
   const relevant = SECTIONS.filter(s => s.roles === 'all' || (role != null && s.roles.includes(role)));
-  const shown = showAll || !role ? SECTIONS : (relevant.length > 0 ? relevant : SECTIONS);
+  const base = showAll || !role ? SECTIONS : (relevant.length > 0 ? relevant : SECTIONS);
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? SECTIONS
+        .map(s => ({ ...s, topics: s.topics.filter(t => t.q.toLowerCase().includes(q) || t.a.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)) }))
+        .filter(s => s.topics.length > 0)
+    : base;
 
   function toggle(id: string) { setOpen(o => ({ ...o, [id]: !o[id] })); }
 
