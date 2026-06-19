@@ -35,6 +35,7 @@ export default function DefaultersPage() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [detail, setDetail] = useState<Fee | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/fees?status=overdue&limit=200')
