@@ -64,13 +64,20 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
   if (!authKey || !templateId) return false;
 
   try {
-    // MSG91 v5 OTP send. Params go in the POST body (not the URL query string) so
-    // the phone + code never land in URLs/proxy logs. The approved DLT template
-    // maps the OTP variable.
-    const res = await fetch(`${base}/api/v5/otp`, {
+    // MSG91 v5 OTP send. MSG91 reads these params from the QUERY STRING (the JSON
+    // body is only for additional template variables), so template_id/mobile/otp/
+    // sender must go in the URL or the ##OTP## placeholder is never filled. The
+    // code is single-use with a 10-min TTL over server-to-server HTTPS; we never
+    // log the URL and the phone is masked.
+    const url = `${base}/api/v5/otp`
+      + `?template_id=${encodeURIComponent(templateId)}`
+      + `&mobile=${encodeURIComponent(phone)}`
+      + `&otp=${encodeURIComponent(code)}`
+      + `&sender=${encodeURIComponent(sender)}`
+      + `&otp_expiry=10`;
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', authkey: authKey },
-      body: JSON.stringify({ template_id: templateId, mobile: phone, otp: code, sender }),
+      headers: { authkey: authKey },
     });
     if (!res.ok) {
       console.error('[otp] MSG91 non-OK status', res.status, 'for', maskPhone(phone));
