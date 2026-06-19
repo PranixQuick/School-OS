@@ -2,11 +2,15 @@
 // app/parent/login-otp/page.tsx
 // ISS-OTP PR6 (parents) — passwordless sign-in with a phone OTP (no PIN).
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 type Step = 'phone' | 'otp';
+
+// Seconds to wait before another code can be requested. Kept above MSG91's
+// ~10s duplicate-suppression window so a resend is never silently dropped.
+const RESEND_COOLDOWN = 30;
 
 export default function ParentLoginOtpPage() {
   const router = useRouter();
@@ -15,21 +19,45 @@ export default function ParentLoginOtpPage() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [resendIn, setResendIn] = useState(0);
+
+  // Tick the resend cooldown down to zero, one second at a time.
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => (s <= 1 ? 0 : s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px', border: '1px solid #D1D5DB', borderRadius: 10, fontSize: 16, boxSizing: 'border-box', outline: 'none', marginTop: 4 };
   const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 };
+
+  // Request (or re-request) a code for the entered phone. Starts the cooldown on
+  // success; surfaces the server error otherwise. Returns whether it succeeded.
+  async function requestCode(): Promise<boolean> {
+    const r = await fetch('/api/parent/login-otp/request', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone.trim() }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { setError(d.error || 'Could not send OTP.'); return false; }
+    setResendIn(RESEND_COOLDOWN);
+    return true;
+  }
 
   async function send() {
     if (!phone.trim()) { setError('Enter your phone number.'); return; }
     setBusy(true); setError('');
     try {
-      const r = await fetch('/api/parent/login-otp/request', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim() }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setError(d.error || 'Could not send OTP.'); return; }
-      setStep('otp');
+      if (await requestCode()) setStep('otp');
+    } catch { setError('Network error. Please try again.'); }
+    finally { setBusy(false); }
+  }
+
+  async function resend() {
+    if (busy || resendIn > 0) return;
+    setBusy(true); setError(''); setCode('');
+    try {
+      await requestCode();
     } catch { setError('Network error. Please try again.'); }
     finally { setBusy(false); }
   }
@@ -82,6 +110,10 @@ export default function ParentLoginOtpPage() {
             <button onClick={() => void verify()} disabled={busy}
               style={{ padding: '15px', background: busy ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer' }}>
               {busy ? 'Verifying…' : 'Verify & Sign In'}
+            </button>
+            <button onClick={() => void resend()} disabled={busy || resendIn > 0}
+              style={{ padding: '8px', background: 'transparent', color: (busy || resendIn > 0) ? '#9CA3AF' : '#4F46E5', border: 'none', fontSize: 13, fontWeight: 600, cursor: (busy || resendIn > 0) ? 'default' : 'pointer' }}>
+              {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
             </button>
           </div>
         )}
