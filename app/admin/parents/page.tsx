@@ -27,6 +27,13 @@ export default function AdminParentsPage() {
     p.phone.includes(search) || (p.student_name ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const detailFields: DetailField[] = detail ? [
+    { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
+    { label: 'Student', value: detail.student_name || '—' },
+    { label: 'Class', value: [detail.class, detail.section].filter(Boolean).join('-') || '—' },
+    { label: 'Last access', value: detail.last_access ? new Date(detail.last_access).toLocaleString() : 'Never' },
+  ] : [];
+
   async function sendCredentials(p: Parent) {
     if (busyId) return;
     if (!window.confirm(`Send login PIN to ${p.name} (${p.phone}) by WhatsApp/SMS?`)) return;
