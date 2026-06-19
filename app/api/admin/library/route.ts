@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { canDo } from '@/lib/permissions';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
@@ -68,6 +69,14 @@ export async function POST(req: NextRequest) {
 
   const { data: school } = await supabaseAdmin.from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
   if (!school?.institution_id) return NextResponse.json({ error: 'Institution not found' }, { status: 404 });
+
+  // ISS-6 pilot: hybrid permission check for the library module. Fallback = the
+  // existing behavior (requireAdminSession already gated who reaches this route),
+  // so this only denies where the role_permissions matrix explicitly says so.
+  const permAction = body.action === 'add_item' ? 'create' : 'edit';
+  if (!(await canDo(ctx.userRole, 'library', permAction, true))) {
+    return NextResponse.json({ error: 'Your role is not permitted for this library action' }, { status: 403 });
+  }
 
   if (body.action === 'add_item') {
     const { accession_number, title, author, subject, category, total_copies, isbn } = body as any;
