@@ -81,10 +81,16 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
             <div style={{ fontSize: 10, color: '#6B7280' }}>{studentClass}</div>
           </div>
         </div>
-        <button onClick={() => void logout()} disabled={loggingOut}
-          style={{ fontSize: 11, color: '#6B7280', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
-          {loggingOut ? '...' : 'Sign out'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link href="/student/security" title="Change PIN"
+            style={{ fontSize: 11, color: '#6B7280', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', textDecoration: 'none' }}>
+            🔑 PIN
+          </Link>
+          <button onClick={() => void logout()} disabled={loggingOut}
+            style={{ fontSize: 11, color: '#6B7280', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+            {loggingOut ? '...' : 'Sign out'}
+          </button>
+        </div>
       </header>
 
       {/* Main content */}
