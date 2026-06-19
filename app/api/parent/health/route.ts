@@ -125,6 +125,14 @@ export async function PATCH(req: NextRequest) {
   const allergies = allergiesRaw.map((s) => String(s).trim()).filter(Boolean).slice(0, 30);
   const notes = String(body.medical_notes ?? '').slice(0, 2000).trim();
 
+  // Capture prior values for the append-only audit.
+  const { data: prior } = await supabaseAdmin
+    .from('students')
+    .select('blood_group, allergies, medical_notes')
+    .eq('id', session.studentId)
+    .eq('school_id', session.schoolId)
+    .maybeSingle();
+
   // Own-child only: scope by the parent session's student_id + school_id.
   const { error: updErr } = await supabaseAdmin
     .from('students')
@@ -155,6 +163,27 @@ export async function PATCH(req: NextRequest) {
     ip_address: ip,
     user_agent: ua,
   });
+
+  // Append-only field-level audit (App. D).
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if ((prior?.blood_group ?? null) !== (bg || null)) {
+    changes.blood_group = { from: prior?.blood_group ?? null, to: bg || null };
+  }
+  if (JSON.stringify(prior?.allergies ?? []) !== JSON.stringify(allergies)) {
+    changes.allergies = { from: prior?.allergies ?? [], to: allergies };
+  }
+  if ((prior?.medical_notes ?? null) !== (notes || null)) {
+    changes.medical_notes = { from: prior?.medical_notes ?? null, to: notes || null };
+  }
+  if (Object.keys(changes).length > 0) {
+    await supabaseAdmin.from('student_medical_audit').insert({
+      school_id: session.schoolId,
+      student_id: session.studentId,
+      parent_id: session.parentId,
+      changed_by: 'parent',
+      changes,
+    });
+  }
 
   return NextResponse.json({ success: true, message: 'Health information updated.' });
 }
