@@ -80,6 +80,7 @@ export async function enrollStudentInVidyaGrid(input: VgEnrollInput): Promise<Vg
         parent_name: input.parent_name,
         parent_contact: input.parent_contact,
         erp_student_id: input.erp_student_id,
+        ...(input.plan ? { plan: input.plan } : {}),
       }),
     });
   } catch (e) {
