@@ -50,3 +50,29 @@ export async function hasAdaptiveLearningConsent(parentId: string, schoolId: str
     return false;
   }
 }
+
+/**
+ * Student-keyed consent check (for student-initiated launches): resolves the
+ * student's parent rows, then returns whether the most-recent adaptive_learning_ai
+ * action across them is 'granted'. Fail-safe to false (deny) on any error.
+ */
+export async function hasAdaptiveLearningConsentForStudent(studentId: string, schoolId: string): Promise<boolean> {
+  try {
+    const { supabaseAdmin } = await import('@/lib/supabaseClient');
+    const { data: parents } = await supabaseAdmin
+      .from('parents').select('id').eq('student_id', studentId).eq('school_id', schoolId);
+    const ids = (parents ?? []).map((p) => p.id);
+    if (ids.length === 0) return false;
+
+    const { data, error } = await supabaseAdmin
+      .from('parent_consent_log')
+      .select('status, created_at')
+      .in('parent_id', ids)
+      .eq('consent_type', VG_CONSENT_PURPOSE)
+      .order('created_at', { ascending: false });
+    if (error || !data) return false;
+    return latestConsentGranted(data as ConsentRow[]);
+  } catch {
+    return false;
+  }
+}
