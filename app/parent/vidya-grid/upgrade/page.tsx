@@ -120,6 +120,9 @@ export default function VidyaGridUpgradePage() {
               {busy ? 'Processing…' : `Pay ${price}`}
             </button>
             <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 10 }}>Secure payment via Razorpay. Applies to your child only.</div>
+            <div style={{ textAlign: 'center', marginTop: 14 }}>
+              <a href="/api/vidya-grid/launch" style={{ fontSize: 13, color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>Open Vidya Grid →</a>
+            </div>
           </>
         )}
       </div>
