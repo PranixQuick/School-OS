@@ -21,6 +21,7 @@ export interface VgEnrollInput {
   parent_contact: string;
   board?: string;           // default SCERT-AP
   language?: 'te' | 'en';   // default te
+  plan?: 'none' | 'free' | 'paid';  // VG-6: tier carried into enroll (ignored by VG until it reads it)
 }
 
 export interface VgEnrollResult {
@@ -79,6 +80,7 @@ export async function enrollStudentInVidyaGrid(input: VgEnrollInput): Promise<Vg
         parent_name: input.parent_name,
         parent_contact: input.parent_contact,
         erp_student_id: input.erp_student_id,
+        ...(input.plan ? { plan: input.plan } : {}),
       }),
     });
   } catch (e) {
