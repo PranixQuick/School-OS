@@ -85,6 +85,11 @@ export interface FeatureFlags {
   attendance_model?: AttendanceModel;
   progression_model?: ProgressionModel;
 
+  // ── Vidya Grid freemium entitlement (VG-1) ───────────────────────────────
+  vidya_grid_plan?: 'none' | 'free' | 'paid';   // default 'none' = VG not enabled for the school
+  vidya_grid_paid_until?: string;                // ISO; school 'paid' valid only while now <= this
+  vidya_grid_seat_cap?: number;                  // optional; undefined = unlimited within school
+
   // Allow forward-compatible fields (additional flags added later won't break callers)
   [key: string]: unknown;
 }
