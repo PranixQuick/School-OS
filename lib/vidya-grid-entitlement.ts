@@ -125,3 +125,14 @@ export function mergeVgPlanIntoFlags(
   if (patch.vidya_grid_seat_cap !== undefined) merged.vidya_grid_seat_cap = patch.vidya_grid_seat_cap;
   return merged;
 }
+
+// ── VG-3: parent top-up — compute the subscription expiry ────────────────────
+export type VgTopupPlan = 'monthly' | 'yearly';
+
+/** Pure: ISO expiry = `from` + 1 month (monthly) or + 1 year (yearly). UTC. */
+export function computePaidUntil(plan: VgTopupPlan, from: Date = new Date()): string {
+  const d = new Date(from.getTime());
+  if (plan === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + 1);
+  else d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString();
+}
