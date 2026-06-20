@@ -21,6 +21,7 @@ export interface VgEnrollInput {
   parent_contact: string;
   board?: string;           // default SCERT-AP
   language?: 'te' | 'en';   // default te
+  plan?: 'none' | 'free' | 'paid';  // VG-6: tier carried into enroll (ignored by VG until it reads it)
 }
 
 export interface VgEnrollResult {
