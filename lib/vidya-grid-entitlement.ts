@@ -104,3 +104,24 @@ export async function getVidyaGridEntitlement(
     return FREE;
   }
 }
+
+// ── VG-2: super-admin plan management — pure read-modify-write merge ──────────
+// Sets only the three VG plan keys on an existing feature_flags object, leaving
+// every other key untouched. Keys with `undefined` in the patch are not changed;
+// `paid_until`/`seat_cap` may be set to null explicitly to clear them.
+export interface VgPlanPatch {
+  vidya_grid_plan?: VgPlan;
+  vidya_grid_paid_until?: string | null;
+  vidya_grid_seat_cap?: number | null;
+}
+
+export function mergeVgPlanIntoFlags(
+  current: Record<string, unknown> | null | undefined,
+  patch: VgPlanPatch,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(current ?? {}) };
+  if (patch.vidya_grid_plan !== undefined) merged.vidya_grid_plan = patch.vidya_grid_plan;
+  if (patch.vidya_grid_paid_until !== undefined) merged.vidya_grid_paid_until = patch.vidya_grid_paid_until;
+  if (patch.vidya_grid_seat_cap !== undefined) merged.vidya_grid_seat_cap = patch.vidya_grid_seat_cap;
+  return merged;
+}
