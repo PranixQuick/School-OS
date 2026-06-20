@@ -55,6 +55,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Vidya Grid is not enabled for your school.', code: 'VG_NOT_ENABLED' }, { status: 403 });
   }
 
+  // Optional inline consent capture: the upgrade UI shows an explicit
+  // "I consent…" checkbox. The parent is session-authenticated, so recording it
+  // here is a valid, audited consent act (append-only parent_consent_log row).
+  if (action === 'create_order' && body.grant_consent === true) {
+    await supabaseAdmin.from('parent_consent_log').insert({
+      school_id: schoolId,
+      parent_id: parentId,
+      consent_type: 'adaptive_learning_ai',
+      status: 'granted',
+      granted_at: new Date().toISOString(),
+      source: 'parent_app',
+    });
+  }
+
   // Consent gate (DPDP) — required for both steps.
   const consentOk = await hasAdaptiveLearningConsent(parentId, schoolId);
   if (!consentOk) {
