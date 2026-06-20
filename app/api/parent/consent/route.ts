@@ -16,6 +16,7 @@ export const runtime = 'nodejs';
 
 const VALID_CONSENT_TYPES = new Set([
   'data_processing','whatsapp_communication','data_retention','third_party_sharing',
+  'adaptive_learning_ai',   // VG-4: required before Vidya Grid SSO launch
 ]);
 const VALID_STATUSES = new Set(['granted','withdrawn']);
 
