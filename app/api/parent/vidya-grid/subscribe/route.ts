@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     razorpay_order_id?: string;
     razorpay_payment_id?: string;
     razorpay_signature?: string;
+    grant_consent?: boolean;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
