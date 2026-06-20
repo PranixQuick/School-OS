@@ -59,7 +59,6 @@ export async function verifyCodeHash(code: string, hash: string | null | undefin
 export async function sendViaMsg91(phone: string, code: string): Promise<boolean> {
   const authKey = process.env.MSG91_AUTH_KEY;
   const templateId = process.env.MSG91_OTP_TEMPLATE_ID;
-  const sender = process.env.MSG91_SENDER_ID || 'PRANIX';
   const base = (process.env.MSG91_BASE_URL || 'https://control.msg91.com').replace(/\/$/, '');
   if (!authKey || !templateId) return false;
 
@@ -87,20 +86,6 @@ export async function sendViaMsg91(phone: string, code: string): Promise<boolean
     const bodyText = await res.text();
     let payload: { type?: string; message?: string } = {};
     try { payload = JSON.parse(bodyText); } catch { /* non-JSON response */ }
-
-    // TEMP go-live diagnostic (remove after diagnosis): record the exact
-    // template_id we sent and MSG91's full reply into otp_debug_log, since this
-    // project's runtime logs don't surface console output. No raw OTP is stored.
-    try {
-      const { supabaseAdmin } = await import('@/lib/supabaseClient');
-      await supabaseAdmin.from('otp_debug_log').insert({
-        phone_masked: maskPhone(phone),
-        template_id_sent: templateId,
-        sender_sent: sender,
-        http_status: res.status,
-        response_body: (bodyText ?? '').slice(0, 1000),
-      });
-    } catch { /* diagnostic must never block the send */ }
 
     if (!res.ok || payload.type === 'error') {
       console.error('[otp] MSG91 send failed for', maskPhone(phone),
