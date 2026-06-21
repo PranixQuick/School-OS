@@ -6,6 +6,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import HelpPanel from '@/components/HelpPanel';
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/student', icon: '🏠' },
@@ -97,6 +98,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       <main style={{ flex: 1, padding: '16px 12px 80px', maxWidth: 720, margin: '0 auto', width: '100%' }}>
         {children}
       </main>
+
+      <HelpPanel role="student" bottom={76} />
 
       {/* Bottom nav (mobile-first) */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-around', padding: '8px 0 env(safe-area-inset-bottom,8px)', zIndex: 20 }}>

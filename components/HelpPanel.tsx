@@ -4,14 +4,24 @@
 // drawer explaining the current role's dashboard in plain language.
 //
 // Self-managing: owns its open/close state; closes on Escape and backdrop click.
-// Additive — drop <HelpPanel role={effectiveRole} /> into Layout; nothing else
+// Additive — drop <HelpPanel role={effectiveRole} /> into a layout; nothing else
 // depends on it. Content comes from lib/help-content (English-first; i18n later).
+//
+// Props:
+//   role   — which guide to show (falls back to the admin guide if unknown).
+//   bottom — distance from the bottom edge in px (default 16). Raise it on shells
+//            with a fixed bottom nav (e.g. the student portal) so the button clears it.
+//
+// Hides itself on pre-auth routes (/login, /login-otp, /register) so a "help"
+// affordance never appears before the user has signed in.
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { getRoleHelp } from '@/lib/help-content';
 
-export default function HelpPanel({ role }: { role: string }) {
+export default function HelpPanel({ role, bottom = 16 }: { role: string; bottom?: number }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const help = getRoleHelp(role);
 
   useEffect(() => {
@@ -20,6 +30,10 @@ export default function HelpPanel({ role }: { role: string }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+
+  // Don't surface help before sign-in.
+  const onAuthPage = !!pathname && (pathname.includes('/login') || pathname.endsWith('/register'));
+  if (onAuthPage) return null;
 
   return (
     <>
@@ -30,7 +44,7 @@ export default function HelpPanel({ role }: { role: string }) {
         aria-label="Help"
         title="Help"
         style={{
-          position: 'fixed', right: 16, bottom: 16, zIndex: 60,
+          position: 'fixed', right: 16, bottom, zIndex: 60,
           width: 44, height: 44, borderRadius: '50%', border: 'none',
           background: '#4F46E5', color: '#fff', fontSize: 22, fontWeight: 700,
           cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
