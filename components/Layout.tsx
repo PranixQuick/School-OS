@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 import GlobalSearch from './GlobalSearch';
+import HelpPanel from './HelpPanel';
 
 // Roles permitted to use the admin global search (matches requireAdminSession's
 // allowed set, minus accountant whose access is restricted to fee routes).
@@ -566,6 +567,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
         <main style={{ flex: 1, padding: '20px 16px 80px', maxWidth: 1100, width: '100%', boxSizing: 'border-box' }}>
           {children}
         </main>
+        <HelpPanel role={effectiveRole} />
       </div>
 
       <style>{`
