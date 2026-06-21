@@ -72,7 +72,7 @@ export default function HelpPanel({ role }: { role: string }) {
                 aria-label="Close"
                 style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', fontSize: 18, color: '#374151', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
               >
-                \u00d7
+                ×
               </button>
             </div>
 
