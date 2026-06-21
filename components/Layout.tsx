@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 import GlobalSearch from './GlobalSearch';
+import HelpPanel from './HelpPanel';
 
 // Roles permitted to use the admin global search (matches requireAdminSession's
 // allowed set, minus accountant whose access is restricted to fee routes).
