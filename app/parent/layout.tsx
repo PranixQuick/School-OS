@@ -15,6 +15,7 @@ export default function ParentLayout({ children }: { children: ReactNode }) {
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       {children}
+      <HelpPanel role="parent" />
     </div>
   );
 }
