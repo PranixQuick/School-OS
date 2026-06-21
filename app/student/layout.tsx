@@ -99,6 +99,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         {children}
       </main>
 
+      <HelpPanel role="student" bottom={76} />
+
       {/* Bottom nav (mobile-first) */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-around', padding: '8px 0 env(safe-area-inset-bottom,8px)', zIndex: 20 }}>
         {NAV_ITEMS.map(item => {
