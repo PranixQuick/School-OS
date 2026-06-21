@@ -6,6 +6,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import HelpPanel from '@/components/HelpPanel';
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/student', icon: '🏠' },
