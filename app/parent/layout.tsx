@@ -6,6 +6,7 @@
 // The parent page itself handles phone+PIN session state internally.
 
 import type { ReactNode } from 'react';
+import HelpPanel from '@/components/HelpPanel';
 
 export default function ParentLayout({ children }: { children: ReactNode }) {
   // Parent authentication is handled within app/parent/page.tsx itself
