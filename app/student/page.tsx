@@ -77,6 +77,20 @@ export default function StudentHomePage() {
         <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{T('ov_class', lang)} {profile?.class}-{profile?.section}</div>
       </div>
 
+      {/* EdGridAI launch — opens adaptive learning via SSO from inside the student session */}
+      <a
+        href="/api/vidya-grid/launch"
+        style={{ display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,#0EA5A4,#6D28D9)', borderRadius: 14, padding: '16px 18px', marginBottom: 16, color: '#fff' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>&#10024; EdGridAI</div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 3 }}>Adaptive practice &middot; &#3077;&#3105;&#3134;&#3107;&#3149;&#3103;&#3135;&#3125;&#3149; &#3122;&#3142;&#3120;&#3149;&#3344;&#3135;&#3074;&#3095;&#3149;</div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>Open &rarr;</div>
+        </div>
+      </a>
+
       {/* Today's timetable */}
       <div style={cardStyle}>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 10 }}>📅 {T('ov_todays_schedule', lang)}</div>
