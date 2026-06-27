@@ -8,20 +8,25 @@
 </head>
 <body style="font-family:system-ui,sans-serif;padding:24px;max-width:640px;margin:auto">
 <h2>EdProSys Fee Payment &mdash; TEST MODE</h2>
-<p>Fee <code>dcf9af30</code> &middot; &#8377;1,000 &middot; Order <code>order_T6cjI80Vx6g5Nm</code></p>
+<p>Fee <code>dcf9af30</code> &middot; &#8377;1,000</p>
 <button id="pay" style="padding:14px 24px;font-size:17px;border:0;border-radius:8px;background:#4f46e5;color:#fff;cursor:pointer">Pay &#8377;1,000 now</button>
 <pre id="log" style="background:#f4f4f5;padding:12px;border-radius:8px;margin-top:16px;white-space:pre-wrap">ready &mdash; click Pay</pre>
 <script>
-function log(m){var el=document.getElementById('log');el.textContent=el.textContent+' | '+m;}
-function go(){
+var BASE = "https://rqdnxdvuypekpmxbteju.supabase.co/functions/v1";
+var FEE = "dcf9af30-c807-432e-8827-d20630975c2a";
+var SCHOOL = "00000000-0000-0000-0000-000000000001";
+function log(m){ var el=document.getElementById('log'); el.textContent = el.textContent + ' | ' + m; }
+async function go(){
   try {
+    log('creating fresh order');
+    var r = await fetch(BASE + '/payments-create-order', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ fee_id: FEE, school_id: SCHOOL }) });
+    var t = await r.text();
+    log('create-order HTTP ' + r.status + ': ' + t);
+    if (!r.ok) return;
+    var o = JSON.parse(t);
     var rzp = new Razorpay({
-      key: "rzp_test_SwDnj4uZYhV7RT",
-      order_id: "order_T6cjI80Vx6g5Nm",
-      amount: 100000,
-      currency: "INR",
-      name: "EdProSys TEST",
-      description: "Fee payment (test)",
+      key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency,
+      name: "EdProSys TEST", description: "Fee payment (test)",
       handler: function(resp){ log('SUCCESS ' + JSON.stringify(resp)); },
       modal: { ondismiss: function(){ log('checkout dismissed'); } }
     });
