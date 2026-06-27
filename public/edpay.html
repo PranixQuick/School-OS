@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EdProSys Test Checkout</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body style="font-family:system-ui,sans-serif;padding:24px;max-width:640px;margin:auto">
+<h2>EdProSys Fee Payment &mdash; TEST MODE</h2>
+<p>Fee <code>dcf9af30</code> &middot; &#8377;1,000 &middot; Order <code>order_T6cjI80Vx6g5Nm</code></p>
+<button id="pay" style="padding:14px 24px;font-size:17px;border:0;border-radius:8px;background:#4f46e5;color:#fff;cursor:pointer">Pay &#8377;1,000 now</button>
+<pre id="log" style="background:#f4f4f5;padding:12px;border-radius:8px;margin-top:16px;white-space:pre-wrap">ready &mdash; click Pay</pre>
+<script>
+function log(m){var el=document.getElementById('log');el.textContent=el.textContent+' | '+m;}
+function go(){
+  try {
+    var rzp = new Razorpay({
+      key: "rzp_test_SwDnj4uZYhV7RT",
+      order_id: "order_T6cjI80Vx6g5Nm",
+      amount: 100000,
+      currency: "INR",
+      name: "EdProSys TEST",
+      description: "Fee payment (test)",
+      handler: function(resp){ log('SUCCESS ' + JSON.stringify(resp)); },
+      modal: { ondismiss: function(){ log('checkout dismissed'); } }
+    });
+    rzp.on('payment.failed', function(resp){ log('FAILED ' + JSON.stringify(resp.error)); });
+    rzp.open();
+  } catch(e) { log('error ' + e.message); }
+}
+document.getElementById('pay').onclick = go;
+</script>
+</body>
+</html>
