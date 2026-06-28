@@ -2,7 +2,7 @@
 // Item #13 — Admin fee management: list + create.
 //
 // GET  /api/admin/fees?status=&class=&student_id=&limit=&offset=
-// POST /api/admin/fees   { student_id, amount, due_date, fee_type, description }
+// POST /api/admin/fees { student_id, amount, due_date, fee_type, description }
 //
 // Auth: requireAdminSession (owner | principal | admin_staff | accountant)
 // Institution gate: fee_module_enabled
@@ -37,13 +37,13 @@ export async function GET(req: NextRequest) {
   if (!feeEnabled) return NextResponse.json({ error: 'fee_module_disabled' }, { status: 403 });
 
   const { searchParams } = req.nextUrl;
-  const status     = searchParams.get('status') ?? null;
+  const status = searchParams.get('status') ?? null;
   const classLabel = searchParams.get('class') ?? null;
-  const studentId  = searchParams.get('student_id') ?? null;
-  const limit      = Math.min(parseInt(searchParams.get('limit') ?? '100', 10), 200);
-  const offset     = parseInt(searchParams.get('offset') ?? '0', 10);
+  const studentId = searchParams.get('student_id') ?? null;
+  const limit = Math.min(parseInt(searchParams.get('limit') ?? '100', 10), 200);
+  const offset = parseInt(searchParams.get('offset') ?? '0', 10);
 
-  // Fetch fees with student info
+  // Fetch fees with student info. Soft-deleted (cancelled) fees never appear in any list.
   let query = supabaseAdmin
     .from('fees')
     .select(`id, student_id, amount, original_amount, due_date, paid_date, status, fee_type,
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
       intervention_status, created_at,
       students:student_id ( name, class, section, phone_parent )`)
     .eq('school_id', schoolId)
+    .eq('is_deleted', false)
     .order('due_date', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -75,14 +76,15 @@ export async function GET(req: NextRequest) {
     summary[f.status ?? 'pending'] = (summary[f.status ?? 'pending'] ?? 0) + 1;
   }
 
-  return NextResponse.json({ fees: filtered, summary, total: count ?? filtered.length, limit, offset });
+  // viewer_role lets the UI gate owner-only controls (e.g. discounts) before the server does.
+  return NextResponse.json({ fees: filtered, summary, total: count ?? filtered.length, limit, offset, viewer_role: ctx.userRole });
 }
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 interface CreateFeeBody {
   student_id: string;
   amount: number;
-  due_date: string;   // YYYY-MM-DD
+  due_date: string; // YYYY-MM-DD
   fee_type?: string;
   description?: string;
 }
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
     throw e;
   }
-  const { schoolId } = ctx;
+  const { schoolId, staffId, userId, userRole } = ctx;
 
   const feeEnabled = await isFeeModuleEnabled(schoolId);
   if (!feeEnabled) return NextResponse.json({ error: 'fee_module_disabled' }, { status: 403 });
@@ -145,5 +147,23 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Audit: who created this fee (purpose is the description / fee_type).
+  try {
+    await supabaseAdmin.from('audit_log').insert({
+      school_id: schoolId,
+      user_id: userId ?? null,
+      action: 'fee.create',
+      op: 'INSERT',
+      resource: 'fees',
+      resource_id: data.id,
+      old_data: null,
+      new_data: data,
+      metadata: { by_role: userRole, by_staff: staffId ?? null, description: body.description ?? null },
+      ip: (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+      user_agent: req.headers.get('user-agent') ?? null,
+    });
+  } catch (auditErr) { console.error('[fees POST] audit_log write failed (non-fatal):', auditErr); }
+
   return NextResponse.json({ fee: data }, { status: 201 });
 }
