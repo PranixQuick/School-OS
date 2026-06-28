@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     .select('id, fee_type, amount, due_date, paid_date, status, description')
     .eq('school_id', parent.schoolId)
     .eq('student_id', parent.studentId)
+    .eq('is_deleted', false) // a deleted/cancelled fee must vanish from the parent's app
     .order('due_date', { ascending: false });
 
   if (status && status !== 'all') query = query.eq('status', status);
