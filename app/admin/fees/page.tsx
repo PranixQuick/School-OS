@@ -7,8 +7,10 @@ import { FEE_CATALOG, FEE_GROUPS, feeTypeDef, type FeeTypeDef } from '@/lib/fee-
 
 interface FeeRecord {
   id: string; students?: { name: string; class: string; section: string } | null;
-  fee_type: string; amount: number; due_date: string;
-  status: 'paid' | 'pending' | 'overdue'; paid_at?: string;
+  fee_type: string; amount: number; original_amount?: number | null; due_date: string;
+  status: string; paid_at?: string;
+  description?: string | null; discount_amount?: number | null;
+  payment_method?: string | null; payment_reference?: string | null;
 }
 
 interface StudentLite {
@@ -16,25 +18,38 @@ interface StudentLite {
   admission_number?: string; institution_id?: string; institution_name?: string;
 }
 
-const STATUS_COLOR: Record<string, string> = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C' };
-const STATUS_BG: Record<string, string> = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2' };
+const STATUS_COLOR: Record<string, string> = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C', waived: '#6D28D9', partial: '#0E7490', pending_verification: '#A16207' };
+const STATUS_BG: Record<string, string> = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2', waived: '#EDE9FE', partial: '#CFFAFE', pending_verification: '#FEF9C3' };
+
+// How a fee was settled (institution collects directly — EdProSys never holds funds).
+const PAY_METHODS: { key: string; label: string; icon: string; needsRef?: boolean }[] = [
+  { key: 'cash', label: 'Cash', icon: '💵' },
+  { key: 'upi', label: 'UPI', icon: '📲', needsRef: true },
+  { key: 'bank_transfer', label: 'Bank transfer', icon: '🏦', needsRef: true },
+  { key: 'cheque', label: 'Cheque / DD', icon: '🧾', needsRef: true },
+  { key: 'waiver', label: 'Waiver', icon: '🎟️' },
+  { key: 'other', label: 'Other', icon: '➕' },
+];
+const SETTLED = new Set(['paid', 'waived']);
 
 const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', margin: '10px 0 4px' } as const;
 const inputStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const, background: '#F9FAFB' };
+const INR = (n: number) => '₹' + (Number(n) || 0).toLocaleString('en-IN');
 
 type TargetMode = 'all' | 'class' | 'section' | 'institution' | 'students';
 
 export default function FeesPage() {
   const { lang } = useLang();
   const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [viewerRole, setViewerRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'paid'>('all');
   const [search, setSearch] = useState('');
-  const [actionId, setActionId] = useState<string | null>(null);
   const [payError, setPayError] = useState('');
   const [stats, setStats] = useState({ total: 0, paid: 0, pending: 0, overdue: 0, collected: 0, outstanding: 0 });
 
   const todayIso = new Date().toISOString().slice(0, 10);
+  const isOwner = viewerRole === 'owner';
 
   // ── shared student roster (loaded once, used by both Add and Bulk) ──
   const [students, setStudents] = useState<StudentLite[]>([]);
@@ -60,6 +75,33 @@ export default function FeesPage() {
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState('');
   const [form, setForm] = useState({ student_id: '', amount: '', due_date: todayIso, fee_type: 'tuition', description: '' });
+
+  // ── Mark paid (record settlement) ──
+  const [payFee, setPayFee] = useState<FeeRecord | null>(null);
+  const [payMethod, setPayMethod] = useState('cash');
+  const [payReference, setPayReference] = useState('');
+  const [payDiscount, setPayDiscount] = useState('');
+  const [payDiscountReason, setPayDiscountReason] = useState('');
+  const [paySaving, setPaySaving] = useState(false);
+  const [payModalError, setPayModalError] = useState('');
+
+  // ── Edit (amend) ──
+  const [editFee, setEditFee] = useState<FeeRecord | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDue, setEditDue] = useState('');
+  const [editType, setEditType] = useState('tuition');
+  const [editDesc, setEditDesc] = useState('');
+  const [editDiscount, setEditDiscount] = useState('');
+  const [editDiscountReason, setEditDiscountReason] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // ── Delete (soft-cancel) ──
+  const [deleteFee, setDeleteFee] = useState<FeeRecord | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // ── Bulk Assign ──
   const [showBulk, setShowBulk] = useState(false);
@@ -87,13 +129,14 @@ export default function FeesPage() {
       const d = await res.json();
       const list: FeeRecord[] = d.fees ?? [];
       setFees(list);
+      if (typeof d.viewer_role === 'string') setViewerRole(d.viewer_role);
       setStats({
         total: list.length,
-        paid: list.filter(f => f.status === 'paid').length,
+        paid: list.filter(f => f.status === 'paid' || f.status === 'waived').length,
         pending: list.filter(f => f.status === 'pending').length,
         overdue: list.filter(f => f.status === 'overdue').length,
         collected: list.filter(f => f.status === 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0),
-        outstanding: list.filter(f => f.status !== 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0),
+        outstanding: list.filter(f => !SETTLED.has(f.status)).reduce((s, f) => s + (Number(f.amount) || 0), 0),
       });
     } catch { /* keep empty state */ }
     setLoading(false);
@@ -140,6 +183,105 @@ export default function FeesPage() {
     finally { setSaving(false); }
   }
 
+  // ── mark paid (settlement) ──
+  function openMarkPaid(fee: FeeRecord) {
+    setPayError(''); setPayModalError('');
+    setPayMethod('cash'); setPayReference(''); setPayDiscount(''); setPayDiscountReason('');
+    setPayFee(fee);
+  }
+  async function submitMarkPaid() {
+    if (!payFee) return;
+    setPayModalError('');
+    const isWaiver = payMethod === 'waiver';
+    const methodDef = PAY_METHODS.find(m => m.key === payMethod);
+    if (methodDef?.needsRef && !payReference.trim()) { setPayModalError(`A reference is required for ${methodDef.label}.`); return; }
+    const disc = Number(payDiscount);
+    if (isWaiver && !payDiscountReason.trim()) { setPayModalError('A reason is required for a waiver.'); return; }
+    if (!isWaiver && payDiscount && (!Number.isFinite(disc) || disc < 0)) { setPayModalError('Discount must be a non-negative number.'); return; }
+    if (!isWaiver && disc > 0 && !payDiscountReason.trim()) { setPayModalError('A reason is required when a discount is applied.'); return; }
+    setPaySaving(true);
+    try {
+      const body: Record<string, unknown> = { method: payMethod, reference: payReference.trim() || undefined };
+      if (isWaiver) body.discount_reason = payDiscountReason.trim();
+      else if (disc > 0) { body.discount_amount = disc; body.discount_reason = payDiscountReason.trim(); }
+      const res = await fetch(`/api/admin/fees/${payFee.id}/mark-paid`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setPayModalError(d.error ?? 'Could not record this payment.'); return; }
+      setPayFee(null);
+      await loadFees();
+    } catch { setPayModalError('Network error. Please try again.'); }
+    finally { setPaySaving(false); }
+  }
+
+  // ── edit (amend) ──
+  function openEdit(fee: FeeRecord) {
+    setEditError('');
+    setEditFee(fee);
+    setEditAmount(String(fee.original_amount ?? fee.amount ?? ''));
+    setEditDue(fee.due_date ?? todayIso);
+    setEditType(fee.fee_type ?? 'tuition');
+    setEditDesc(fee.description ?? '');
+    setEditDiscount(String(fee.discount_amount ?? ''));
+    setEditDiscountReason('');
+    setEditReason('');
+  }
+  async function submitEdit() {
+    if (!editFee) return;
+    setEditError('');
+    if (editReason.trim().length < 3) { setEditError('Please state a reason for this change (min 3 characters).'); return; }
+    const amt = Number(editAmount);
+    if (!Number.isFinite(amt) || amt <= 0) { setEditError('Amount must be greater than 0.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editDue)) { setEditError('A valid due date is required.'); return; }
+
+    // Only send fields that actually changed.
+    const body: Record<string, unknown> = { reason: editReason.trim() };
+    if (amt !== Number(editFee.original_amount ?? editFee.amount)) body.amount = amt;
+    if (editDue !== editFee.due_date) body.due_date = editDue;
+    if (editType !== editFee.fee_type) body.fee_type = editType;
+    if ((editDesc || '') !== (editFee.description || '')) body.description = editDesc || null;
+    if (isOwner && editDiscount !== '' && Number(editDiscount) !== Number(editFee.discount_amount ?? 0)) {
+      const d = Number(editDiscount);
+      if (!Number.isFinite(d) || d < 0) { setEditError('Discount must be a non-negative number.'); return; }
+      if (d > 0 && editDiscountReason.trim().length < 3) { setEditError('A discount needs its own reason.'); return; }
+      body.discount_amount = d;
+      body.discount_reason = editDiscountReason.trim() || undefined;
+    }
+    if (Object.keys(body).length === 1) { setEditError('Nothing has changed.'); return; }
+
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/admin/fees/${editFee.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setEditError(d.error ?? 'Could not amend this fee.'); return; }
+      setEditFee(null);
+      await loadFees();
+    } catch { setEditError('Network error. Please try again.'); }
+    finally { setEditSaving(false); }
+  }
+
+  // ── delete (soft-cancel) ──
+  function openDelete(fee: FeeRecord) { setDeleteError(''); setDeleteReason(''); setDeleteFee(fee); }
+  async function submitDelete() {
+    if (!deleteFee) return;
+    setDeleteError('');
+    if (deleteReason.trim().length < 3) { setDeleteError('Please state why this fee is being deleted (min 3 characters).'); return; }
+    setDeleteSaving(true);
+    try {
+      const res = await fetch(`/api/admin/fees/${deleteFee.id}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: deleteReason.trim() }),
+      });
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setDeleteError(d.error ?? 'Could not delete this fee.'); return; }
+      setDeleteFee(null);
+      await loadFees();
+    } catch { setDeleteError('Network error. Please try again.'); }
+    finally { setDeleteSaving(false); }
+  }
+
   // ── bulk assign ──
   async function openBulk() {
     setBulkError(''); setBulkResult('');
@@ -164,7 +306,6 @@ export default function FeesPage() {
   // live preview of how many students the target resolves to
   useEffect(() => {
     if (!showBulk) return;
-    // students mode count is local; institution needs the picked id
     if (mode === 'students') { setMatched(pickStudents.size); return; }
     if (mode === 'class' && !pickClass) { setMatched(null); return; }
     if (mode === 'section' && (!pickClass || !pickSection)) { setMatched(null); return; }
@@ -213,19 +354,6 @@ export default function FeesPage() {
     finally { setBulkSaving(false); }
   }
 
-  async function markPaid(id: string) {
-    setPayError(''); setActionId(id);
-    try {
-      const res = await fetch(`/api/admin/fees/${id}/mark-paid`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: 'cash' }),
-      });
-      const d = await res.json().catch(() => ({})) as { error?: string };
-      if (!res.ok) { setPayError(d.error ?? 'Could not mark this fee paid.'); return; }
-      await loadFees();
-    } catch { setPayError('Network error. Please try again.'); }
-    finally { setActionId(null); }
-  }
-
   const visible = fees.filter(f => {
     if (filter !== 'all' && f.status !== filter) return false;
     if (search && !(f.students?.name ?? '').toLowerCase().includes(search.toLowerCase()) &&
@@ -239,6 +367,8 @@ export default function FeesPage() {
     `${s.class}${s.section}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
     (s.admission_number ?? '').toLowerCase().includes(studentSearch.toLowerCase()),
   );
+
+  const iconBtn = { padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'pointer', background: '#fff', fontSize: 12, fontWeight: 600 } as const;
 
   return (
     <Layout title={T('fee_management', lang)} subtitle="Track collections, send reminders, mark payments"
@@ -300,6 +430,7 @@ export default function FeesPage() {
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           {visible.map((fee, i) => {
             const def = feeTypeDef(fee.fee_type);
+            const settled = SETTLED.has(fee.status);
             return (
               <div key={fee.id} style={{
                 padding: '12px 16px', borderBottom: i < visible.length - 1 ? '1px solid #F3F4F6' : 'none',
@@ -310,23 +441,28 @@ export default function FeesPage() {
                   <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 2 }}>{fee.students?.name ?? '—'}</div>
                   <div style={{ fontSize: 12, color: '#6B7280' }}>
                     Class {fee.students?.class}{fee.students?.section} · {def.label} · Due {fee.due_date ? new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
+                    {fee.payment_method ? ` · ${fee.payment_method.replace('_', ' ')}` : ''}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>₹{(Number(fee.amount) || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{INR(fee.amount)}</div>
                   <span style={{
                     display: 'inline-block', marginTop: 3, padding: '2px 8px', borderRadius: 6,
                     background: STATUS_BG[fee.status] ?? '#F3F4F6', color: STATUS_COLOR[fee.status] ?? '#374151',
                     fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   }}>{fee.status}</span>
                 </div>
-                {fee.status !== 'paid' && (
-                  <button onClick={() => markPaid(fee.id)} disabled={actionId === fee.id}
-                    style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#4F46E5', color: '#fff', fontSize: 12, fontWeight: 600, opacity: actionId === fee.id ? 0.6 : 1 }}>
-                    {actionId === fee.id ? T('loading', lang as never) : T('mark_paid_btn', lang as never)}
-                  </button>
+                {!settled && (
+                  <>
+                    <button onClick={() => openMarkPaid(fee)}
+                      style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#4F46E5', color: '#fff', fontSize: 12, fontWeight: 600 }}>
+                      {T('mark_paid_btn', lang as never)}
+                    </button>
+                    <button onClick={() => openEdit(fee)} title="Amend this fee" style={iconBtn}>✏️</button>
+                    <button onClick={() => openDelete(fee)} title="Delete this fee" style={{ ...iconBtn, color: '#B91C1C', borderColor: '#FECACA' }}>🗑️</button>
+                  </>
                 )}
-                {fee.status === 'paid' && (
+                {settled && (
                   <a href={`/admin/fees/receipt/${fee.id}`} target="_blank" rel="noopener noreferrer"
                     style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'pointer', background: '#fff', color: '#4F46E5', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
                     🧾 Receipt
@@ -335,6 +471,161 @@ export default function FeesPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Mark paid modal ── */}
+      {payFee && (
+        <div onClick={() => { if (!paySaving) setPayFee(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 440, boxShadow: '0 10px 40px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Record payment</div>
+            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>
+              {payFee.students?.name} · {feeTypeDef(payFee.fee_type).label} · {INR(payFee.amount)}
+            </div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>The institution collects the money directly — EdProSys never holds funds. Record how it was received.</div>
+
+            <label style={labelStyle}>How was it paid?</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {PAY_METHODS.map(m => {
+                const on = payMethod === m.key;
+                return (
+                  <button key={m.key} onClick={() => setPayMethod(m.key)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 999, border: on ? '1.5px solid #4F46E5' : '1px solid #E5E7EB', background: on ? '#EEF2FF' : '#fff', color: on ? '#3730A3' : '#374151', fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: 'pointer' }}>
+                    <span>{m.icon}</span>{m.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {payMethod !== 'waiver' && payMethod !== 'cash' && (
+              <>
+                <label style={labelStyle}>Reference {(PAY_METHODS.find(m => m.key === payMethod)?.needsRef) ? '*' : ''}</label>
+                <input style={inputStyle} value={payReference} onChange={e => setPayReference(e.target.value)} placeholder="UPI ref / cheque no. / NEFT id" />
+              </>
+            )}
+
+            {payMethod === 'waiver' ? (
+              <>
+                <label style={labelStyle}>Reason for waiver *</label>
+                <input style={inputStyle} value={payDiscountReason} onChange={e => setPayDiscountReason(e.target.value)} placeholder="e.g. RTE / scholarship / management approval" />
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>The full balance of {INR(payFee.amount)} will be written off.</div>
+              </>
+            ) : (
+              <>
+                <label style={labelStyle}>Discount applied (optional, ₹)</label>
+                <input type="number" min="0" style={inputStyle} value={payDiscount} onChange={e => setPayDiscount(e.target.value)} placeholder="0" />
+                {Number(payDiscount) > 0 && (
+                  <>
+                    <label style={labelStyle}>Reason for discount *</label>
+                    <input style={inputStyle} value={payDiscountReason} onChange={e => setPayDiscountReason(e.target.value)} placeholder="Purpose of the concession" />
+                  </>
+                )}
+              </>
+            )}
+
+            {payModalError && <div style={{ color: '#B91C1C', fontSize: 12, marginTop: 10 }}>{payModalError}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setPayFee(null)} disabled={paySaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 700, cursor: paySaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => void submitMarkPaid()} disabled={paySaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: 'none', background: paySaving ? '#9CA3AF' : '#4F46E5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: paySaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {paySaving ? 'Saving…' : payMethod === 'waiver' ? 'Waive fee' : 'Confirm payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit (amend) modal ── */}
+      {editFee && (
+        <div onClick={() => { if (!editSaving) setEditFee(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 440, boxShadow: '0 10px 40px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Amend fee</div>
+            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>{editFee.students?.name} · Class {editFee.students?.class}{editFee.students?.section}</div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Amount (₹) *</label>
+                <input type="number" min="1" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Due date *</label>
+                <input type="date" value={editDue} onChange={e => setEditDue(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+
+            <label style={labelStyle}>Fee type</label>
+            <select value={editType} onChange={e => setEditType(e.target.value)} style={inputStyle}>
+              {FEE_CATALOG.map(t => <option key={t.key} value={t.key}>{t.icon} {t.label}</option>)}
+            </select>
+
+            <label style={labelStyle}>Description</label>
+            <input value={editDesc} onChange={e => setEditDesc(e.target.value)} style={inputStyle} placeholder="Optional" />
+
+            {isOwner ? (
+              <>
+                <label style={labelStyle}>Discount (₹) — owner only</label>
+                <input type="number" min="0" value={editDiscount} onChange={e => setEditDiscount(e.target.value)} style={inputStyle} placeholder="0" />
+                {Number(editDiscount) > 0 && (
+                  <>
+                    <label style={labelStyle}>Reason for discount *</label>
+                    <input value={editDiscountReason} onChange={e => setEditDiscountReason(e.target.value)} style={inputStyle} placeholder="Purpose of the concession" />
+                  </>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>Only the owner can apply a discount.</div>
+            )}
+
+            <label style={{ ...labelStyle, color: '#B45309' }}>Reason for this change * (recorded in the audit log)</label>
+            <input value={editReason} onChange={e => setEditReason(e.target.value)} style={inputStyle} placeholder="e.g. corrected amount after fee-structure update" />
+
+            {editError && <div style={{ color: '#B91C1C', fontSize: 12, marginTop: 10 }}>{editError}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setEditFee(null)} disabled={editSaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => void submitEdit()} disabled={editSaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: 'none', background: editSaving ? '#9CA3AF' : '#4F46E5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {editSaving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete modal ── */}
+      {deleteFee && (
+        <div onClick={() => { if (!deleteSaving) setDeleteFee(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 400, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#B91C1C', marginBottom: 4 }}>Delete fee</div>
+            <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+              {deleteFee.students?.name} · {feeTypeDef(deleteFee.fee_type).label} · {INR(deleteFee.amount)}
+            </div>
+            <div style={{ fontSize: 11.5, color: '#9CA3AF', marginBottom: 6 }}>
+              This removes the fee from parents and staff. It is kept in the audit log and can be traced.
+            </div>
+            <label style={{ ...labelStyle, color: '#B45309' }}>Reason for deletion * (recorded in the audit log)</label>
+            <input value={deleteReason} onChange={e => setDeleteReason(e.target.value)} style={inputStyle} placeholder="e.g. created by mistake / duplicate" />
+
+            {deleteError && <div style={{ color: '#B91C1C', fontSize: 12, marginTop: 10 }}>{deleteError}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setDeleteFee(null)} disabled={deleteSaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 700, cursor: deleteSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => void submitDelete()} disabled={deleteSaving}
+                style={{ flex: 1, height: 42, borderRadius: 9, border: 'none', background: deleteSaving ? '#9CA3AF' : '#B91C1C', color: '#fff', fontSize: 14, fontWeight: 700, cursor: deleteSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {deleteSaving ? 'Deleting…' : 'Delete fee'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
