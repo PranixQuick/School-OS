@@ -147,6 +147,17 @@ export default function ParentFeesPage() {
             </div>
           </div>
 
+          {/* ways to pay the school directly (UPI / bank / cash / cheque) */}
+          <Link href="/parent/payment-methods"
+            style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, padding: 14, marginBottom: 16, textDecoration: 'none' }}>
+            <div style={{ fontSize: 22 }}>💳</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>Ways to pay</div>
+              <div style={{ fontSize: 12, color: '#6B7280' }}>School UPI, bank, cash &amp; cheque details</div>
+            </div>
+            <div style={{ fontSize: 18, color: '#9CA3AF' }}>›</div>
+          </Link>
+
           {banner && (
             <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: banner.kind === 'ok' ? '#F0FDF4' : '#FEF2F2', color: banner.kind === 'ok' ? '#15803D' : '#B91C1C', border: `1px solid ${banner.kind === 'ok' ? '#BBF7D0' : '#FECACA'}` }}>
               {banner.kind === 'ok' ? '✓ ' : '⚠ '}{banner.text}
