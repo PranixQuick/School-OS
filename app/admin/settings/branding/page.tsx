@@ -1,12 +1,14 @@
 'use client';
 // app/admin/settings/branding/page.tsx
-// Phase D — C5: Institution Branding Profile admin UI
-// Allows admin to upload logo, seal, signature; set colors, font, tagline
+// Institution Branding — upload once, applied everywhere.
+// Staff upload logo / seal / signature + set colours, tagline, contact + receipt prefix.
+// Saved via /api/admin/schools/branding; auto-applied to receipts, transfer certificates
+// and report cards.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import Layout from '@/components/Layout';
 
-interface BrandingData {
+interface Branding {
   logo_url?: string | null;
   seal_url?: string | null;
   signature_url?: string | null;
@@ -18,195 +20,173 @@ interface BrandingData {
   contact_phone?: string | null;
   contact_email?: string | null;
   receipt_prefix?: string | null;
-  name?: string;
+  name?: string | null;
 }
 
-const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', margin: '10px 0 4px' } as const;
-const inputStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const, background: '#F9FAFB' };
+type ImgField = 'logo' | 'seal' | 'signature';
 
-function FileUploadBox({
-  label, currentUrl, fieldName, accept, onFileSelect
-}: {
-  label: string; currentUrl?: string | null; fieldName: string; accept?: string;
-  onFileSelect: (name: string, file: File) => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={labelStyle}>{label}</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {currentUrl ? (
-          <img src={currentUrl} alt={label} style={{ width: 56, height: 56, objectFit: 'contain', border: '1px solid #E5E7EB', borderRadius: 8 }} />
-        ) : (
-          <div style={{ width: 56, height: 56, background: '#F3F4F6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏫</div>
-        )}
-        <div>
-          <button type="button" onClick={() => ref.current?.click()}
-            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #D1D5DB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {currentUrl ? 'Replace' : 'Upload'}
-          </button>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>PNG, JPEG, WebP, SVG · max 2 MB</div>
-        </div>
-      </div>
-      <input ref={ref} type="file" accept={accept ?? 'image/*'} style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) onFileSelect(fieldName, f); }} />
-    </div>
-  );
-}
+const card: CSSProperties = { background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 18, marginBottom: 16 };
+const lbl: CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', margin: '10px 0 4px' };
+const input: CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#F9FAFB' };
 
 export default function BrandingPage() {
-  const [branding, setBranding] = useState<BrandingData>({});
+  const [b, setB] = useState<Branding>({});
+  const [files, setFiles] = useState<{ [k in ImgField]?: File }>({});
+  const [previews, setPreviews] = useState<{ [k in ImgField]?: string }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
-  const [form, setForm] = useState<BrandingData>({});
+  const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null);
+  const fileRefs = { logo: useRef<HTMLInputElement>(null), seal: useRef<HTMLInputElement>(null), signature: useRef<HTMLInputElement>(null) };
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch('/api/admin/schools/branding');
-        if (res.ok) {
-          const d = await res.json() as { branding: BrandingData };
-          setBranding(d.branding ?? {});
-          setForm(d.branding ?? {});
-        }
-      } catch { /* keep empty */ }
-      setLoading(false);
-    })();
+    fetch('/api/admin/schools/branding')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.branding) setB(d.branding); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  function handleFile(name: string, file: File) {
-    setPendingFiles(p => ({ ...p, [name]: file }));
+  function pickFile(field: ImgField, f: File | null) {
+    if (!f) return;
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(f.type)) {
+      setToast({ ok: false, msg: 'Use PNG, JPEG, WebP or SVG.' }); return;
+    }
+    if (f.size > 2 * 1024 * 1024) { setToast({ ok: false, msg: `${field} exceeds 2 MB.` }); return; }
+    setFiles(prev => ({ ...prev, [field]: f }));
+    setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(f) }));
   }
+
+  function up(k: keyof Branding, v: string) { setB(prev => ({ ...prev, [k]: v })); }
 
   async function save() {
-    setError('');
-    setSuccess('');
-    setSaving(true);
+    setSaving(true); setToast(null);
     try {
       const fd = new FormData();
-      // Attach any pending file uploads
-      for (const [name, file] of Object.entries(pendingFiles)) {
-        fd.append(name, file);
+      (['logo', 'seal', 'signature'] as ImgField[]).forEach(f => { if (files[f]) fd.append(f, files[f] as File); });
+      for (const k of ['primary_color', 'secondary_color', 'font_family', 'tagline', 'website', 'contact_phone', 'contact_email', 'receipt_prefix'] as (keyof Branding)[]) {
+        const v = b[k]; if (typeof v === 'string' && v.trim()) fd.append(k, v.trim());
       }
-      // Attach scalar fields
-      for (const key of ['primary_color','secondary_color','font_family','tagline','website','contact_phone','contact_email','receipt_prefix'] as const) {
-        const v = form[key];
-        if (v) fd.append(key, v);
-      }
-
-      const res = await fetch('/api/admin/schools/branding', {
-        method: 'POST',
-        body: fd,
-      });
-      const d = await res.json().catch(() => ({})) as { error?: string; updated?: string[] };
-      if (!res.ok) { setError(d.error ?? 'Save failed'); return; }
-      setSuccess(`Saved: ${(d.updated ?? []).join(', ')}`);
-      setPendingFiles({});
-      // Refresh
-      const r2 = await fetch('/api/admin/schools/branding');
-      if (r2.ok) { const d2 = await r2.json() as { branding: BrandingData }; setBranding(d2.branding ?? {}); }
-    } catch { setError('Network error'); }
-    finally { setSaving(false); }
+      const r = await fetch('/api/admin/schools/branding', { method: 'POST', body: fd });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setToast({ ok: false, msg: d.error ?? 'Could not save branding.' }); return; }
+      setToast({ ok: true, msg: '✓ Branding saved — it now applies to all documents.' });
+      // refresh canonical urls
+      const fresh = await fetch('/api/admin/schools/branding').then(x => x.ok ? x.json() : null).catch(() => null);
+      if (fresh?.branding) setB(fresh.branding);
+      setFiles({});
+    } catch { setToast({ ok: false, msg: 'Network error.' }); }
+    finally { setSaving(false); setTimeout(() => setToast(null), 4000); }
   }
 
-  if (loading) return <Layout title="Institution Branding"><div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading…</div></Layout>;
+  const primary = b.primary_color || '#4F46E5';
+  const secondary = b.secondary_color || '#6D28D9';
+  const logoSrc = previews.logo || b.logo_url || '';
+  const signSrc = previews.signature || b.signature_url || '';
+  const sealSrc = previews.seal || b.seal_url || '';
+
+  function ImageField({ field, label, hint }: { field: ImgField; label: string; hint: string }) {
+    const src = previews[field] || (b[`${field}_url` as keyof Branding] as string) || '';
+    return (
+      <div style={{ flex: 1, minWidth: 150 }}>
+        <label style={lbl}>{label}</label>
+        <div onClick={() => fileRefs[field].current?.click()}
+          style={{ height: 88, border: '1.5px dashed #C7D2FE', borderRadius: 10, background: '#F8FAFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
+          {src ? <img src={src} alt={label} style={{ maxHeight: 76, maxWidth: '90%', objectFit: 'contain' }} />
+            : <span style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', padding: 6 }}>{hint}<br />Click to upload</span>}
+        </div>
+        <input ref={fileRefs[field]} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style={{ display: 'none' }}
+          onChange={e => pickFile(field, e.target.files?.[0] ?? null)} />
+      </div>
+    );
+  }
 
   return (
-    <Layout title="Institution Branding" subtitle="Logo, seal, signature, colors, and document identity">
-      <div style={{ maxWidth: 680 }}>
+    <Layout title="Institution branding" subtitle="Upload once — applied to receipts, transfer certificates & report cards">
+      {toast && (
+        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#fff', background: toast.ok ? '#065F46' : '#991B1B' }}>{toast.msg}</div>
+      )}
 
-        {/* File uploads */}
-        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Images</div>
-          <FileUploadBox label="School Logo" currentUrl={branding.logo_url} fieldName="logo" onFileSelect={handleFile} />
-          <FileUploadBox label="Official Seal" currentUrl={branding.seal_url} fieldName="seal" onFileSelect={handleFile} />
-          <FileUploadBox label="Principal / Registrar Signature" currentUrl={branding.signature_url} fieldName="signature" onFileSelect={handleFile} />
-        </div>
-
-        {/* Scalar fields */}
-        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>Document Identity</div>
-
-          <label style={labelStyle}>Tagline</label>
-          <input style={inputStyle} value={form.tagline ?? ''}
-            onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
-            placeholder="e.g. Nurturing Excellence Since 1984" />
-
-          <label style={labelStyle}>Receipt Prefix</label>
-          <input style={inputStyle} value={form.receipt_prefix ?? ''}
-            onChange={e => setForm(f => ({ ...f, receipt_prefix: e.target.value }))}
-            placeholder="e.g. ZPHS-PDL" />
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Contact Phone</label>
-              <input style={inputStyle} value={form.contact_phone ?? ''}
-                onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))}
-                placeholder="+91 94000 00000" />
+      {loading ? (
+        <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading…</div>
+      ) : (
+        <>
+          {/* Live letterhead preview */}
+          <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: `linear-gradient(90deg, ${primary}, ${secondary})` }} />
+            <div style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
+              {logoSrc
+                ? <img src={logoSrc} alt="logo" style={{ height: 56, width: 56, objectFit: 'contain', flexShrink: 0 }} />
+                : <div style={{ height: 56, width: 56, borderRadius: 10, background: primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>{(b.name || 'S').slice(0, 1)}</div>}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: primary, textTransform: 'uppercase' }}>{b.name || 'Your School'}</div>
+                {b.tagline && <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{b.tagline}</div>}
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                  {[b.contact_phone, b.contact_email, b.website].filter(Boolean).join('  ·  ')}
+                </div>
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Contact Email</label>
-              <input style={inputStyle} value={form.contact_email ?? ''}
-                onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
-                placeholder="office@school.edu" />
+            <div style={{ padding: '0 18px 14px', fontSize: 11, color: '#9CA3AF' }}>↑ Live preview of how your documents’ letterhead will look.</div>
+          </div>
+
+          {/* Images */}
+          <div style={card}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Logo, seal & signature</div>
+            <div style={{ fontSize: 11.5, color: '#9CA3AF', marginBottom: 8 }}>PNG/JPEG/WebP/SVG, up to 2 MB each.</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <ImageField field="logo" label="Logo" hint="Institution logo" />
+              <ImageField field="seal" label="Seal / Stamp" hint="Official seal" />
+              <ImageField field="signature" label="Signature" hint="Authorised signatory" />
             </div>
           </div>
 
-          <label style={labelStyle}>Website</label>
-          <input style={inputStyle} value={form.website ?? ''}
-            onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
-            placeholder="https://school.edu" />
-        </div>
-
-        {/* Colors */}
-        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>Brand Colors</div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Primary Color</label>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="color" value={form.primary_color ?? '#1A5276'}
-                  onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
-                  style={{ width: 40, height: 40, border: 'none', cursor: 'pointer', borderRadius: 6 }} />
-                <input style={{ ...inputStyle, flex: 1 }} value={form.primary_color ?? ''}
-                  onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
-                  placeholder="#1A5276" />
+          {/* Colors + identity */}
+          <div style={card}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginBottom: 6 }}>Colours & identity</div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <div>
+                <label style={lbl}>Primary colour</label>
+                <input type="color" value={primary} onChange={e => up('primary_color', e.target.value)} style={{ width: 56, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, background: '#fff', cursor: 'pointer' }} />
+              </div>
+              <div>
+                <label style={lbl}>Secondary colour</label>
+                <input type="color" value={secondary} onChange={e => up('secondary_color', e.target.value)} style={{ width: 56, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, background: '#fff', cursor: 'pointer' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <label style={lbl}>Tagline (optional)</label>
+                <input style={input} value={b.tagline ?? ''} onChange={e => up('tagline', e.target.value)} placeholder="e.g. Excellence in Education since 1998" />
               </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Secondary Color</label>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="color" value={form.secondary_color ?? '#2E86C1'}
-                  onChange={e => setForm(f => ({ ...f, secondary_color: e.target.value }))}
-                  style={{ width: 40, height: 40, border: 'none', cursor: 'pointer', borderRadius: 6 }} />
-                <input style={{ ...inputStyle, flex: 1 }} value={form.secondary_color ?? ''}
-                  onChange={e => setForm(f => ({ ...f, secondary_color: e.target.value }))}
-                  placeholder="#2E86C1" />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={lbl}>Contact phone</label>
+                <input style={input} value={b.contact_phone ?? ''} onChange={e => up('contact_phone', e.target.value)} placeholder="+91 …" />
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={lbl}>Contact email</label>
+                <input style={input} value={b.contact_email ?? ''} onChange={e => up('contact_email', e.target.value)} placeholder="office@school.edu" />
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={lbl}>Website</label>
+                <input style={input} value={b.website ?? ''} onChange={e => up('website', e.target.value)} placeholder="www.school.edu" />
+              </div>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <label style={lbl}>Receipt prefix</label>
+                <input style={input} value={b.receipt_prefix ?? ''} onChange={e => up('receipt_prefix', e.target.value)} placeholder="e.g. SUCH" />
               </div>
             </div>
           </div>
 
-          <label style={labelStyle}>Font Family (for PDFs)</label>
-          <select style={inputStyle} value={form.font_family ?? 'Helvetica'}
-            onChange={e => setForm(f => ({ ...f, font_family: e.target.value }))}>
-            <option value="Helvetica">Helvetica (Default)</option>
-            <option value="Times-Roman">Times Roman</option>
-            <option value="Courier">Courier</option>
-            <option value="NotoSans">Noto Sans (Telugu/Hindi)</option>
-          </select>
-        </div>
-
-        {error && <div style={{ color: '#B91C1C', fontSize: 13, marginBottom: 12, padding: '10px 14px', background: '#FEE2E2', borderRadius: 8 }}>{error}</div>}
-        {success && <div style={{ color: '#15803D', fontSize: 13, marginBottom: 12, padding: '10px 14px', background: '#DCFCE7', borderRadius: 8 }}>✓ {success}</div>}
-
-        <button onClick={() => void save()} disabled={saving}
-          style={{ height: 44, padding: '0 24px', borderRadius: 9, border: 'none', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-          {saving ? 'Saving…' : 'Save Branding'}
-        </button>
-      </div>
+          <button onClick={save} disabled={saving}
+            style={{ padding: '11px 26px', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 0, borderRadius: 9, fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer' }}>
+            {saving ? 'Saving…' : 'Save branding'}
+          </button>
+          {(sealSrc || signSrc) && (
+            <span style={{ marginLeft: 12, fontSize: 11.5, color: '#9CA3AF' }}>
+              {signSrc ? 'Signature' : ''}{signSrc && sealSrc ? ' + ' : ''}{sealSrc ? 'seal' : ''} will appear on issued documents.
+            </span>
+          )}
+        </>
+      )}
     </Layout>
   );
 }
