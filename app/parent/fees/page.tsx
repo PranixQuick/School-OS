@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { feeTypeDef } from '@/lib/fee-catalog';
 
@@ -17,6 +17,7 @@ export default function ParentFeesPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [changeNote, setChangeNote] = useState<string | null>(null);
 
   const loadFees = useCallback(() => {
     setLoading(true);
@@ -28,6 +29,38 @@ export default function ParentFeesPage() {
   }, []);
 
   useEffect(() => { loadFees(); }, [loadFees]);
+
+  // ── Near-real-time: reflect staff fee changes promptly. ──
+  // The parent app uses passwordless phone+PIN (no Supabase session), so instead of a
+  // client DB subscription we refresh on focus + a gentle poll, and surface a notice when
+  // the school has just updated/removed/settled one of this child's fees.
+  const lastEventAt = useRef<string | null>(null);
+  const checkActivity = useCallback(() => {
+    fetch('/api/parent/fees/activity')
+      .then(r => (r.ok ? r.json() : { events: [] }))
+      .then(d => {
+        const ev = (d.events ?? []) as { at: string; label: string; fee_type?: string | null }[];
+        if (!ev.length) return;
+        const newest = ev[0].at;
+        if (lastEventAt.current && newest > lastEventAt.current) {
+          const e = ev[0];
+          const label = e.fee_type ? feeTypeDef(e.fee_type).label : 'fee';
+          setChangeNote(`Your ${label} was ${e.label} by the school.`);
+          loadFees();
+          window.setTimeout(() => setChangeNote(null), 7000);
+        }
+        lastEventAt.current = newest;
+      })
+      .catch(() => {});
+  }, [loadFees]);
+
+  useEffect(() => {
+    checkActivity();
+    const iv = window.setInterval(() => { loadFees(); checkActivity(); }, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') { loadFees(); checkActivity(); } };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { window.clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, [loadFees, checkActivity]);
 
   // load Razorpay Checkout SDK once
   useEffect(() => {
@@ -131,6 +164,13 @@ export default function ParentFeesPage() {
         </div>
 
         <div style={{ padding: 16 }}>
+          {/* live notice when the school just changed one of this child's fees */}
+          {changeNote && (
+            <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: '#EEF2FF', color: '#3730A3', border: '1px solid #C7D2FE', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>🔔</span>{changeNote}
+            </div>
+          )}
+
           {/* summary */}
           <div style={{ ...card, padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
