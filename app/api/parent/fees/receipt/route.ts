@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getParentSession } from '@/lib/parent-auth';
+import { getSchoolBranding } from '@/lib/branding';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +17,8 @@ interface PaymentLine { date: string | null; amount: number; mode: string; refer
 // part-payment). It is issued the moment ANY payment exists (paid >= 0), so a
 // parent can download an acknowledgement for a partial payment, with the balance
 // shown. Discount/amend is an owner/admin right; the parent view is read-only.
+// The institution's branding (logo, colours, tagline, signature, seal) is included
+// so the parent's copy carries the school's own letterhead.
 export async function GET(req: NextRequest) {
   const session = await getParentSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,9 +36,9 @@ export async function GET(req: NextRequest) {
 
   if (error || !fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
 
-  const net = Number(fee.amount) || 0;                                  // payable after concession
-  const billed = Number(fee.original_amount ?? fee.amount) || 0;        // pre-concession
-  const discount = Math.max(0, Number(fee.discount_amount) || 0);       // owner concession
+  const net = Number(fee.amount) || 0; // payable after concession
+  const billed = Number(fee.original_amount ?? fee.amount) || 0; // pre-concession
+  const discount = Math.max(0, Number(fee.discount_amount) || 0); // owner concession
   const paid = fee.amount_paid_minor != null
     ? Number(fee.amount_paid_minor) / 100
     : (fee.status === 'paid' ? net : 0);
@@ -44,13 +47,14 @@ export async function GET(req: NextRequest) {
 
   if (paid <= 0) return NextResponse.json({ error: 'No payment has been recorded for this fee yet' }, { status: 409 });
 
-  const [{ data: student }, { data: school }] = await Promise.all([
+  const [{ data: student }, { data: school }, branding] = await Promise.all([
     supabaseAdmin.from('students')
       .select('name, class, section, roll_number, admission_number')
       .eq('id', fee.student_id).maybeSingle(),
     supabaseAdmin.from('schools')
       .select('name, address, board, contact_phone, website, tagline')
       .eq('id', fee.school_id).maybeSingle(),
+    getSchoolBranding(fee.school_id),
   ]);
 
   // Payment history. Canonical source = allocations (money actually applied to this
@@ -118,6 +122,8 @@ export async function GET(req: NextRequest) {
       school_phone: school?.contact_phone ?? '',
       school_website: school?.website ?? '',
       school_tagline: school?.tagline ?? '',
+      // Full institution branding for the letterhead (logo, colours, signature, seal).
+      branding,
     },
   });
 }
