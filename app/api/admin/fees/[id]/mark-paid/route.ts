@@ -1,39 +1,39 @@
 // app/api/admin/fees/[id]/mark-paid/route.ts
-// Item #13 — Hybrid Fee Collection: Mode B (cash/cheque/other) + waiver admin action.
+// Item #13 — Hybrid Fee Collection: record how a fee was settled (the institution collects
+// the money directly — EdProSys never holds funds), plus the waiver admin action.
 //
 // PATCH /api/admin/fees/:id/mark-paid
 //
-// Auth: requireAdminSession (owner | principal | admin_staff | accountant)
+// Auth: requireAdminSession (owner | principal | admin_staff | admin | accountant)
 // Institution gate: fee_module_enabled must be true in institutions.feature_flags
 //
 // Body:
-//   method:           'cash' | 'cheque' | 'waiver' | 'other'  (required)
-//   reference?:       string  — cheque number, transfer ref, etc.
+//   method: 'cash' | 'cheque' | 'bank_transfer' | 'upi' | 'waiver' | 'other'  (required)
+//   reference?: string  — cheque number, UPI ref, NEFT/IMPS ref, etc.
 //   discount_amount?: number  — applied discount (waiver path)
 //   discount_reason?: string  — required when discount_amount > 0
 //
 // On success:
-//   - method=waiver:  status → 'waived', discount fields written
-//   - all others:     status → 'paid', payment_method/reference/verified_by/verified_at written
+//   - method=waiver: status → 'waived', discount fields written
+//   - all others:    status → 'paid', payment_method/reference/verified_by/verified_at written
 //   - paid_date set to today (IST) in both cases
+//   - an audit_log row records who settled it, how, and (for waivers) why
 //
 // Idempotent: if fee already paid/waived, returns 409.
-//
-// TODO(item-15): migrate to supabaseForUser when service-role audit lands.
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
-// TODO(item-15): migrate to supabaseForUser
-import { supabaseAdmin } from '@/lib/supabaseClient'; // TODO(item-15): migrate to supabaseForUser
-import { supabaseForUser as _supabaseForUser } from '@/lib/supabaseForUser'; // I3: factory registered
+import { supabaseAdmin } from '@/lib/supabaseClient';
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
 
 export const runtime = 'nodejs';
 
-const ALLOWED_METHODS = ['cash', 'cheque', 'waiver', 'other'] as const;
+// Modes the institution can record. All are "money handled by the institution directly".
+// 'waiver' writes off the balance; 'online' is reserved for the gateway flow (parent app).
+const ALLOWED_METHODS = ['cash', 'cheque', 'bank_transfer', 'upi', 'waiver', 'other'] as const;
 type PayMethod = (typeof ALLOWED_METHODS)[number];
 
 interface MarkPaidBody {
@@ -74,7 +74,7 @@ export async function PATCH(
     if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status });
     throw e;
   }
-  const { schoolId, staffId, userId } = ctx;
+  const { schoolId, staffId, userId, userRole } = ctx;
 
   // Param validation
   const { id: feeId } = await params;
@@ -90,7 +90,7 @@ export async function PATCH(
   catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
   if (!isValidBody(body)) {
     return NextResponse.json(
-      { error: 'Body must include method (cash|cheque|waiver|other); optional: reference, discount_amount, discount_reason' },
+      { error: 'Body must include method (cash|cheque|bank_transfer|upi|waiver|other); optional: reference, discount_amount, discount_reason' },
       { status: 400 }
     );
   }
@@ -106,13 +106,13 @@ export async function PATCH(
   // Fetch fee — must belong to this school
   const { data: fee, error: lookupErr } = await supabaseAdmin
     .from('fees')
-    .select('id, status, amount, student_id')
+    .select('id, status, amount, student_id, payment_method, payment_reference, is_deleted')
     .eq('id', feeId)
     .eq('school_id', schoolId)
     .maybeSingle();
 
   if (lookupErr) return NextResponse.json({ error: lookupErr.message }, { status: 500 });
-  if (!fee) return NextResponse.json({ error: 'Fee not found' }, { status: 404 });
+  if (!fee || fee.is_deleted) return NextResponse.json({ error: 'Fee not found' }, { status: 404 });
 
   if (fee.status === 'paid' || fee.status === 'waived') {
     return NextResponse.json(
@@ -163,6 +163,30 @@ export async function PATCH(
     .single();
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+  // Audit: who settled this fee, how, and (for waivers) why.
+  try {
+    await supabaseAdmin.from('audit_log').insert({
+      school_id: schoolId,
+      user_id: userId ?? null,
+      action: isWaiver ? 'fee.waive' : 'fee.mark_paid',
+      op: 'UPDATE',
+      resource: 'fees',
+      resource_id: feeId,
+      old_data: { status: fee.status, payment_method: fee.payment_method, payment_reference: fee.payment_reference },
+      new_data: data,
+      metadata: {
+        method: body.method,
+        reference: body.reference ?? null,
+        discount_amount: body.discount_amount ?? null,
+        discount_reason: body.discount_reason ?? null,
+        by_role: userRole, by_staff: staffId ?? null,
+      },
+      ip: (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+      user_agent: req.headers.get('user-agent') ?? null,
+    });
+  } catch (auditErr) { console.error('[mark-paid] audit_log write failed (non-fatal):', auditErr); }
+
   // Item #14 PR #2: best-effort notification on payment confirmed
   if (!isWaiver) {
     try {
