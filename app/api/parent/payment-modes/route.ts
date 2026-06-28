@@ -1,9 +1,3 @@
-// app/api/parent/payment-modes/route.ts
-// Parent-facing "ways to pay your school". Read-only, parent-session gated, scoped to
-// the parent's own school. Returns only the modes the school has ENABLED, plus whether
-// in-app online payment (the school's own gateway account) is available.
-// EdProSys never holds funds — these are the institution's own acceptance details.
-
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getParentSession } from '@/lib/parent-auth';
@@ -21,12 +15,12 @@ export async function GET(req: NextRequest) {
     .from('schools').select('name, settings').eq('id', session.schoolId).maybeSingle();
 
   const settings = (school?.settings ?? {}) as Record<string, unknown>;
-  const pm = (settings.payment_modes ?? {}) as Record<string, ModeBlock>;
+  const pmRaw = (settings.payment_modes ?? {}) as Record<string, unknown>;
+  const pm = pmRaw as Record<string, ModeBlock>;
   const on = (m?: ModeBlock) => !!m && m.enabled === true;
 
   const flags = await getInstitutionFlags(session.schoolId);
 
-  // Only surface enabled, non-empty modes (drop the editing scaffolding).
   const modes: Record<string, unknown> = {};
   if (on(pm.upi) && pm.upi.vpa) modes.upi = { vpa: pm.upi.vpa, payee_name: pm.upi.payee_name ?? null };
   if (on(pm.bank) && pm.bank.account_number) {
@@ -41,7 +35,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     school_name: school?.name ?? 'your school',
     online_enabled: flags.online_payment_enabled === true,
-    note: (pm.note as string) || null,
+    note: typeof pmRaw.note === 'string' ? pmRaw.note : null,
     modes,
   });
 }
