@@ -110,6 +110,12 @@ export default function ParentFeesPage() {
             {paying === r.id ? 'Starting…' : `Pay ${INR(r.amount)}`}
           </button>
         )}
+        {isPaid && (
+          <Link href={`/parent/fees/receipt?fee=${r.id}`}
+            style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '10px 0', fontSize: 13.5, fontWeight: 700, color: '#4F46E5', background: '#EEF2FF', borderRadius: 10, textDecoration: 'none' }}>
+            🧾 View &amp; download receipt
+          </Link>
+        )}
       </div>
     );
   }
