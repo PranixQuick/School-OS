@@ -1,10 +1,13 @@
 'use client';
 // app/admin/fees/receipt/[id]/page.tsx
 // Fee receipt print page — printable, Telugu-safe, grayscale-safe.
+// Now carries the institution's branding (logo, colours, tagline, signature, seal) via the
+// shared BrandedLetterhead — "upload once, applied everywhere".
 // Usage: /admin/fees/receipt/[fee_id] → Print / Save as PDF via browser
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { BrandedLetterhead, SignatureBlock, SealMark, type DocBranding } from '@/components/BrandedLetterhead';
 
 interface FeeReceipt {
   receipt_number?: string;
@@ -21,6 +24,7 @@ interface FeeReceipt {
 export default function FeeReceiptPage() {
   const params = useParams();
   const [receipt, setReceipt] = useState<FeeReceipt | null>(null);
+  const [branding, setBranding] = useState<DocBranding | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -30,6 +34,10 @@ export default function FeeReceiptPage() {
       .then(d => { if (d?.receipt) setReceipt(d.receipt); else setError('Receipt not found'); })
       .catch(() => setError('Failed to load receipt'))
       .finally(() => setLoading(false));
+    fetch('/api/admin/schools/branding')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.branding) setBranding(d.branding); })
+      .catch(() => {});
   }, [params.id]);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading receipt…</div>;
@@ -37,12 +45,11 @@ export default function FeeReceiptPage() {
 
   const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Number to words (simple Indian format for amounts up to lakhs)
   function toWords(n: number): string {
     if (n === 0) return 'Zero';
     const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
-                   'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
-                   'Seventeen','Eighteen','Nineteen'];
+      'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
+      'Seventeen','Eighteen','Nineteen'];
     const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
     if (n < 20) return ones[n];
     if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '');
@@ -53,6 +60,23 @@ export default function FeeReceiptPage() {
 
   const amount = receipt.paid_amount ?? receipt.amount ?? 0;
 
+  // Branding with sensible fallbacks to the receipt's own school fields.
+  const b: DocBranding = {
+    name: branding?.name ?? receipt.school_name ?? 'School Name',
+    address: branding?.address ?? receipt.school_address ?? null,
+    udise_code: branding?.udise_code ?? receipt.udise_code ?? null,
+    logo_url: branding?.logo_url ?? null,
+    seal_url: branding?.seal_url ?? null,
+    signature_url: branding?.signature_url ?? null,
+    tagline: branding?.tagline ?? null,
+    primary_color: branding?.primary_color ?? null,
+    secondary_color: branding?.secondary_color ?? null,
+    website: branding?.website ?? null,
+    contact_phone: branding?.contact_phone ?? null,
+    contact_email: branding?.contact_email ?? null,
+  };
+  const primary = b.primary_color || '#000';
+
   return (
     <div style={{ fontFamily: '"Times New Roman", Times, serif', maxWidth: 680, margin: '0 auto', padding: '20px 32px', background: '#fff', minHeight: '100vh', color: '#000', fontSize: 13 }}>
       <style>{`
@@ -61,7 +85,6 @@ export default function FeeReceiptPage() {
           .no-print { display: none !important; }
           @page { size: A5 landscape; margin: 12mm; }
         }
-        .line { border-bottom: 1px solid #000; display: inline-block; min-width: 180px; }
       `}</style>
 
       {/* Print button */}
@@ -76,20 +99,12 @@ export default function FeeReceiptPage() {
         </button>
       </div>
 
-      {/* Header */}
-      <div style={{ border: '2px solid #000', padding: '12px 16px 10px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 8, borderBottom: '1px solid #000', paddingBottom: 8 }}>
-          {receipt.udise_code && (
-            <div style={{ fontSize: 10 }}>UDISE: {receipt.udise_code}</div>
-          )}
-          <div style={{ fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' }}>
-            {receipt.school_name ?? 'School Name'}
-          </div>
-          <div style={{ fontSize: 11 }}>{receipt.school_address ?? ''}</div>
-          <div style={{ fontSize: 14, fontWeight: 'bold', marginTop: 6 }}>
-            FEE RECEIPT — MONEY RECEIPT
-          </div>
-        </div>
+      {/* Bordered receipt body */}
+      <div style={{ border: `2px solid ${primary}`, padding: '12px 16px 10px', position: 'relative' }}>
+        <SealMark url={b.seal_url} />
+
+        {/* Branded letterhead */}
+        <BrandedLetterhead b={b} title="FEE RECEIPT — MONEY RECEIPT" />
 
         {/* Receipt metadata */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 12 }}>
@@ -109,7 +124,7 @@ export default function FeeReceiptPage() {
         {/* Fee detail table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 8 }}>
           <thead>
-            <tr style={{ background: '#000', color: '#fff' }}>
+            <tr style={{ background: primary, color: '#fff' }}>
               <th style={{ padding: '4px 8px', textAlign: 'left' }}>S.No</th>
               <th style={{ padding: '4px 8px', textAlign: 'left' }}>Fee Type</th>
               <th style={{ padding: '4px 8px', textAlign: 'left' }}>Description</th>
@@ -145,27 +160,16 @@ export default function FeeReceiptPage() {
           Mode of Payment: <strong>{receipt.payment_mode ?? 'Cash'}</strong>
         </div>
 
-        {/* Signatures */}
+        {/* Signatures — authorised signatory image applied when uploaded */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 20 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ borderBottom: '1px solid #000', height: 30 }}></div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Parent Signature</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ borderBottom: '1px solid #000', height: 30 }}>
-              {receipt.issued_by && <div style={{ fontSize: 10, paddingTop: 4 }}>{receipt.issued_by}</div>}
-            </div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Cashier / Clerk</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ borderBottom: '1px solid #000', height: 30 }}></div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Principal</div>
-          </div>
+          <SignatureBlock label="Parent Signature" />
+          <SignatureBlock label={receipt.issued_by ? `Cashier / Clerk (${receipt.issued_by})` : 'Cashier / Clerk'} />
+          <SignatureBlock url={b.signature_url} label="Principal" />
         </div>
 
         <div style={{ marginTop: 10, textAlign: 'center', color: '#666' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt="EdProSys" style={{ height: 18, opacity: 0.75, marginBottom: 4 }} />
+          <img src="/brand/logo.svg" alt="EdProSys" style={{ height: 16, opacity: 0.65, marginBottom: 4 }} />
           <div style={{ fontSize: 10 }}>This is a computer-generated receipt. Generated by EdProSys — edprosys.com</div>
         </div>
       </div>
