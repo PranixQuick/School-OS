@@ -51,8 +51,8 @@ export default function PaymentModesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function up<K extends keyof PaymentModes>(k: K, patch: Partial<PaymentModes[K]>) {
-    setPm(prev => ({ ...prev, [k]: { ...(prev[k] as object), ...patch } }));
+  function up(k: 'upi' | 'bank' | 'cash' | 'cheque', patch: Record<string, unknown>) {
+    setPm(prev => ({ ...prev, [k]: { ...(prev[k] as Record<string, unknown>), ...patch } } as PaymentModes));
   }
 
   async function save() {
