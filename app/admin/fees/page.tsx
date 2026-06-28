@@ -18,6 +18,12 @@ interface StudentLite {
   admission_number?: string; institution_id?: string; institution_name?: string;
 }
 
+interface ActivityEvent {
+  id: string; action: string; at: string;
+  student?: { name?: string | null; class?: string | null; section?: string | null } | null;
+  amount?: number | null; fee_type?: string | null; reason?: string | null; mode?: string | null; by_role?: string | null;
+}
+
 const STATUS_COLOR: Record<string, string> = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C', waived: '#6D28D9', partial: '#0E7490', pending_verification: '#A16207' };
 const STATUS_BG: Record<string, string> = { paid: '#DCFCE7', pending: '#FEF9C3', overdue: '#FEE2E2', waived: '#EDE9FE', partial: '#CFFAFE', pending_verification: '#FEF9C3' };
 
@@ -31,6 +37,18 @@ const PAY_METHODS: { key: string; label: string; icon: string; needsRef?: boolea
   { key: 'other', label: 'Other', icon: '➕' },
 ];
 const SETTLED = new Set(['paid', 'waived']);
+
+const ACTION_LABEL: Record<string, string> = {
+  'fee.create': 'Created', 'fee.amend': 'Amended', 'fee.delete': 'Deleted',
+  'fee.mark_paid': 'Marked paid', 'fee.waive': 'Waived',
+};
+function timeAgo(iso: string): string {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
 
 const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', margin: '10px 0 4px' } as const;
 const inputStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const, background: '#F9FAFB' };
@@ -50,6 +68,10 @@ export default function FeesPage() {
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const isOwner = viewerRole === 'owner';
+
+  // ── Live fee-activity feed (principal / owner / admin / accountant) ──
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [showActivity, setShowActivity] = useState(false);
 
   // ── shared student roster (loaded once, used by both Add and Bulk) ──
   const [students, setStudents] = useState<StudentLite[]>([]);
@@ -143,6 +165,21 @@ export default function FeesPage() {
   }, []);
 
   useEffect(() => { loadFees(); }, [loadFees]);
+
+  // Auto-refreshing activity feed so principal/owner see fee changes in near-real-time.
+  const loadActivity = useCallback(() => {
+    fetch('/api/admin/fees/activity?limit=25')
+      .then(r => (r.ok ? r.json() : { events: [] }))
+      .then(d => setActivity(d.events ?? []))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    loadActivity();
+    const iv = window.setInterval(loadActivity, 8000);
+    const onVis = () => { if (document.visibilityState === 'visible') loadActivity(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { window.clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, [loadActivity]);
 
   // distinct classes / sections / institutions derived from roster
   const classes = useMemo(() => Array.from(new Set(students.map(s => s.class).filter(Boolean))).sort(), [students]);
@@ -394,6 +431,35 @@ export default function FeesPage() {
             <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Recent fee activity — live feed (principal / owner / admin / accountant) */}
+      <div className="card" style={{ padding: 0, marginBottom: 16, overflow: 'hidden' }}>
+        <button onClick={() => setShowActivity(s => !s)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>🔔 Recent fee activity{activity.length ? ` · ${activity.length}` : ''}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#16A34A', background: '#F0FDF4', padding: '2px 8px', borderRadius: 99 }}>● Live</span>
+            <span style={{ fontSize: 14, color: '#9CA3AF' }}>{showActivity ? '▴' : '▾'}</span>
+          </span>
+        </button>
+        {showActivity && (
+          <div style={{ borderTop: '1px solid #F3F4F6', maxHeight: 260, overflowY: 'auto' }}>
+            {activity.length === 0 ? (
+              <div style={{ padding: 16, fontSize: 12.5, color: '#9CA3AF', textAlign: 'center' }}>No fee changes recorded yet.</div>
+            ) : activity.map(ev => (
+              <div key={ev.id} style={{ padding: '10px 14px', borderBottom: '1px solid #F8FAFC', fontSize: 12.5, color: '#374151' }}>
+                <span style={{ fontWeight: 700 }}>{ACTION_LABEL[ev.action] ?? ev.action}</span>
+                {ev.student?.name ? <> · {ev.student.name}{ev.student.class ? ` (${ev.student.class}${ev.student.section ?? ''})` : ''}</> : null}
+                {ev.amount != null ? <> · {INR(ev.amount)}</> : null}
+                {ev.mode ? <> · {String(ev.mode).replace('_', ' ')}</> : null}
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                  {ev.by_role ? `by ${ev.by_role}` : ''}{ev.reason ? ` — “${ev.reason}”` : ''} · {timeAgo(ev.at)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filter + search */}
