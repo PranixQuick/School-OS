@@ -1,7 +1,9 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 import { useState, useEffect, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { feeTypeDef } from '@/lib/fee-catalog';
+import { type DocBranding } from '@/components/BrandedLetterhead';
 
 interface PaymentLine { date: string | null; amount: number; mode: string; reference: string | null; }
 interface Receipt {
@@ -13,6 +15,7 @@ interface Receipt {
   latest_payment_date: string | null; payment_mode: string; payments: PaymentLine[];
   school_name: string; school_address: string; school_board: string;
   school_phone: string; school_website: string; school_tagline: string;
+  branding?: DocBranding | null;
 }
 
 const INR = (n: number) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -25,6 +28,7 @@ const prettyMode = (m: string) => {
   if (k === 'wallet') return 'Wallet';
   if (k === 'cash') return 'Cash';
   if (k === 'cheque' || k === 'check') return 'Cheque';
+  if (k === 'bank_transfer' || k === 'bank transfer') return 'Bank transfer';
   if (k === 'razorpay' || k === 'online' || k === '') return 'Online';
   return m.replace(/^\w/, c => c.toUpperCase());
 };
@@ -109,6 +113,11 @@ export default function ParentReceiptPage() {
   const classLine = [r.class && `Class ${r.class}`, r.section && `Sec ${r.section}`].filter(Boolean).join(' · ') || '—';
   const showHistory = r.payments.length > 1 || partial;
 
+  // Institution branding drives the header band colours + logo.
+  const brandPrimary = r.branding?.primary_color || '#4F46E5';
+  const brandSecondary = r.branding?.secondary_color || '#6D28D9';
+  const brandLogo = r.branding?.logo_url || '';
+
   const detail = (label: string, value: string) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
       <span style={{ fontSize: 12.5, color: '#6B7280', flexShrink: 0 }}>{label}</span>
@@ -133,14 +142,16 @@ export default function ParentReceiptPage() {
         </div>
 
         <div className="rcpt-shell" style={{ ...card, overflow: 'hidden' }}>
-          {/* header band */}
-          <div style={{ background: 'linear-gradient(135deg,#4F46E5 0%,#6D28D9 100%)', padding: '22px 20px 20px', color: '#fff' }}>
+          {/* header band — institution branded */}
+          <div style={{ background: `linear-gradient(135deg,${brandPrimary} 0%,${brandSecondary} 100%)`, padding: '22px 20px 20px', color: '#fff' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🏫</div>
+              {brandLogo
+                ? <img src={brandLogo} alt="logo" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.18)', objectFit: 'contain', padding: 4, flexShrink: 0 }} />
+                : <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🏫</div>}
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.2 }}>{r.school_name}</div>
                 <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.82)', marginTop: 2 }}>
-                  {[r.school_tagline, r.school_board && `${r.school_board} Board`].filter(Boolean).join(' · ') || 'Fee Receipt'}
+                  {[r.school_tagline || r.branding?.tagline, r.school_board && `${r.school_board} Board`].filter(Boolean).join(' · ') || 'Fee Receipt'}
                 </div>
               </div>
             </div>
@@ -227,7 +238,7 @@ export default function ParentReceiptPage() {
               {r.fully_paid
                 ? 'This is a computer-generated receipt and does not require a signature.'
                 : 'Acknowledgement of part-payment. A full receipt is issued once the balance is cleared.'}
-              {(r.school_phone || r.school_website) && <><br />{[r.school_phone, r.school_website].filter(Boolean).join('  ·  ')}</>}
+              {(r.school_phone || r.school_website) && <><br />{[r.school_phone, r.school_website].filter(Boolean).join(' · ')}</>}
             </div>
             <div style={{ fontSize: 10.5, color: '#C4C7CF', textAlign: 'center', marginTop: 8, letterSpacing: 0.3 }}>Powered by EdProSys</div>
           </div>
@@ -242,7 +253,7 @@ export default function ParentReceiptPage() {
           )}
           <button onClick={() => window.print()}
             style={{ width: '100%', padding: '14px 0', fontSize: 15, fontWeight: 800, color: partial ? '#4F46E5' : '#fff', background: partial ? '#EEF2FF' : 'linear-gradient(180deg,#6366F1,#4F46E5)', border: 0, borderRadius: 12, cursor: 'pointer', boxShadow: partial ? 'none' : '0 1px 2px rgba(79,70,229,0.4)' }}>
-            ⬇  Download {r.fully_paid ? 'receipt' : 'acknowledgement'}
+            ⬇ Download {r.fully_paid ? 'receipt' : 'acknowledgement'}
           </button>
           <div style={{ textAlign: 'center', marginTop: 8, fontSize: 11.5, color: '#9CA3AF' }}>
             Opens your print sheet — choose <strong>Save as PDF</strong> to keep it on your device.

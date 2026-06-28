@@ -2,14 +2,16 @@
 // Batch 6 — Generate PDF report card for a student.
 // Uses academic_records (marks) + report_narratives (AI comments) + jsPDF.
 // Returns base64 PDF — not stored (academic_records has no pdf column).
+// Now branded: the institution logo, colours, tagline and authorised signature are applied
+// from the school's branding profile ("upload once, applied everywhere").
 // schema confirmed: academic_records.subject is TEXT, not UUID.
-// TODO(item-15): migrate to supabaseForUser
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getSchoolBranding } from '@/lib/branding';
 import { jsPDF } from 'jspdf';
 
 export const runtime = 'nodejs';
@@ -22,6 +24,28 @@ function calcGrade(pct: number): string {
   if (pct >= 50) return 'C';
   if (pct >= 40) return 'D';
   return 'F';
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return [17, 24, 39];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// jsPDF addImage only rasters PNG/JPEG. SVG/WebP logos are skipped gracefully.
+async function fetchImage(url: string | null): Promise<{ data: string; fmt: 'PNG' | 'JPEG' } | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const ct = (r.headers.get('content-type') || '').toLowerCase();
+    let fmt: 'PNG' | 'JPEG' | null = ct.includes('png') ? 'PNG' : (ct.includes('jpeg') || ct.includes('jpg')) ? 'JPEG' : null;
+    if (!fmt) { if (/\.png(\?|$)/i.test(url)) fmt = 'PNG'; else if (/\.jpe?g(\?|$)/i.test(url)) fmt = 'JPEG'; }
+    if (!fmt) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    return { data: `data:image/${fmt.toLowerCase()};base64,${buf.toString('base64')}`, fmt };
+  } catch { return null; }
 }
 
 async function resolveSession(req: NextRequest) {
@@ -45,15 +69,15 @@ export async function POST(req: NextRequest) {
   const { student_id, term } = body as { student_id?: string; term?: string };
   if (!student_id || !term) return NextResponse.json({ error: 'student_id and term required' }, { status: 400 });
 
-  // ── Step 1: Fetch student + school data ────────────────────────────────────
-  const [studentRes, schoolRes] = await Promise.all([
+  // ── Step 1: Fetch student + school + branding ──────────────────────────────
+  const [studentRes, schoolRes, branding] = await Promise.all([
     supabaseAdmin.from('students')
       .select('name, roll_number, class_id, classes(grade_level, section), parents(name)')
       .eq('id', student_id).eq('school_id', schoolId).maybeSingle(),
     supabaseAdmin.from('schools').select('name, address').eq('id', schoolId).maybeSingle(),
+    getSchoolBranding(schoolId),
   ]);
   if (!studentRes.data) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
-  // Supabase returns related records as arrays even for single FK joins
   interface StudentRow {
     name: string; roll_number: string | null; class_id: string | null;
     classes: { grade_level: string; section: string }[] | null;
@@ -95,19 +119,29 @@ export async function POST(req: NextRequest) {
     ? narrative.narrative_text
     : `The student has shown ${overallGrade} performance this term.`;
 
-  // ── Step 5: Generate PDF via jsPDF ────────────────────────────────────────
+  // ── Step 5: Generate PDF via jsPDF (institution-branded) ───────────────────
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.getWidth();
+  const [pr, pg, pb] = hexToRgb(branding.primary_color);
+  const [logoImg, signImg] = await Promise.all([fetchImage(branding.logo_url), fetchImage(branding.signature_url)]);
 
-  // Header
+  // Branded header
+  if (logoImg) { try { doc.addImage(logoImg.data, logoImg.fmt, 15, 11, 18, 18); } catch { /* skip bad image */ } }
+  doc.setTextColor(pr, pg, pb);
   doc.setFontSize(16).setFont('helvetica', 'bold');
-  doc.text(school?.name ?? 'School Name', pw / 2, 18, { align: 'center' });
-  doc.setFontSize(9).setFont('helvetica', 'normal');
-  if (school?.address) doc.text(school.address, pw / 2, 24, { align: 'center' });
+  doc.text(branding.name || school?.name || 'School Name', pw / 2, 18, { align: 'center' });
+  doc.setTextColor(60, 60, 60);
+  let hy = 23;
+  if (branding.tagline) { doc.setFontSize(8).setFont('helvetica', 'italic'); doc.text(branding.tagline, pw / 2, hy, { align: 'center' }); hy += 4; }
+  const addr = branding.address || school?.address;
+  if (addr) { doc.setFontSize(8).setFont('helvetica', 'normal'); doc.text(addr, pw / 2, hy, { align: 'center' }); }
+  doc.setTextColor(pr, pg, pb);
   doc.setFontSize(13).setFont('helvetica', 'bold');
   doc.text('REPORT CARD', pw / 2, 32, { align: 'center' });
-  doc.setLineWidth(0.5);
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(pr, pg, pb).setLineWidth(0.6);
   doc.line(15, 35, pw - 15, 35);
+  doc.setDrawColor(0, 0, 0).setLineWidth(0.2);
 
   // Student info
   doc.setFontSize(9).setFont('helvetica', 'normal');
@@ -128,14 +162,16 @@ export async function POST(req: NextRequest) {
   doc.line(15, y, pw - 15, y);
   y += 5;
 
-  // Marks table header
+  // Marks table header — brand-tinted
   doc.setFontSize(9).setFont('helvetica', 'bold');
-  doc.setFillColor(240, 240, 240);
+  doc.setFillColor(pr, pg, pb);
+  doc.setTextColor(255, 255, 255);
   doc.rect(15, y, pw - 30, 7, 'F');
   doc.text('Subject', 18, y + 5);
   doc.text('Max Marks', 100, y + 5, { align: 'right' });
   doc.text('Marks Obtained', 145, y + 5, { align: 'right' });
   doc.text('Grade', 185, y + 5, { align: 'right' });
+  doc.setTextColor(0, 0, 0);
   y += 7;
 
   // Marks rows
@@ -165,7 +201,7 @@ export async function POST(req: NextRequest) {
   doc.text(overallGrade, 185, y + 5, { align: 'right' });
   y += 9;
   doc.setFont('helvetica', 'normal');
-  doc.text(`Percentage: ${percentage.toFixed(1)}%     Overall Grade: ${overallGrade}`, 18, y);
+  doc.text(`Percentage: ${percentage.toFixed(1)}%    Overall Grade: ${overallGrade}`, 18, y);
   y += 5;
   doc.line(15, y, pw - 15, y);
   y += 5;
@@ -180,13 +216,14 @@ export async function POST(req: NextRequest) {
 
   // Promotion status
   doc.setFont('helvetica', 'bold');
-  const statusText = promoted ? '✓ Promoted to next class' : '✗ Detained — Below passing threshold';
+  const statusText = promoted ? 'Promoted to next class' : 'Detained — Below passing threshold';
   doc.setTextColor(promoted ? 0 : 180, promoted ? 120 : 0, 0);
   doc.text(statusText, 15, y);
   doc.setTextColor(0, 0, 0);
-  y += 12;
+  y += 16;
 
-  // Signature blocks
+  // Signature blocks — authorised signature image applied when uploaded
+  if (signImg) { try { doc.addImage(signImg.data, signImg.fmt, pw - 58, y - 13, 28, 11); } catch { /* skip */ } }
   doc.line(15, y, 65, y);
   doc.line(pw - 65, y, pw - 15, y);
   y += 5;

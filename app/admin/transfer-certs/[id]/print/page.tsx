@@ -1,11 +1,14 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 // app/admin/transfer-certs/[id]/print/page.tsx
 // Government-format Transfer Certificate (TC) print page.
 // Telangana State Board TC format — printable, Telugu-safe, grayscale-safe.
-// Usage: /admin/transfer-certs/[id]/print → Print / Save as PDF via browser
+// Now carries the institution's branding (logo, colours, signature, seal) via the shared
+// BrandedLetterhead — "upload once, applied everywhere".
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { BrandedLetterhead, SignatureBlock, type DocBranding } from '@/components/BrandedLetterhead';
 
 interface TCData {
   tc_number?: string;
@@ -33,6 +36,7 @@ interface TCData {
 export default function TCPrintPage() {
   const params = useParams();
   const [tc, setTc] = useState<TCData | null>(null);
+  const [branding, setBranding] = useState<DocBranding | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -42,6 +46,10 @@ export default function TCPrintPage() {
       .then(d => { if (d?.tc) setTc(d.tc); else setError('TC not found'); })
       .catch(() => setError('Failed to load TC'))
       .finally(() => setLoading(false));
+    fetch('/api/admin/schools/branding')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.branding) setBranding(d.branding); })
+      .catch(() => {});
   }, [params.id]);
 
   if (loading) return (
@@ -54,6 +62,21 @@ export default function TCPrintPage() {
   );
 
   const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const b: DocBranding = {
+    name: branding?.name ?? tc.school_name ?? 'School Name',
+    address: branding?.address ?? tc.school_address ?? null,
+    udise_code: branding?.udise_code ?? tc.udise_code ?? null,
+    logo_url: branding?.logo_url ?? null,
+    seal_url: branding?.seal_url ?? null,
+    signature_url: branding?.signature_url ?? null,
+    tagline: branding?.tagline ?? null,
+    primary_color: branding?.primary_color ?? null,
+    secondary_color: branding?.secondary_color ?? null,
+    website: branding?.website ?? null,
+    contact_phone: branding?.contact_phone ?? null,
+    contact_email: branding?.contact_email ?? null,
+  };
 
   return (
     <div style={{ fontFamily: '"Times New Roman", Times, serif', maxWidth: 700, margin: '0 auto', padding: '30px 40px', background: '#fff', minHeight: '100vh', color: '#000', fontSize: 14 }}>
@@ -80,24 +103,12 @@ export default function TCPrintPage() {
         </button>
       </div>
 
-      {/* TC Header */}
-      <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: 12, marginBottom: 16 }}>
-        <div style={{ fontSize: 11, marginBottom: 4 }}>
-          UDISE Code: <strong>{tc.udise_code ?? '—'}</strong>
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {tc.school_name ?? '—'}
-        </div>
-        <div style={{ fontSize: 12, marginTop: 4 }}>{tc.school_address ?? '—'}</div>
-        <div style={{ fontSize: 11, marginTop: 4 }}>
-          Board: {tc.board ?? 'State'} | Affiliated to Telangana State Board of Secondary Education
-        </div>
-        <div style={{ fontSize: 20, fontWeight: 'bold', marginTop: 12, textDecoration: 'underline' }}>
-          TRANSFER CERTIFICATE
-        </div>
-        <div style={{ fontSize: 11, marginTop: 4 }}>
-          TC No: <strong>{tc.tc_number ?? '—'}</strong>
-        </div>
+      {/* Branded header */}
+      <BrandedLetterhead b={b} title="TRANSFER CERTIFICATE"
+        meta={`${tc.board ?? 'State'} Board · Affiliated to Telangana State Board of Secondary Education`}
+        style={{ borderBottomWidth: 2, marginBottom: 6 }} />
+      <div style={{ textAlign: 'center', fontSize: 11, marginBottom: 16 }}>
+        TC No: <strong>{tc.tc_number ?? '—'}</strong>
       </div>
 
       {/* Fields */}
@@ -133,31 +144,22 @@ export default function TCPrintPage() {
         </div>
       </div>
 
-      {/* Signature section */}
+      {/* Signature section — institution signature + seal applied when uploaded */}
       <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
+        <SignatureBlock label="Class Teacher" />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #000', marginBottom: 6, height: 40 }}></div>
-          <div style={{ fontSize: 12 }}>Class Teacher</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #000', marginBottom: 6, height: 40 }}></div>
+          <div style={{ borderBottom: '1px solid #000', marginBottom: 6, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {b.seal_url ? <img src={b.seal_url} alt="seal" style={{ maxHeight: 38, maxWidth: '90%', objectFit: 'contain' }} /> : null}
+          </div>
           <div style={{ fontSize: 12 }}>Office Seal</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #000', marginBottom: 6, height: 40 }}>
-            {tc.headmaster_name && (
-              <div style={{ fontSize: 11, paddingTop: 2 }}>{tc.headmaster_name}</div>
-            )}
-          </div>
-          <div style={{ fontSize: 12 }}>Headmaster / Principal</div>
-        </div>
+        <SignatureBlock url={b.signature_url} label={tc.headmaster_name ? `Headmaster / Principal (${tc.headmaster_name})` : 'Headmaster / Principal'} />
       </div>
 
       <div style={{ marginTop: 20, textAlign: 'right', fontSize: 12 }}>
         Date: {tc.issued_date ?? today}
       </div>
       <div style={{ marginTop: 8, textAlign: 'center', color: '#666' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/logo.svg" alt="EdProSys" style={{ height: 16, opacity: 0.7, marginBottom: 3 }} />
         <div style={{ fontSize: 11 }}>Generated by EdProSys — edprosys.com</div>
       </div>
