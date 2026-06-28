@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getParentSession } from '@/lib/parent-auth';
+import { getInstitutionFlags } from '@/lib/institution-flags';
 
 // POST /api/parent/pay   body: { fee_id: string }
 // Access-gated: requires a valid PARENT SESSION, and the fee must belong to that
 // parent's own child (school_id + student_id). Creates a Razorpay order server-side
 // (keys never reach the client) and writes the optimistic 'created' ledger row.
 // Capture -> reconcile is handled by the payments-webhook function.
+//
+// PR-5 (feature-flag rollout): online payment is gated per school on
+// institutions.feature_flags.online_payment_enabled. Enabled for the Suchitra
+// pilot first; other schools get 403 until explicitly switched on. Razorpay keys
+// are taken per-school from the flags when present, else the platform keys.
 export async function POST(req: NextRequest) {
   const session = await getParentSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // ── PR-5 gate: online payments must be enabled for this school ──
+  const flags = await getInstitutionFlags(session.schoolId);
+  if (flags.online_payment_enabled !== true) {
+    return NextResponse.json({ error: 'Online payment is not enabled for this school yet' }, { status: 403 });
+  }
 
   let body: { fee_id?: string } = {};
   try { body = await req.json(); } catch { /* ignore */ }
@@ -31,8 +43,9 @@ export async function POST(req: NextRequest) {
   const dueMinor = Math.round(Number(fee.amount) * 100) - (fee.amount_paid_minor ?? 0);
   if (dueMinor <= 0) return NextResponse.json({ error: 'Nothing due' }, { status: 409 });
 
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  // Per-school Razorpay keys (Item #13 design) when configured, else platform keys.
+  const keyId = (typeof flags.razorpay_key_id === 'string' && flags.razorpay_key_id) || process.env.RAZORPAY_KEY_ID;
+  const keySecret = (typeof flags.razorpay_key_secret === 'string' && flags.razorpay_key_secret) || process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) return NextResponse.json({ error: 'Payments not configured' }, { status: 503 });
 
   // gateway-hosted checkout -> PCI SAQ-A; no card data touches us
