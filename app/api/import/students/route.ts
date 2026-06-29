@@ -46,7 +46,9 @@ function parseCSV(text: string): StudentCSVRow[] {
 interface RowError { row: number; name: string; error: string; codes?: ReasonCode[] }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
 
   try {
     const formData = await req.formData();
