@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const priority = req.nextUrl.searchParams.get('priority');
     const status = req.nextUrl.searchParams.get('status');
 
@@ -30,7 +32,9 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const body = await req.json() as {
       id: string; status?: string; notes?: string;
       parent_name?: string; phone?: string; email?: string; priority?: string;
@@ -62,7 +66,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
