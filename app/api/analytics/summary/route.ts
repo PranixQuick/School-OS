@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    // SEC-W0-13: require an authenticated session and derive the tenant from it.
+    // Previously this used getSchoolId(req), which trusts a request-supplied school id and
+    // performs no auth check — allowing unauthenticated, cross-tenant analytics disclosure
+    // via service-role (RLS-bypassing) reads. Match the standard guard used across /api.
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
 
     const [
       studentsRes, staffRes, reportsRes, evalsRes,
