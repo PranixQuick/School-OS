@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const moduleFilter = req.nextUrl.searchParams.get('module'); // renamed from module — avoids @next/next/no-assign-module-variable
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '20');
 

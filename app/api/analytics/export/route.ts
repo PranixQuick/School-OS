@@ -4,10 +4,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   const dataset = req.nextUrl.searchParams.get('dataset') ?? 'overview';
   const format = req.nextUrl.searchParams.get('format') ?? 'json';
   const from = req.nextUrl.searchParams.get('from'); // ISO date filter
