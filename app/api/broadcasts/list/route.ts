@@ -6,7 +6,9 @@ import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
 
     const { data, error } = await supabaseAdmin
       .from('broadcasts')
@@ -24,7 +26,9 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
