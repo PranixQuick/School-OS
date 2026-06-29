@@ -65,7 +65,14 @@ export async function middleware(req: NextRequest) {
       headers.set('x-user-role', claims.userRole);
       return NextResponse.next({ request: { headers } });
     }
-    return NextResponse.next();
+    // SECURITY (SEC-W0-14): no valid session — strip any client-supplied tenant
+    // headers so an unguarded getSchoolId(req) handler cannot be fed a forged
+    // x-school-id and return another tenant's data. Fails closed (handler 500s)
+    // instead of leaking. Per-route getSession() guards remain the primary control.
+    const stripped = new Headers(req.headers);
+    stripped.delete('x-school-id');
+    stripped.delete('x-user-role');
+    return NextResponse.next({ request: { headers: stripped } });
   }
 
   // Page routes: require a valid session, else redirect to login.
