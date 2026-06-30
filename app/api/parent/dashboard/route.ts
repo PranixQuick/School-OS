@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
       .eq('parent_id', session.parentId)
       .order('is_primary', { ascending: false }); // primary first
 
-    // If no parent_students rows, fall back to direct session student
-    const studentIds = links?.map(l => l.student_id) ?? [session.studentId];
+    // If no parent_students rows, fall back to the session's direct student (DASH-01).
+    // NOTE: a successful query with no rows returns `[]`, which is NOT nullish, so a plain
+    // `links?.map(...) ?? [session.studentId]` would keep the empty array and 404 every legacy
+    // single-child parent. Guard on length so the fallback actually fires.
+    const studentIds = (links && links.length > 0) ? links.map(l => l.student_id) : [session.studentId];
     const primaryStudentId = links?.find(l => l.is_primary)?.student_id ?? session.studentId;
 
     // Fetch student details for all children
