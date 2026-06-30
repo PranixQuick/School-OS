@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getTenantContext } from '@/lib/tenancy';
+import { isSuperAdmin } from '@/lib/authz';
 
+// Legacy allow-listed super-admin address (kept so the existing super-admin
+// account is not locked out alongside the canonical @pranixailabs.com domain).
 const SUPER_ADMIN_EMAIL = 'pranixailabs@gmail.com';
 
 export async function GET(req: NextRequest) {
-  const userEmail = req.headers.get('x-user-email');
-  if (userEmail !== SUPER_ADMIN_EMAIL) {
+  // SEC-W0-14: previously this authorized on the `x-user-email` request header,
+  // which the middleware neither sets nor strips — i.e. an unauthenticated caller
+  // could forge `x-user-email: <super admin>` and read cross-school stats.
+  // Authorize from the verified session instead (getTenantContext -> getSession).
+  const ctx = await getTenantContext(req);
+  if (!ctx || (!isSuperAdmin(ctx.email) && ctx.email !== SUPER_ADMIN_EMAIL)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
