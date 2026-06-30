@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 // Allow up to 60 seconds for Whisper transcription + Claude evaluation
 export const maxDuration = 60;
@@ -85,7 +85,9 @@ Analyse this admissions call and return the JSON.`;
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   let callLogId: string | null = null;
 
   // ── Graceful 503 guard: check OPENAI_API_KEY BEFORE any DB writes ──────────
@@ -200,7 +202,9 @@ export async function POST(req: NextRequest) {
 
 // GET: list recent call logs for this school
 export async function GET(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '20');
     const { data, error } = await supabaseAdmin

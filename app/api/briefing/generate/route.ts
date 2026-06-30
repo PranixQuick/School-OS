@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const today = new Date().toISOString().split('T')[0];
 
@@ -66,7 +68,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const { data, error } = await supabaseAdmin
       .from('principal_briefings').select('*').eq('school_id', schoolId).order('date', { ascending: false }).limit(7);

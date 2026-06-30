@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getActiveApiKey, validateAndTrackApiKey } from '@/lib/apiKey';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 
 interface SubjectRecord { subject: string; marks: number; max: number; grade: string; }
@@ -31,7 +31,9 @@ function buildReportHTML(name: string, cls: string, section: string, admissionNu
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const body = await req.json() as { classNum: string; section: string; term: string };
     const { classNum, section, term } = body;
