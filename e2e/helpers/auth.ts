@@ -38,6 +38,9 @@ export const E2E_PARENT_PIN     = process.env.TEST_E2E_PARENT_PIN    || '1234';
 export const E2E_STUDENT_ADM    = process.env.TEST_E2E_STUDENT_ADM   || 'SA-KG-001';
 export const E2E_STUDENT_PIN    = process.env.TEST_E2E_STUDENT_PIN   || '1234';
 export const E2E_SCHOOL_ID      = process.env.TEST_E2E_SCHOOL_ID     || '00000000-0000-0000-0000-000000000001';
+// Vendor uses portal_email + PIN (lib/vendor-auth). Seeded sandbox vendor on Suchitra.
+export const E2E_VENDOR_EMAIL   = process.env.TEST_E2E_VENDOR_EMAIL  || 'e2e.vendor@suchitra.edprosys.demo';
+export const E2E_VENDOR_PIN     = process.env.TEST_E2E_VENDOR_PIN    || '1234';
 
 async function loginAs(page: Page, email: string, password: string) {
   await page.goto('/login');
@@ -158,6 +161,15 @@ export async function loginAsStudent(page: Page) {
     data: { admission_number: E2E_STUDENT_ADM, pin: E2E_STUDENT_PIN, school_id: E2E_SCHOOL_ID },
   });
   if (!res.ok()) throw new Error(`Student login failed: ${res.status()} ${await res.text()}`);
+}
+
+// Vendor portal login (portal_email + PIN). API-based; sets vendor_session cookie on the context.
+export async function loginAsVendor(page: Page) {
+  const res = await page.request.post('/api/vendor/login', {
+    headers: { 'Content-Type': 'application/json' },
+    data: { portal_email: E2E_VENDOR_EMAIL, pin: E2E_VENDOR_PIN },
+  });
+  if (!res.ok()) throw new Error(`Vendor login failed: ${res.status()} ${await res.text()}`);
 }
 
 export async function expectNoErrors(page: Page) {
