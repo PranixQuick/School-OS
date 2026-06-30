@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getActiveApiKey, validateAndTrackApiKey } from '@/lib/apiKey';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 
 interface SubjectRecord { subject: string; marks: number; max: number; grade: string; }
