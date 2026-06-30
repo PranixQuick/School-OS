@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// P5-01 regression guard for the SEC-W0-12 fix (migration fix_cross_tenant_rls_sec_w0_12).
+// EXEC-02 / P5-01 regression guard for the SEC-W0-12 fix (migration fix_cross_tenant_rls_sec_w0_12).
 // The previously always-true RLS policies are now school_users-scoped. Anonymous PostgREST reads
 // (anon key, no user session) of the affected tables must now return an EMPTY array — never rows
-// from other tenants. This calls the public REST endpoint directly with the anon key.
+// from other tenants. Calls the public REST endpoint directly with the anon key.
 //
 // Requires env: SUPABASE_URL, SUPABASE_ANON_KEY (CI secrets). Skips cleanly if unset.
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
@@ -13,7 +13,7 @@ const TABLES = [
   'accreditation_records', 'examination_schedule', 'teacher_vacancies',
 ];
 
-test.describe('Cross-tenant RLS regression — SEC-W0-12 (P5-01)', () => {
+test.describe('Cross-tenant RLS regression — SEC-W0-12 (EXEC-02 / P5-01)', () => {
   test.skip(!SUPABASE_URL || !ANON, 'SUPABASE_URL / SUPABASE_ANON_KEY not set');
 
   for (const tbl of TABLES) {
