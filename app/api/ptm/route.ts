@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
   const schoolId = session.schoolId;
   try {
     const body = await req.json() as { title: string; date: string; start_time: string; end_time: string; target_classes: string[]; slot_duration_minutes: number; };
-    const { data: session, error } = await supabaseAdmin.from('ptm_sessions').insert({ school_id: schoolId, ...body, status: 'scheduled' }).select().single();
+    const { data: created, error } = await supabaseAdmin.from('ptm_sessions').insert({ school_id: schoolId, ...body, status: 'scheduled' }).select().single();
     if (error) throw new Error(error.message);
-    return NextResponse.json({ success: true, session });
+    return NextResponse.json({ success: true, session: created });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
