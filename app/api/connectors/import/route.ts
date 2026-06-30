@@ -5,7 +5,7 @@
 // route export rules (only HTTP verbs may be exported from route.ts files).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { runImport, type DataSource, type Entity } from '@/lib/connectorEngine';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
