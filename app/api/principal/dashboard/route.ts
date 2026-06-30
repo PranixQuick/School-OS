@@ -4,12 +4,14 @@
 // FIX: Graceful degradation for tables that may have no data.
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   let schoolId: string;
   try {
-    schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    schoolId = session.schoolId;
   } catch {
     return NextResponse.json({ error: 'No session' }, { status: 401 });
   }

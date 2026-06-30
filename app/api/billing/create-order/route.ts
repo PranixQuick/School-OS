@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 const PLAN_PRICES: Record<string, { amount: number; name: string; currency: string }> = {
   starter: { amount: 499900,  name: 'EdProSys Starter',  currency: 'INR' }, // ₹4,999
@@ -16,7 +16,9 @@ const PLAN_PRICES: Record<string, { amount: number; name: string; currency: stri
 };
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const { plan } = await req.json() as { plan: string };
 
