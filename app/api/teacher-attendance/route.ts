@@ -3,7 +3,9 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const date = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
     const [attRes, staffRes] = await Promise.all([
@@ -25,7 +27,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   try {
     const body = await req.json() as { staff_id: string; date: string; status: string; check_in_time?: string; notes?: string; marked_via?: string; };
     if (!body.staff_id || !body.date || !body.status) return NextResponse.json({ error: 'staff_id, date, status required' }, { status: 400 });
