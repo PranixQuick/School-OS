@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 const PLAN_PRICES: Record<string, { amount: number; name: string; currency: string }> = {
   starter: { amount: 499900,  name: 'EdProSys Starter',  currency: 'INR' }, // ₹4,999
