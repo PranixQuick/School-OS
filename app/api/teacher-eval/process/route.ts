@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 
 // Allow up to 60 seconds for Whisper transcription + Claude evaluation
