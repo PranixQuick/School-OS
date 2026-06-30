@@ -11,7 +11,9 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const body = await req.json() as {
       source?: DataSource;
       entity: Entity;
@@ -45,7 +47,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '20');
     const { data, error } = await supabaseAdmin
       .from('connector_runs')
