@@ -8,7 +8,7 @@
 // Requires: GOOGLE_SHEETS_API_KEY in Vercel environment variables.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { runImport, type Entity } from '@/lib/connectorEngine';
 
 function extractSheetId(urlOrId: string): string | null {
@@ -19,7 +19,9 @@ function extractSheetId(urlOrId: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
 
   try {
     const body = await req.json() as {
