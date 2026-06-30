@@ -4,7 +4,7 @@
 // FIX: Graceful degradation for tables that may have no data.
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   let schoolId: string;
