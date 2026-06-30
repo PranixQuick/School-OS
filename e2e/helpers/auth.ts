@@ -23,6 +23,13 @@ export const ACCOUNTANT_EMAIL = process.env.TEST_ACCOUNTANT_EMAIL || 'demo.accou
 export const COUNSELLOR_EMAIL = process.env.TEST_COUNSELLOR_EMAIL || 'demo.counsellor@suchitra.edprosys.demo';
 export const DEO_EMAIL        = process.env.TEST_DEO_EMAIL        || 'demo.deo@edprosys.demo';
 export const MEO_EMAIL        = process.env.TEST_MEO_EMAIL        || 'demo.meo@edprosys.demo';
+// Synthetic sandbox identities seeded into school_users (Suchitra) for roles allowed by the legacy
+// school_users_role_check (librarian/hostel_admin/placement_officer/transport_staff/hod).
+export const LIBRARIAN_EMAIL  = process.env.TEST_LIBRARIAN_EMAIL  || 'e2e.librarian@suchitra.edprosys.demo';
+export const HOSTEL_EMAIL     = process.env.TEST_HOSTEL_EMAIL     || 'e2e.hostel@suchitra.edprosys.demo';
+export const PLACEMENT_EMAIL  = process.env.TEST_PLACEMENT_EMAIL  || 'e2e.placement@suchitra.edprosys.demo';
+export const TRANSPORT_EMAIL  = process.env.TEST_TRANSPORT_EMAIL  || 'e2e.transport@suchitra.edprosys.demo';
+export const HOD_EMAIL        = process.env.TEST_HOD_EMAIL        || 'e2e.hod@suchitra.edprosys.demo';
 
 async function loginAs(page: Page, email: string, password: string) {
   await page.goto('/login');
@@ -104,6 +111,26 @@ export async function loginAsDeo(page: Page) {
 
 export async function loginAsMeo(page: Page) {
   await loginAs(page, MEO_EMAIL, DEMO_PASSWORD);
+}
+
+export async function loginAsLibrarian(page: Page) {
+  await loginAs(page, LIBRARIAN_EMAIL, DEMO_PASSWORD);
+}
+
+export async function loginAsHostelAdmin(page: Page) {
+  await loginAs(page, HOSTEL_EMAIL, DEMO_PASSWORD);
+}
+
+export async function loginAsPlacement(page: Page) {
+  await loginAs(page, PLACEMENT_EMAIL, DEMO_PASSWORD);
+}
+
+export async function loginAsTransport(page: Page) {
+  await loginAs(page, TRANSPORT_EMAIL, DEMO_PASSWORD);
+}
+
+export async function loginAsHod(page: Page) {
+  await loginAs(page, HOD_EMAIL, DEMO_PASSWORD);
 }
 
 export async function expectNoErrors(page: Page) {
