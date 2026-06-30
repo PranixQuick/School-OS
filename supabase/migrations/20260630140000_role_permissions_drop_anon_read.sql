@@ -1,0 +1,15 @@
+-- RBAC matrix anon disclosure (P1-01/P1-03 follow-up): the global role_permissions matrix had a
+-- permissive anon read policy, letting any unauthenticated caller read the platform-wide RBAC
+-- matrix via the public anon key (minor info disclosure).
+--
+-- VERIFIED (rqdnxdvuypekpmxbteju, 2026-06-30): RLS is enabled; policies were
+--   anon_read_role_permissions    SELECT TO anon          USING (true)   <- the exposure
+--   service_role_role_permissions ALL    TO service_role  USING (true)   <- the app path
+-- authenticated has NO policy (already denied). The role_permissions editor API
+-- (app/api/admin/role-permissions) and lib/permissions.ts both read via the service-role client,
+-- which is covered by service_role_role_permissions. No legitimate caller uses the anon read.
+--
+-- Effect: drop the anon read policy → anon is denied; service_role keeps full access (feature
+-- unchanged); authenticated unchanged (still denied). Non-destructive: the table, the super-admin
+-- editor, and all data are retained.
+drop policy if exists anon_read_role_permissions on public.role_permissions;
