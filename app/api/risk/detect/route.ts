@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { callClaude } from '@/lib/claudeClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const includeResolved = req.nextUrl.searchParams.get('include_resolved') === 'true';
 
     let query = supabaseAdmin
@@ -29,7 +31,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
     const [studentsRes, attendanceRes, academicRes, feesRes] = await Promise.all([
@@ -118,7 +122,9 @@ export async function POST(req: NextRequest) {
 // PATCH: resolve a risk flag
 export async function PATCH(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const { id, action, resolved_by } = await req.json() as {
       id: string; action: 'resolve' | 'reopen'; resolved_by?: string;
     };

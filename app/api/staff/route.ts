@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId, MissingSchoolIdError } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
 
     // Fetch staff with invite status from school_users
     const { data: staffRows, error } = await supabaseAdmin
@@ -44,7 +46,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ staff, count: staff.length });
   } catch (err) {
-    if (err instanceof MissingSchoolIdError) return NextResponse.json({ error: 'No session' }, { status: 401 });
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

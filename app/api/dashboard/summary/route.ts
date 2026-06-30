@@ -5,13 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId, MissingSchoolIdError } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const today = new Date().toISOString().split('T')[0];
 
     // Run all queries in parallel
@@ -70,7 +72,6 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (err) {
-    if (err instanceof MissingSchoolIdError) return NextResponse.json({ error: 'No session' }, { status: 401 });
     console.error('[dashboard/summary]', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

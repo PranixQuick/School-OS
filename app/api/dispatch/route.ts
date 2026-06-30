@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 import { processPendingNotifications } from '@/lib/dispatcher';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 // POST: Manually trigger dispatch for this school's pending notifications
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const { limit = 20 } = await req.json().catch(() => ({})) as { limit?: number };
 
     const result = await processPendingNotifications(schoolId, { limit });
@@ -21,7 +23,9 @@ export async function POST(req: NextRequest) {
 // GET: Return dispatch stats and recent log for this school
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
 
     const [statsRes, logRes, pendingRes] = await Promise.all([
       // Notification status counts
