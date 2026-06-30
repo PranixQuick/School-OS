@@ -31,6 +31,14 @@ export const PLACEMENT_EMAIL  = process.env.TEST_PLACEMENT_EMAIL  || 'e2e.placem
 export const TRANSPORT_EMAIL  = process.env.TEST_TRANSPORT_EMAIL  || 'e2e.transport@suchitra.edprosys.demo';
 export const HOD_EMAIL        = process.env.TEST_HOD_EMAIL        || 'e2e.hod@suchitra.edprosys.demo';
 
+// Parent + student use PIN-based auth (no x-e2e-bypass). These resolve to seeded sandbox identities
+// on Suchitra (a DEMO parent linked to student Aadhya Sharma, and that student with login enabled).
+export const E2E_PARENT_PHONE   = process.env.TEST_E2E_PARENT_PHONE  || '9999900001';
+export const E2E_PARENT_PIN     = process.env.TEST_E2E_PARENT_PIN    || '1234';
+export const E2E_STUDENT_ADM    = process.env.TEST_E2E_STUDENT_ADM   || 'SA-KG-001';
+export const E2E_STUDENT_PIN    = process.env.TEST_E2E_STUDENT_PIN   || '1234';
+export const E2E_SCHOOL_ID      = process.env.TEST_E2E_SCHOOL_ID     || '00000000-0000-0000-0000-000000000001';
+
 async function loginAs(page: Page, email: string, password: string) {
   await page.goto('/login');
 
@@ -131,6 +139,25 @@ export async function loginAsTransport(page: Page) {
 
 export async function loginAsHod(page: Page) {
   await loginAs(page, HOD_EMAIL, DEMO_PASSWORD);
+}
+
+// Parent portal login (phone + PIN). API-based: the response's parent_session cookie is stored in the
+// browser context, so subsequent page navigations / page.request calls are authenticated.
+export async function loginAsParent(page: Page) {
+  const res = await page.request.post('/api/parent/login', {
+    headers: { 'Content-Type': 'application/json' },
+    data: { phone: E2E_PARENT_PHONE, pin: E2E_PARENT_PIN },
+  });
+  if (!res.ok()) throw new Error(`Parent login failed: ${res.status()} ${await res.text()}`);
+}
+
+// Student portal login (admission_number + PIN). API-based; sets student_session cookie on the context.
+export async function loginAsStudent(page: Page) {
+  const res = await page.request.post('/api/student/login', {
+    headers: { 'Content-Type': 'application/json' },
+    data: { admission_number: E2E_STUDENT_ADM, pin: E2E_STUDENT_PIN, school_id: E2E_SCHOOL_ID },
+  });
+  if (!res.ok()) throw new Error(`Student login failed: ${res.status()} ${await res.text()}`);
 }
 
 export async function expectNoErrors(page: Page) {
