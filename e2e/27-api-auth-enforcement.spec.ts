@@ -23,12 +23,11 @@ test.describe('API auth enforcement (P5-01)', () => {
     });
   }
 
-  // KNOWN FINDING (SEC-W0-13): /api/analytics/summary GET does NOT call getSession — it derives the
-  // tenant from getSchoolId(req) and returns aggregate data via service-role (RLS-bypassing) reads,
-  // so an unauthenticated caller gets a school's analytics. Confirmed returning 200 unauthenticated.
-  // Fix is in a separate security PR (add getSession guard, derive schoolId from session). Once that
-  // is merged + deployed, change test.fixme -> test and this becomes an active regression guard.
-  test.fixme('unauthenticated GET /api/analytics/summary is rejected (401/403) [SEC-W0-13]', async ({ request }) => {
+  // SEC-W0-13/14 (RESOLVED): /api/analytics/summary now calls getSession and derives schoolId from
+  // the session (PR #242). The forged-x-school-id class is additionally closed at the middleware
+  // layer (PR #245 — strips client-supplied x-school-id/x-user-role on unauthenticated /api requests).
+  // Both merged and deployed to production, so this is now an active regression guard.
+  test('unauthenticated GET /api/analytics/summary is rejected (401/403) [SEC-W0-13]', async ({ request }) => {
     const res = await request.get('/api/analytics/summary');
     expect([401, 403], `/api/analytics/summary returned ${res.status()} unauthenticated`).toContain(res.status());
   });
