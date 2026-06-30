@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-// P5-01 (endpoints verified against the real app/api tree @ main).
-// Mirrors the API-layer security assertion proven in 09-role-routing: protected endpoints must
-// reject unauthenticated requests with 401/403 — never 200 with data. Uses the `request` fixture
-// with no session cookie, so every call is unauthenticated.
+// EXEC-02 / P5-01 — generated from api_inventory.json. Mirrors the API-layer security assertion
+// proven in 09-role-routing and certifies the SEC-W0-14 route guards (#248-#252): protected
+// endpoints must reject unauthenticated requests with 401/403 — never 200 with data. The
+// `request` fixture sends no session cookie, so every call here is unauthenticated.
+//
+// NOTE: list only CANONICAL collection endpoints that exist as app/api/**/route.ts. The students
+// collection API is /api/students (there is no /api/admin/students/route.ts — only subroutes
+// /api/admin/students/[id], /bulk-enable-login, /lifecycle).
 const PROTECTED_ENDPOINTS = [
   '/api/students',
   '/api/admin/fees',
@@ -12,23 +16,20 @@ const PROTECTED_ENDPOINTS = [
   '/api/admin/payroll/runs',
   '/api/admin/role-permissions',
   '/api/admin/transfer-certificates',
+  '/api/analytics/summary',
   '/api/admin/scholarships',
+  '/api/settings',
+  '/api/dashboard/summary',
+  '/api/risk/detect',
+  '/api/dispatch',
+  '/api/admin/stats',
 ];
 
-test.describe('API auth enforcement (P5-01)', () => {
+test.describe('API auth enforcement (EXEC-02 / P5-01)', () => {
   for (const ep of PROTECTED_ENDPOINTS) {
     test(`unauthenticated GET ${ep} is rejected (401/403)`, async ({ request }) => {
       const res = await request.get(ep);
       expect([401, 403], `${ep} returned ${res.status()} unauthenticated`).toContain(res.status());
     });
   }
-
-  // SEC-W0-13/14 (RESOLVED): /api/analytics/summary now calls getSession and derives schoolId from
-  // the session (PR #242). The forged-x-school-id class is additionally closed at the middleware
-  // layer (PR #245 — strips client-supplied x-school-id/x-user-role on unauthenticated /api requests).
-  // Both merged and deployed to production, so this is now an active regression guard.
-  test('unauthenticated GET /api/analytics/summary is rejected (401/403) [SEC-W0-13]', async ({ request }) => {
-    const res = await request.get('/api/analytics/summary');
-    expect([401, 403], `/api/analytics/summary returned ${res.status()} unauthenticated`).toContain(res.status());
-  });
 });
