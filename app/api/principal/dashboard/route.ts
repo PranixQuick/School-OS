@@ -9,7 +9,9 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   let schoolId: string;
   try {
-    schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    schoolId = session.schoolId;
   } catch {
     return NextResponse.json({ error: 'No session' }, { status: 401 });
   }
