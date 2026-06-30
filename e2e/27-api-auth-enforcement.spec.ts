@@ -4,9 +4,12 @@ import { test, expect } from '@playwright/test';
 // proven in 09-role-routing and certifies the SEC-W0-14 route guards (#248-#252): protected
 // endpoints must reject unauthenticated requests with 401/403 — never 200 with data. The
 // `request` fixture sends no session cookie, so every call here is unauthenticated.
+//
+// NOTE: list only CANONICAL collection endpoints that exist as app/api/**/route.ts. The students
+// collection API is /api/students (there is no /api/admin/students/route.ts — only subroutes
+// /api/admin/students/[id], /bulk-enable-login, /lifecycle).
 const PROTECTED_ENDPOINTS = [
   '/api/students',
-  '/api/admin/students',
   '/api/admin/fees',
   '/api/admin/staff',
   '/api/admin/audit-log',
