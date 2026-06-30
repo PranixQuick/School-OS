@@ -11,7 +11,9 @@ const UPGRADE_MESSAGES: Record<string, string> = {
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const counter = req.nextUrl.searchParams.get('counter') ?? '';
 
     const { data, error } = await supabaseAdmin
@@ -44,7 +46,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    const schoolId = session.schoolId;
     const { counter, amount = 1 } = await req.json() as { counter: string; amount?: number };
 
     const { data } = await supabaseAdmin
