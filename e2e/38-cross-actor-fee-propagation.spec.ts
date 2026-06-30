@@ -1,33 +1,33 @@
 import { test, expect } from '@playwright/test';
-import { loginAsOwner, loginAsParent } from './helpers/auth';
+import { loginAsOwner, E2E_PARENT_PHONE, E2E_PARENT_PIN } from './helpers/auth';
 
 // EXEC-02 Phase 3 — first CROSS-ACTOR propagation cert: a write by one stakeholder (school owner)
 // becomes visible to a DIFFERENT stakeholder on a different auth domain (parent), and a delete by
 // the owner makes it vanish from the parent's app — the guarantee documented in
 // app/api/parent/fees/route.ts ("a deleted/cancelled fee must vanish from the parent's app").
 //
-// Two design points learned the hard way:
-//  1) TENANT: in CI, loginAsAdmin (TEST_ADMIN_EMAIL) is an admin of the "E2E Test School" tenant —
+// Design notes (each learned from a CI failure):
+//  1) TENANT: loginAsAdmin in CI (TEST_ADMIN_EMAIL) is an admin of the "E2E Test School" tenant —
 //     NOT the Suchitra sandbox (…0001) where the seeded parent/student live. loginAsOwner resolves
-//     to demo.owner@suchitra (verified owner on …0001), the SAME tenant as the parent, so the
-//     cross-tenant guard permits the fee assignment.
-//  2) ONE PAGE: both sessions live on a single page via independent cookies — parent_session
-//     (PIN) and school_session (x-e2e-bypass). A manually-created browser context does NOT inherit
-//     the Playwright config (baseURL etc.) and broke parent auth, so we use the default page, which
-//     is the proven path (see spec 32). Parent reads use parent_session; owner writes use
-//     school_session. Side-effect-free: fee create/delete do not dispatch SMS/WhatsApp.
+//     to demo.owner@suchitra (verified owner on …0001), the SAME tenant as the parent.
+//  2) PARENT READS BY BODY: the seeded parent has a legacy `parents` row but no `parent_students`
+//     row, so /api/parent/dashboard 404s for it (DASH-01 finding). We therefore use phone+PIN
+//     bodies against /api/parent/student (hash-aware, single-child safe) and /api/parent/fees
+//     (resolveParent falls back to the body when there's no parent_session cookie). No cookies, so
+//     the owner's school_session never interferes. Side-effect-free: fee create/delete do not
+//     dispatch SMS/WhatsApp.
+
+const PARENT = { phone: E2E_PARENT_PHONE, pin: E2E_PARENT_PIN };
 
 test.describe('Cross-actor fee propagation (EXEC-02 / Phase 3)', () => {
   test('owner assigns a fee → parent sees it → owner deletes → it vanishes for the parent', async ({ page }) => {
-    // ── Parent actor (parent_session via PIN) — discover the child id. ──
-    await loginAsParent(page);
-    const dashRes = await page.request.get('/api/parent/dashboard');
-    expect(dashRes.ok(), `parent/dashboard failed (${dashRes.status()})`).toBeTruthy();
-    const dash = await dashRes.json();
-    const studentId: string | undefined = dash?.active_child_id ?? dash?.children?.[0]?.id;
+    // ── Discover the seeded child via parent/student (phone+PIN body). ──
+    const stuRes = await page.request.post('/api/parent/student', { data: PARENT });
+    expect(stuRes.ok(), `parent/student failed (${stuRes.status()}: ${await stuRes.text()})`).toBeTruthy();
+    const studentId: string | undefined = (await stuRes.json())?.student?.id;
     expect(studentId, 'could not resolve seeded parent student id').toBeTruthy();
 
-    // ── Owner actor (school_session via bypass, SAME Suchitra tenant). parent_session persists. ──
+    // ── Owner actor (school_session via bypass, SAME Suchitra tenant). ──
     await loginAsOwner(page);
 
     const marker = `E2E_FEE_${Date.now()}`;
@@ -39,8 +39,8 @@ test.describe('Cross-actor fee propagation (EXEC-02 / Phase 3)', () => {
     const feeId: string | undefined = created?.fee?.id ?? created?.data?.id ?? created?.id;
     expect(feeId, 'owner fee create did not return an id').toBeTruthy();
 
-    // PROPAGATION (cross-actor): the parent sees the owner-created fee (parent_session cookie).
-    const before = await page.request.get('/api/parent/fees');
+    // PROPAGATION (cross-actor): the parent sees the owner-created fee (phone+PIN body).
+    const before = await page.request.post('/api/parent/fees', { data: PARENT });
     expect(before.ok(), `parent/fees read failed (${before.status()})`).toBeTruthy();
     const beforeFees = (await before.json())?.fees ?? [];
     expect(
@@ -55,7 +55,7 @@ test.describe('Cross-actor fee propagation (EXEC-02 / Phase 3)', () => {
     expect(del.ok(), `owner fee delete failed (${del.status()}: ${await del.text()})`).toBeTruthy();
 
     // GUARANTEE: the deleted fee vanishes from the parent's app (is_deleted filter).
-    const after = await page.request.get('/api/parent/fees');
+    const after = await page.request.post('/api/parent/fees', { data: PARENT });
     expect(after.ok(), `parent/fees re-read failed (${after.status()})`).toBeTruthy();
     const afterFees = (await after.json())?.fees ?? [];
     expect(
