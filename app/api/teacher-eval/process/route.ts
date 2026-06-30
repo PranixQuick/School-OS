@@ -69,7 +69,9 @@ ${transcript.slice(0, 3000)}${transcript.length > 3000 ? '\n[truncated]' : ''}`;
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  const schoolId = session.schoolId;
   let recordingId: string | null = null;
 
   // ── Graceful 503 guard: check OPENAI_API_KEY BEFORE any DB writes ──────────
