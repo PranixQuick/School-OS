@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 const UPGRADE_MESSAGES: Record<string, string> = {
   reports_generated: 'Report card limit reached. Upgrade to Pro for 200 reports/month.',
