@@ -1,4 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+
+try {
+  const envPath = path.resolve(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const [key, ...parts] = trimmed.split('=');
+        const val = parts.join('=').trim().replace(/^['"]|['"]$/g, '');
+        process.env[key.trim()] = val;
+      }
+    }
+  }
+} catch (e) {
+  console.error('Failed to load .env file', e);
+}
 
 export default defineConfig({
   testDir: './e2e',
