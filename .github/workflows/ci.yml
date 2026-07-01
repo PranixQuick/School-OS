@@ -50,14 +50,18 @@ jobs:
         if: github.event_name == 'pull_request'
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key_at_least_20_chars' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key_at_least_20_chars' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'placeholder_session_secret_at_least_32_chars' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder-for-ci-build-only' }}
+          WHATSAPP_PROVIDER: twilio
+          TWILIO_ACCOUNT_SID: placeholder_twilio_account_sid
+          TWILIO_AUTH_TOKEN: placeholder_twilio_auth_token
+          TWILIO_WHATSAPP_FROM: whatsapp:+1234567890
 
       - name: Run E2E tests against local build (PR validation only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && secrets.NEXT_PUBLIC_SUPABASE_URL != ''
         run: |
           npm run start &
           npx wait-on http://localhost:3000 --timeout 60000
