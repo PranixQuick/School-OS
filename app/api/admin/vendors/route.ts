@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   const vendorType = req.nextUrl.searchParams.get('type');
   let q = supabaseAdmin.from('vendors').select('*')
-    .eq('institution_id', school.institution_id).eq('is_active', true).order('name');
+    .eq('institution_id', school.institution_id).order('name');
   if (vendorType) q = q.eq('vendor_type', vendorType);
 
   const { data, error } = await q;
