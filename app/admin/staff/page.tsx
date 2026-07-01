@@ -9,6 +9,7 @@ interface StaffMember {
   id: string; name: string; role: string; email?: string; phone?: string;
   subject?: string; is_active: boolean; joined_at?: string; designation?: string;
   invite_status?: string; auth_verified?: boolean; last_login?: string; first_login_at?: string;
+  relieved_at?: string; notes?: string; employee_code?: string; document_url?: string;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -42,7 +43,11 @@ export default function AdminStaffPage() {
   const [bulkInviting, setBulkInviting]  = useState(false);
   const [invitingId, setInvitingId]      = useState<string | null>(null);
   const [bulkResult, setBulkResult]      = useState<string>('');
-  const [form, setForm] = useState({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '' });
+  const [editId, setEditId]              = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '',
+    joined_at: '', relieved_at: '', notes: '', employee_code: '', document_url: ''
+  });
 
   const loadStaff = useCallback(async () => {
     setLoading(true);
@@ -55,18 +60,26 @@ export default function AdminStaffPage() {
 
   useEffect(() => { void loadStaff(); }, [loadStaff]);
 
-  async function addStaff() {
+  async function saveStaff() {
     if (!form.name || !form.email) return;
     setSaving(true);
+    const method = editId ? 'PATCH' : 'POST';
+    const body = editId ? { id: editId, ...form } : form;
     try {
-      await fetch('/api/admin/staff', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+      const res = await fetch('/api/admin/staff', {
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
-      setForm({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '' });
-      setShowAdd(false);
-      await loadStaff();
-    } catch { /* ignore */ }
+      if (res.ok) {
+        setForm({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '', joined_at: '', relieved_at: '', notes: '', employee_code: '', document_url: '' });
+        setShowAdd(false);
+        setEditId(null);
+        await loadStaff();
+      } else {
+        const d = await res.json() as { error?: string };
+        alert(d.error || 'Failed to save staff member');
+      }
+    } catch { alert('Network error'); }
     setSaving(false);
   }
 
@@ -170,23 +183,30 @@ export default function AdminStaffPage() {
         </select>
       </div>
 
-      {/* Add form */}
+      {/* Add / Edit form */}
       {showAdd && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{T('ov_add_new_staff', lang)}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+            {editId ? 'Edit Staff Member' : T('ov_add_new_staff', lang)}
+          </div>
           <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#92400E' }}>
             <strong>{T('ov_email_must_correct', lang)}</strong> — {T('ov_email_warning_detail', lang)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { key: 'name',        label: 'ov_full_name',   placeholder: 'Ravi Kumar' },
-              { key: 'email',       label: 'ov_email',       placeholder: 'ravi@school.edu.in' },
-              { key: 'phone',       label: 'ov_phone',       placeholder: '+91 98765 43210' },
-              { key: 'designation', label: 'ov_designation', placeholder: 'Class Teacher' },
+              { key: 'name',          label: 'ov_full_name',     placeholder: 'Ravi Kumar' },
+              { key: 'email',         label: 'ov_email',         placeholder: 'ravi@school.edu.in' },
+              { key: 'phone',         label: 'ov_phone',         placeholder: '+91 98765 43210' },
+              { key: 'designation',   label: 'ov_designation',   placeholder: 'Class Teacher' },
+              { key: 'employee_code', label: 'Employee Code',   placeholder: 'EMP-001' },
+              { key: 'document_url',  label: 'Document URL (Experience Letter)', placeholder: 'https://...' },
+              { key: 'joined_at',     label: 'Joined Date',      placeholder: '', type: 'date' },
+              { key: 'relieved_at',   label: 'Relieved Date',    placeholder: '', type: 'date' },
             ].map(f => (
               <div key={f.key}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{T(f.label, lang)}</label>
                 <input
+                  type={f.type ?? 'text'}
                   value={form[f.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [f.key]: f.key === 'email' ? e.target.value.replace(/\s+/g,'').toLowerCase() : e.target.value })}
                   placeholder={f.placeholder}
@@ -211,11 +231,17 @@ export default function AdminStaffPage() {
                   style={{ width: '100%', height: 34, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
             )}
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notes</label>
+              <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+                placeholder="Additional notes..."
+                style={{ width: '100%', height: 34, fontSize: 13, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 10px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
-            <button onClick={() => setShowAdd(false)} style={{ padding: '7px 14px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{T('ov_cancel', lang)}</button>
-            <button onClick={() => void addStaff()} disabled={saving} style={{ padding: '7px 14px', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {saving ? T('ov_adding', lang) : T('ov_add_staff', lang)}
+            <button onClick={() => { setShowAdd(false); setEditId(null); setForm({ name: '', email: '', role: 'teacher', subject: '', phone: '', designation: '', joined_at: '', relieved_at: '', notes: '', employee_code: '', document_url: '' }); }} style={{ padding: '7px 14px', background: '#F3F4F6', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{T('ov_cancel', lang)}</button>
+            <button onClick={() => void saveStaff()} disabled={saving} style={{ padding: '7px 14px', background: saving ? '#9CA3AF' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              {saving ? T('ov_adding', lang) : editId ? 'Save Changes' : T('ov_add_staff', lang)}
             </button>
           </div>
         </div>
@@ -274,6 +300,16 @@ export default function AdminStaffPage() {
                       {invitingId === s.id ? T('ov_sending', lang) : inviteStatus === 'failed' ? `↩ ${T('ov_resend', lang)}` : `📧 ${T('ov_invite', lang)}`}
                     </button>
                   )}
+                  <button onClick={() => {
+                    setEditId(s.id);
+                    setForm({
+                      name: s.name, email: s.email ?? '', role: s.role, subject: s.subject ?? '', phone: s.phone ?? '', designation: s.designation ?? '',
+                      joined_at: s.joined_at ?? '', relieved_at: s.relieved_at ?? '', notes: s.notes ?? '', employee_code: s.employee_code ?? '', document_url: s.document_url ?? ''
+                    });
+                    setShowAdd(true);
+                  }} style={{ background: 'none', border: 'none', color: '#4F46E5', fontSize: 11, cursor: 'pointer', padding: '2px 0', fontFamily: 'inherit', fontWeight: 700 }}>
+                    Edit
+                  </button>
                   <button onClick={() => void deactivate(s.id)}
                     style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 11, cursor: 'pointer', padding: '2px 0', fontFamily: 'inherit' }}>
                     {T('ov_remove', lang)}
@@ -296,10 +332,36 @@ export default function AdminStaffPage() {
             { label: 'Role', value: roleLabel(detail.role) },
             { label: 'Email', value: detail.email || '—', href: detail.email ? `mailto:${detail.email}` : undefined, mono: true },
             { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
+            { label: 'Employee Code', value: detail.employee_code || '—' },
             { label: 'Subject', value: detail.subject || '—' },
             { label: 'Designation', value: detail.designation || '—' },
+            { label: 'Joined Date', value: detail.joined_at ? new Date(detail.joined_at).toLocaleDateString('en-IN') : '—' },
+            { label: 'Relieved Date', value: detail.relieved_at ? new Date(detail.relieved_at).toLocaleDateString('en-IN') : '—' },
             { label: 'First login', value: detail.first_login_at ? new Date(detail.first_login_at).toLocaleDateString('en-IN') : '—' },
+            { label: 'Document', value: detail.document_url ? 'View Experience Letter / Resume 🔗' : '—', href: detail.document_url || undefined },
+            { label: 'Notes', value: detail.notes || '—' },
           ]}
+          footer={
+            detail.is_active && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => {
+                  setEditId(detail.id);
+                  setForm({
+                    name: detail.name, email: detail.email ?? '', role: detail.role, subject: detail.subject ?? '', phone: detail.phone ?? '', designation: detail.designation ?? '',
+                    joined_at: detail.joined_at ?? '', relieved_at: detail.relieved_at ?? '', notes: detail.notes ?? '', employee_code: detail.employee_code ?? '', document_url: detail.document_url ?? ''
+                  });
+                  setShowAdd(true);
+                  setDetail(null);
+                }} style={{ padding: '6px 12px', fontSize: 12, background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+                  Edit Details
+                </button>
+                <button onClick={() => { void deactivate(detail.id); setDetail(null); }}
+                  style={{ padding: '6px 12px', fontSize: 12, background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+                  Remove Staff
+                </button>
+              </div>
+            )
+          }
         />
       )}
     </Layout>

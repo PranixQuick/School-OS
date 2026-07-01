@@ -12,6 +12,7 @@ interface Student {
   status: string; is_active: boolean; batch_id: string | null;
   transfer_school: string | null; transfer_date: string | null;
   graduation_year: number | null; created_at: string;
+  document_url: string | null;
 }
 
 const STATUS_BADGE: Record<string, [string, string]> = {
@@ -33,7 +34,7 @@ interface ModalProps {
 
 function ActionModal({ student, action, acting, lang, onConfirm, onClose }: ModalProps) {
   const [fields, setFields] = useState<Record<string, string>>(() => {
-    if (action === 'edit') return { name: student.name, class: student.class ?? '', section: student.section ?? '', phone_parent: student.phone_parent ?? '', parent_name: student.parent_name ?? '' } as Record<string, string>;
+    if (action === 'edit') return { name: student.name, class: student.class ?? '', section: student.section ?? '', phone_parent: student.phone_parent ?? '', parent_name: student.parent_name ?? '', document_url: student.document_url ?? '' } as Record<string, string>;
     if (action === 'graduate') return { graduation_year: String(new Date().getFullYear()) } as Record<string, string>;
     return {} as Record<string, string>;
   });
@@ -43,7 +44,7 @@ function ActionModal({ student, action, acting, lang, onConfirm, onClose }: Moda
     graduate:  { titleKey: 'graduate_action', color: '#065F46', fields: [{ labelKey: 'graduation_year_label', key: 'graduation_year', type: 'number' }] },
     withdraw:  { titleKey: 'withdraw_action', color: '#92400E' },
     archive:   { titleKey: 'archive_action',  color: '#6B7280' },
-    edit:      { titleKey: 'edit',            color: '#4F46E5', fields: [{ labelKey: 'name', key: 'name' }, { labelKey: 'class_', key: 'class' }, { labelKey: 'section', key: 'section' }, { labelKey: 'parent_phone', key: 'phone_parent' }, { labelKey: 'parent_name_label', key: 'parent_name' }] },
+    edit:      { titleKey: 'edit',            color: '#4F46E5', fields: [{ labelKey: 'name', key: 'name' }, { labelKey: 'class_', key: 'class' }, { labelKey: 'section', key: 'section' }, { labelKey: 'parent_phone', key: 'phone_parent' }, { labelKey: 'parent_name_label', key: 'parent_name' }, { labelKey: 'Document_Attachment_URL', key: 'document_url' }] },
   };
   const cfg = configs[action];
 
@@ -121,7 +122,7 @@ export default function StudentsPage() {
   // Extended form: includes gender + socioeconomic_category for DISE compliance
   const [addForm, setAddForm] = useState({
     name: '', class: '', section: '', phone_parent: '', parent_name: '',
-    gender: '', socioeconomic_category: '',
+    gender: '', socioeconomic_category: '', document_url: '',
   });
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
@@ -186,12 +187,13 @@ export default function StudentsPage() {
     if (addForm.parent_name)           body.parent_name           = addForm.parent_name;
     if (addForm.gender)                body.gender                = addForm.gender;
     if (addForm.socioeconomic_category) body.socioeconomic_category = addForm.socioeconomic_category;
+    if (addForm.document_url)          body.document_url          = addForm.document_url;
     const r = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json() as { error?: string }; setAdding(false);
     if (!r.ok) { setAddError(d.error ?? T('error', lang as never)); return; }
     showToast(T('students', lang as never) + ' ' + T('saved', lang as never));
     setShowAdd(false);
-    setAddForm({ name: '', class: '', section: '', phone_parent: '', parent_name: '', gender: '', socioeconomic_category: '' });
+    setAddForm({ name: '', class: '', section: '', phone_parent: '', parent_name: '', gender: '', socioeconomic_category: '', document_url: '' });
     void load();
   }
 
@@ -375,6 +377,14 @@ export default function StudentsPage() {
                 {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
+            {/* Document URL */}
+            <div>
+              <label style={LBL_STYLE}>Document URL (Aadhaar/Certificate)</label>
+              <input value={addForm.document_url}
+                onChange={e => setAddForm(prev => ({ ...prev, document_url: e.target.value }))}
+                placeholder="https://..."
+                style={INP_STYLE} />
+            </div>
           </div>
           {addError && <div style={{ color: '#991B1B', fontSize: 12, marginTop: 8 }}>{addError}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -457,7 +467,26 @@ export default function StudentsPage() {
             { label: 'Parent', value: detail.parent_name || '—' },
             { label: 'Parent phone', value: detail.phone_parent || '—', href: detail.phone_parent ? `tel:${detail.phone_parent}` : undefined },
             { label: 'Status', value: detail.status || '—' },
+            { label: 'Document', value: detail.document_url ? 'View Attachment 🔗' : '—', href: detail.document_url || undefined },
           ]}
+          footer={
+            detail.status === 'active' && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {([
+                  ['edit', 'edit', '#F3F4F6', '#374151', '#E5E7EB'],
+                  ['transfer_action', 'transfer', '#EFF6FF', '#1E40AF', '#BFDBFE'],
+                  ['graduate_action', 'graduate', '#EDE9FE', '#5B21B6', '#DDD6FE'],
+                  ['withdraw_action', 'withdraw', '#FEF9C3', '#92400E', '#FDE68A'],
+                  ['archive_action', 'archive', '#F9FAFB', '#6B7280', '#E5E7EB'],
+                ] as [string, string, string, string, string][]).map(([labelKey, act, bg2, fg2, border]) => (
+                  <button key={act} onClick={() => { setSelected(detail); setActionModal(act as typeof actionModal); setDetail(null); }}
+                    style={{ padding: '5px 10px', fontSize: 12, background: bg2, border: `1px solid ${border}`, borderRadius: 6, cursor: 'pointer', color: fg2 }}>
+                    {T(labelKey, lang as never)}
+                  </button>
+                ))}
+              </div>
+            )
+          }
         />
       )}
     </Layout>
