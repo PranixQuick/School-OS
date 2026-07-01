@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import EntityDetailCard, { DetailField } from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
@@ -15,6 +15,11 @@ export default function AdminParentsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const [detail, setDetail] = useState<Parent | null>(null);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+
+  const classesList = useMemo(() => Array.from(new Set(parents.map(p => p.class).filter(Boolean))).sort(), [parents]);
+  const sectionsList = useMemo(() => Array.from(new Set(parents.filter(p => !selectedClass || p.class === selectedClass).map(p => p.section).filter(Boolean))).sort(), [parents, selectedClass]);
 
   useEffect(() => {
     fetch('/api/admin/parents').then(r => r.ok ? r.json() : { parents: [] })
@@ -22,10 +27,13 @@ export default function AdminParentsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const visible = parents.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search) || (p.student_name ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  const visible = parents.filter(p => {
+    if (selectedClass && p.class !== selectedClass) return false;
+    if (selectedSection && p.section !== selectedSection) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
+        !p.phone.includes(search) && !(p.student_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   const detailFields: DetailField[] = detail ? [
     { label: 'Phone', value: detail.phone || '—', href: detail.phone ? `tel:${detail.phone}` : undefined },
@@ -72,9 +80,23 @@ export default function AdminParentsPage() {
 
   return (
     <Layout title={T('parents', lang)} subtitle={`${parents.length} registered parents`}>
-      <input value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="Search by name, phone, or student…" className="input"
-        style={{ width: '100%', height: 36, fontSize: 13, marginBottom: 16, boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, phone, or student…" className="input"
+          style={{ flex: 2, minWidth: 180, height: 38, fontSize: 13, boxSizing: 'border-box', border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px' }} />
+        
+        <select value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 120 }}>
+          <option value="">All Classes</option>
+          {classesList.map(c => <option key={c} value={c ?? ''}>Class {c}</option>)}
+        </select>
+
+        <select value={selectedSection} onChange={e => setSelectedSection(e.target.value)}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 100 }}>
+          <option value="">All Sections</option>
+          {sectionsList.map(s => <option key={s} value={s ?? ''}>Section {s}</option>)}
+        </select>
+      </div>
       {loading ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading…</div>
       ) : visible.length === 0 ? (

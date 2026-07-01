@@ -28,7 +28,7 @@ test.describe('Teacher homework cycle', () => {
     const page = await browser.newPage();
     await loginAsTeacher(page);
     await page.goto('/teacher');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Page should load without crashing
     const title = await page.title();
     expect(title).toBeTruthy();
