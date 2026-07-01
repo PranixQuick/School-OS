@@ -13,7 +13,7 @@ import { loginAsParent } from './helpers/auth';
 // PR's code. This regression therefore can only pass AFTER the dashboard fix in this PR is merged to
 // main and deployed. Kept as .skip so the fix PR is green; remove .skip in a one-line follow-up once
 // the fix is live, to lock in permanent regression protection.
-test.describe.skip('Parent dashboard — single-child fallback (DASH-01)', () => {
+test.describe('Parent dashboard — single-child fallback (DASH-01)', () => {
   test('legacy single-child parent loads dashboard (200, child present)', async ({ page }) => {
     await loginAsParent(page);
     const res = await page.request.get('/api/parent/dashboard');
