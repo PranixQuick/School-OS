@@ -77,7 +77,7 @@ async function getRecipients(notification: NotificationRow): Promise<{
       .select('email')
       .eq('school_id', notification.school_id)
       .eq('is_active', true)
-      .in('role', ['owner', 'admin']);
+      .in('role', ['owner', 'admin', 'admin_staff', 'accountant', 'principal']);
 
     for (const user of data ?? []) {
       if (user.email) emails.push(user.email);
