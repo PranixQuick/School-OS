@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import EntityDetailCard from '@/components/EntityDetailCard';
 import { T } from '@/lib/i18n';
@@ -130,6 +130,19 @@ export default function StudentsPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkPreview, setBulkPreview] = useState<{ willEnable: number; skippedExisting: number } | null>(null);
   const [bulkCommitting, setBulkCommitting] = useState(false);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+
+  const classesList = useMemo(() => Array.from(new Set(students.map(s => s.class).filter(Boolean))).sort(), [students]);
+  const sectionsList = useMemo(() => Array.from(new Set(students.filter(s => !selectedClass || s.class === selectedClass).map(s => s.section).filter(Boolean))).sort(), [students, selectedClass]);
+
+  const visibleStudents = useMemo(() => {
+    return students.filter(s => {
+      if (selectedClass && s.class !== selectedClass) return false;
+      if (selectedSection && s.section !== selectedSection) return false;
+      return true;
+    });
+  }, [students, selectedClass, selectedSection]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,7 +154,12 @@ export default function StudentsPage() {
     setLoading(false);
   }, [statusFilter, search]);
 
-  useEffect(() => { void load(); }, [statusFilter]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      void load();
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [statusFilter, search, load]);
 
   function showToast(msg: string, type: 'ok' | 'err' = 'ok') {
     setToast(msg); setToastType(type); setTimeout(() => setToast(''), 3500);
@@ -293,15 +311,28 @@ export default function StudentsPage() {
       </div>
 
       {/* Search + Add */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && void load()}
           placeholder={T('search_students', lang as never)}
-          style={{ flex: 1, minWidth: 180, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14 }} />
-        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ flex: 2, minWidth: 180, height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px', fontSize: 14 }} />
+        
+        <select value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 120 }}>
+          <option value="">All Classes</option>
+          {classesList.map(c => <option key={c} value={c ?? ''}>Class {c}</option>)}
+        </select>
+
+        <select value={selectedSection} onChange={e => setSelectedSection(e.target.value)}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 100 }}>
+          <option value="">All Sections</option>
+          {sectionsList.map(s => <option key={s} value={s ?? ''}>Section {s}</option>)}
+        </select>
+
+        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', height: 38, background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           {showAdd ? T('cancel', lang as never) : '+ ' + T('add_student', lang as never)}
         </button>
         <button onClick={() => void bulkEnableLogin()} disabled={bulkBusy}
-          style={{ padding: '8px 16px', background: '#fff', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: bulkBusy ? 'default' : 'pointer', opacity: bulkBusy ? 0.6 : 1 }}>
+          style={{ padding: '8px 16px', height: 38, background: '#fff', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: bulkBusy ? 'default' : 'pointer', opacity: bulkBusy ? 0.6 : 1 }}>
           {bulkBusy ? T('loading', lang as never) : 'Bulk Enable Login'}
         </button>
       </div>
@@ -358,8 +389,8 @@ export default function StudentsPage() {
       {/* Student list */}
       {loading ? <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>{T('loading', lang as never)}</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {students.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: '#9CA3AF' }}>{T('no_students_found', lang as never)}</div>}
-          {students.map(s => {
+          {visibleStudents.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: '#9CA3AF' }}>{T('no_students_found', lang as never)}</div>}
+          {visibleStudents.map(s => {
             const [bg, fg] = STATUS_BADGE[s.status] ?? ['#F3F4F6', '#6B7280'];
             return (
               <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 16px' }}>

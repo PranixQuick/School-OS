@@ -63,6 +63,8 @@ export default function FeesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'paid'>('all');
   const [search, setSearch] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
   const [payError, setPayError] = useState('');
   const [stats, setStats] = useState({ total: 0, paid: 0, pending: 0, overdue: 0, collected: 0, outstanding: 0 });
 
@@ -180,6 +182,9 @@ export default function FeesPage() {
     document.addEventListener('visibilitychange', onVis);
     return () => { window.clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   }, [loadActivity]);
+
+  const classesList = useMemo(() => Array.from(new Set(fees.map(f => f.students?.class).filter(Boolean))).sort(), [fees]);
+  const sectionsList = useMemo(() => Array.from(new Set(fees.filter(f => !selectedClass || f.students?.class === selectedClass).map(f => f.students?.section).filter(Boolean))).sort(), [fees, selectedClass]);
 
   // distinct classes / sections / institutions derived from roster
   const classes = useMemo(() => Array.from(new Set(students.map(s => s.class).filter(Boolean))).sort(), [students]);
@@ -393,6 +398,8 @@ export default function FeesPage() {
 
   const visible = fees.filter(f => {
     if (filter !== 'all' && f.status !== filter) return false;
+    if (selectedClass && f.students?.class !== selectedClass) return false;
+    if (selectedSection && f.students?.section !== selectedSection) return false;
     if (search && !(f.students?.name ?? '').toLowerCase().includes(search.toLowerCase()) &&
       !(f.students?.class ?? '').includes(search)) return false;
     return true;
@@ -463,10 +470,22 @@ export default function FeesPage() {
       </div>
 
       {/* Filter + search */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search student or class…" className="input"
-          style={{ flex: 1, minWidth: 160, height: 36, fontSize: 13 }} />
+          style={{ flex: 2, minWidth: 160, height: 38, fontSize: 13, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 12px' }} />
+
+        <select value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 120 }}>
+          <option value="">All Classes</option>
+          {classesList.map(c => <option key={c} value={c ?? ''}>Class {c}</option>)}
+        </select>
+
+        <select value={selectedSection} onChange={e => setSelectedSection(e.target.value)}
+          style={{ height: 38, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 8px', fontSize: 13, background: '#fff', minWidth: 100 }}>
+          <option value="">All Sections</option>
+          {sectionsList.map(s => <option key={s} value={s ?? ''}>Section {s}</option>)}
+        </select>
         {(['all', 'pending', 'overdue', 'paid'] as const).map(s => (
           <button key={s} onClick={() => setFilter(s)}
             style={{

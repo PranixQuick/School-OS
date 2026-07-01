@@ -6,7 +6,9 @@ import { useLang } from '@/lib/useLang';
 
 interface Structure {
   id: string; staff_id: string; gross_salary: number; basic_salary: number;
-  hra: number; da: number; pf_employee_pct: number; tds_placeholder: number;
+  hra?: number; da?: number; pf_employee_pct?: number; pf_employer_pct?: number;
+  esi_applicable?: boolean; tds_placeholder?: number; other_deduction?: number;
+  conveyance?: number; medical_allowance?: number; other_allowance?: number;
   staff: { id: string; name: string; designation: string; department: string };
 }
 interface Run {
@@ -19,6 +21,7 @@ interface Payslip {
   id: string; staff_id: string; gross_salary: number; basic_salary: number;
   hra: number; da: number; pf_employee: number; tds: number;
   total_deductions: number; net_salary: number; payment_status: string;
+  staff?: { id: string; name: string; designation: string; department: string };
 }
 
 const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -213,6 +216,9 @@ export default function PayrollPage() {
                 {selectedRun.status.toUpperCase()}
               </div>
             </div>
+            <div style={{ fontSize: 12, color: '#6B7280', background: '#F3F4F6', borderRadius: 8, padding: '10px 12px', marginBottom: 16, lineHeight: 1.5 }}>
+              💡 <strong>Salary Disbursement Workflow</strong>: Export the payroll CSV and upload it to your bank&apos;s corporate bulk payment portal to execute payouts. Once complete, click <strong>Mark as Paid</strong> to update the database ledger.
+            </div>
             {runPayslips.length > 0 && (
               <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid #F3F4F6', fontSize: 13, fontWeight: 700, color: '#111827' }}>
@@ -221,11 +227,11 @@ export default function PayrollPage() {
                 {runPayslips.map((slip, i) => (
                   <div key={slip.id} style={{ padding: '10px 14px', borderBottom: i < runPayslips.length - 1 ? '1px solid #F9FAFB' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
-                        ₹{Number(slip.gross_salary).toLocaleString('en-IN')} gross
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                        {slip.staff?.name ?? 'Unknown Staff'}
                       </div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>
-                        Basic ₹{Number(slip.basic_salary).toLocaleString('en-IN')} · PF ₹{Number(slip.pf_employee).toLocaleString('en-IN')} · TDS ₹{Number(slip.tds).toLocaleString('en-IN')}
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        ₹{Number(slip.gross_salary).toLocaleString('en-IN')} gross · Basic ₹{Number(slip.basic_salary).toLocaleString('en-IN')} · PF ₹{Number(slip.pf_employee).toLocaleString('en-IN')} · TDS ₹{Number(slip.tds).toLocaleString('en-IN')}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -315,7 +321,26 @@ export default function PayrollPage() {
             ) : (
               <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
                 {structures.map((s, i) => (
-                  <div key={s.id} style={{ padding: '12px 16px', borderBottom: i < structures.length - 1 ? '1px solid #F3F4F6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div key={s.id} onClick={() => {
+                    setStructForm({
+                      staff_id: s.staff_id,
+                      basic_salary: String(s.basic_salary),
+                      hra: String(s.hra || ''),
+                      da: String(s.da || ''),
+                      conveyance: String(s.conveyance || ''),
+                      medical_allowance: String(s.medical_allowance || ''),
+                      other_allowance: String(s.other_allowance || ''),
+                      pf_employee_pct: String(s.pf_employee_pct || 12),
+                      pf_employer_pct: String(s.pf_employer_pct || 12),
+                      esi_applicable: s.esi_applicable || false,
+                      tds_placeholder: String(s.tds_placeholder || ''),
+                      other_deduction: String(s.other_deduction || ''),
+                    });
+                    setTab('new_structure');
+                  }}
+                  style={{ padding: '12px 16px', borderBottom: i < structures.length - 1 ? '1px solid #F3F4F6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, cursor: 'pointer', transition: 'background 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{s.staff.name}</div>
                       <div style={{ fontSize: 12, color: '#6B7280' }}>{s.staff.designation} · {s.staff.department}</div>

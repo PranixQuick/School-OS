@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const [runRes, slipsRes] = await Promise.all([
     supabaseAdmin.from('payroll_runs').select('*').eq('id', id).eq('school_id', ctx.schoolId).single(),
     supabaseAdmin.from('payroll_payslips')
-      .select('id, staff_id, gross_salary, total_deductions, net_salary, payment_status, pf_employee, tds, basic_salary, hra, da')
+      .select('id, staff_id, gross_salary, total_deductions, net_salary, payment_status, pf_employee, tds, basic_salary, hra, da, staff:staff_id(id, name, designation, department)')
       .eq('run_id', id).eq('school_id', ctx.schoolId),
   ]);
 
