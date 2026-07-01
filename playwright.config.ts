@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: 1,
   use: {
-    baseURL: process.env.TEST_BASE_URL || 'https://www.schoolos.in',
+    baseURL: process.env.TEST_BASE_URL || 'https://www.edprosys.com',
     trace: 'on',
     video: 'on',
     screenshot: 'on',
