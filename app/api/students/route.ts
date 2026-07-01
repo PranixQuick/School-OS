@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     .select(`
       id, name, class, section, roll_number, admission_number,
       phone_parent, parent_name, date_of_birth, is_active, created_at, school_id,
-      gender, socioeconomic_category, rte_category, aadhaar_number
+      gender, socioeconomic_category, rte_category, aadhaar_number, document_url
     `)
     .eq('school_id', schoolId)
     .order('class', { ascending: true })
@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
     name: string; class: string; section?: string;
     roll_number?: string; admission_number?: string;
     phone_parent?: string; parent_name?: string; date_of_birth?: string;
-    // Government fields — optional for all, prominently shown in govt_high_school + govt_primary modes
     gender?: string;                 // 'M' | 'F' | 'O'
     socioeconomic_category?: string; // 'OC' | 'BC-A' | 'BC-B' | 'BC-C' | 'BC-D' | 'SC' | 'ST' | 'Minority'
     rte_category?: string;           // 'rte' | 'regular' | 'ssa_transfer'
     aadhaar_number?: string;
+    document_url?: string;
   } | null;
 
   if (!body || !body.name || !body.class) {
@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     socioeconomic_category:  body.socioeconomic_category ?? null,
     rte_category:            body.rte_category ?? null,
     aadhaar_number:          body.aadhaar_number ?? null,
+    document_url:            body.document_url ?? null,
     is_active:               true,
     data_source:             'manual',
   }).select().single();
@@ -130,6 +131,7 @@ export async function PATCH(req: NextRequest) {
     phone_parent?: string; parent_name?: string; date_of_birth?: string;
     is_active?: boolean;
     gender?: string; socioeconomic_category?: string; rte_category?: string; aadhaar_number?: string;
+    document_url?: string;
   } | null;
 
   if (!body?.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
@@ -148,6 +150,7 @@ export async function PATCH(req: NextRequest) {
     ...(body.socioeconomic_category !== undefined && { socioeconomic_category: body.socioeconomic_category }),
     ...(body.rte_category           !== undefined && { rte_category:           body.rte_category }),
     ...(body.aadhaar_number         !== undefined && { aadhaar_number:         body.aadhaar_number }),
+    ...(body.document_url           !== undefined && { document_url:           body.document_url }),
   }).eq('id', body.id).eq('school_id', schoolId).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

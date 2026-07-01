@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     contract_start: body.contract_start ?? null,
     contract_end: body.contract_end ?? null,
     notes: body.notes ?? null,
+    document_url: body.document_url ?? null,
   }).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -69,7 +70,7 @@ export async function PATCH(req: NextRequest) {
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const { data: school } = await supabaseAdmin.from('schools').select('institution_id').eq('id', schoolId).maybeSingle();
-  const allowed = ['name','vendor_type','contact_name','contact_phone','contact_email','gst_number','address','contract_start','contract_end','notes','is_active','has_portal_access','portal_email'];
+  const allowed = ['name','vendor_type','contact_name','contact_phone','contact_email','gst_number','address','contract_start','contract_end','notes','is_active','has_portal_access','portal_email','document_url'];
   const update: Record<string, unknown> = {};
   for (const k of allowed) if (body[k] !== undefined) update[k] = body[k];
 

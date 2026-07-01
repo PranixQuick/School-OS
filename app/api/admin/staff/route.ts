@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from('staff')
-    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at')
+    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at, designation, joined_at, relieved_at, notes, employee_code, document_url')
     .eq('school_id', schoolId)
     .order('name', { ascending: true })
     .limit(limit);
@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { name, role, email, phone, subject } = body as Record<string, string | undefined>;
+  const { name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, string | undefined>;
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
-  const VALID_ROLES = new Set(['teacher', 'principal', 'admin', 'counsellor', 'admin_staff']);
+  const VALID_ROLES = new Set(['teacher', 'principal', 'admin', 'counsellor', 'admin_staff', 'accountant', 'librarian']);
   const staffRole = VALID_ROLES.has(role ?? '') ? role! : 'teacher';
 
   // Resolve institution_id
@@ -72,9 +72,15 @@ export async function POST(req: NextRequest) {
       email: email?.trim().toLowerCase() ?? null,
       phone: phone?.trim() ?? null,
       subject: subject?.trim() ?? null,
+      designation: designation?.trim() ?? null,
+      notes: notes?.trim() ?? null,
+      joined_at: joined_at || null,
+      relieved_at: relieved_at || null,
+      employee_code: employee_code?.trim() ?? null,
+      document_url: document_url?.trim() ?? null,
       is_active: true,
     })
-    .select('id, name, role, email, phone')
+    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, is_active')
     .single();
 
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
@@ -118,7 +124,7 @@ export async function PATCH(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { id, name, role, email, phone, subject, is_active } = body as Record<string, unknown>;
+  const { id, name, role, email, phone, subject, is_active, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, unknown>;
   if (!id || typeof id !== 'string') return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const update: Record<string, unknown> = {};
@@ -128,6 +134,12 @@ export async function PATCH(req: NextRequest) {
   if (typeof phone === 'string') update.phone = phone.trim() || null;
   if (typeof subject === 'string') update.subject = subject.trim() || null;
   if (typeof is_active === 'boolean') update.is_active = is_active;
+  if (typeof designation === 'string') update.designation = designation.trim() || null;
+  if (typeof notes === 'string') update.notes = notes.trim() || null;
+  if (typeof joined_at === 'string') update.joined_at = joined_at || null;
+  if (typeof relieved_at === 'string') update.relieved_at = relieved_at || null;
+  if (typeof employee_code === 'string') update.employee_code = employee_code.trim() || null;
+  if (typeof document_url === 'string') update.document_url = document_url.trim() || null;
 
   if (!Object.keys(update).length) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
 
@@ -136,7 +148,7 @@ export async function PATCH(req: NextRequest) {
     .update(update)
     .eq('id', id)
     .eq('school_id', schoolId)  // scoped to school — cannot edit other school's staff
-    .select('id, name, role, email, phone, is_active')
+    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, is_active')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
