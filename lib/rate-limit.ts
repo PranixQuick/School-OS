@@ -88,7 +88,7 @@ export const LOGIN_WINDOW_MS   = 15 * 60 * 1000;
 // These accounts are managed via Supabase Admin API, not the login UI.
 // Adding .internal here ensures CI accounts (ci.*.@edprosys.internal)
 // are never locked out by accumulated attack failures on shared IPs.
-const EXEMPT_SUFFIXES = ['.local', '.internal'];
+const EXEMPT_SUFFIXES = ['.local', '.internal', '.demo'];
 
 export async function enforceLoginRateLimit(params: {
   email: string;
