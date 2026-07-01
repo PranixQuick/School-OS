@@ -81,6 +81,7 @@ export const ACCOUNTANT_ROUTE_ALLOWLIST: string[] = [
   '/api/admin/fees',
   '/api/admin/fee-categories',
   '/api/admin/fee-templates',
+  '/api/admin/expenses',
   '/api/accounts',
   '/api/billing',
   '/api/dashboard/summary',
