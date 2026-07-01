@@ -81,7 +81,32 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(5);
 
+    // Fetch class and subject teachers
+    const { data: assignments } = await supabaseAdmin
+      .from('staff_class_assignments')
+      .select(`
+        is_class_teacher, subjects,
+        staff:staff_id ( name, role )
+      `)
+      .eq('class', primaryStudent.class)
+      .eq('section', primaryStudent.section)
+      .eq('school_id', schoolId);
+
+    const mappedAssignments = (assignments ?? []) as any[];
+    const classTeacherObj = mappedAssignments.find(a => a.is_class_teacher);
+    const classTeacher = classTeacherObj?.staff?.name ?? null;
+
+    const subjectTeachers = mappedAssignments.map(a => ({
+      name: a.staff?.name ?? 'Unknown Teacher',
+      subjects: a.subjects ?? [],
+      is_class_teacher: !!a.is_class_teacher,
+    }));
+
     return NextResponse.json({
+      teachers: {
+        class_teacher: classTeacher,
+        subject_teachers: subjectTeachers,
+      },
       // Primary student data (backward compatible)
       student: {
         name:             primaryStudent.name,

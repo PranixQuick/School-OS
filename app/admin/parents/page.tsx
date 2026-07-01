@@ -15,6 +15,8 @@ export default function AdminParentsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const [detail, setDetail] = useState<Parent | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '' });
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
 
@@ -146,7 +148,70 @@ export default function AdminParentsPage() {
         title={detail?.name ?? 'Parent'}
         subtitle={detail?.phone}
         fields={detailFields}
+        footer={
+          detail && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => {
+                setEditId(detail.id);
+                setEditForm({ name: detail.name, phone: detail.phone });
+                setDetail(null);
+              }} style={{ padding: '6px 12px', fontSize: 12, background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+                Edit Details
+              </button>
+              <button onClick={async () => {
+                if (window.confirm(`Deactivate parent ${detail.name}?`)) {
+                  const res = await fetch('/api/admin/parents', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: detail.id, is_active: false })
+                  });
+                  if (res.ok) {
+                    setDetail(null);
+                    const d = await fetch('/api/admin/parents').then(r => r.json());
+                    setParents(d.parents ?? []);
+                  }
+                }
+              }} style={{ padding: '6px 12px', fontSize: 12, background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+                Deactivate
+              </button>
+            </div>
+          )
+        }
       />
+      {editId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 320 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Edit Parent Details</div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Full Name</label>
+              <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                style={{ width: '100%', height: 36, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 10px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Phone Number</label>
+              <input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                style={{ width: '100%', height: 36, border: '1px solid #D1D5DB', borderRadius: 8, padding: '0 10px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditId(null)} style={{ padding: '6px 12px', background: '#F3F4F6', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>Cancel</button>
+              <button onClick={async () => {
+                const res = await fetch('/api/admin/parents', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: editId, name: editForm.name, phone: editForm.phone })
+                });
+                if (res.ok) {
+                  setEditId(null);
+                  const d = await fetch('/api/admin/parents').then(r => r.json());
+                  setParents(d.parents ?? []);
+                } else {
+                  alert('Failed to update parent details');
+                }
+              }} style={{ padding: '6px 12px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

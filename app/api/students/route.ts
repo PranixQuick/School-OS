@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     .select(`
       id, name, class, section, roll_number, admission_number,
       phone_parent, parent_name, date_of_birth, is_active, created_at, school_id,
-      gender, socioeconomic_category, rte_category, aadhaar_number, document_url
+      gender, socioeconomic_category, rte_category, aadhaar_number, document_url, status
     `)
     .eq('school_id', schoolId)
     .order('class', { ascending: true })

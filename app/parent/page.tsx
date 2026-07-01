@@ -11,6 +11,7 @@ interface Attendance { present_pct: number; total_days: number; present_days: nu
 interface FeeInfo { pending_amount: number; overdue: boolean; }
 interface Notice { id: string; subject?: string; message: string; created_at: string; }
 interface ChildSummary { id: string; name: string; class: string; section: string; school_id: string; is_primary: boolean; }
+interface TeacherInfo { name: string; subjects: string[]; is_class_teacher: boolean; }
 interface DashData {
   student: StudentInfo;
   attendance: Attendance;
@@ -19,6 +20,10 @@ interface DashData {
   school_name: string;
   children?: ChildSummary[];
   active_child_id?: string;
+  teachers?: {
+    class_teacher: string | null;
+    subject_teachers: TeacherInfo[];
+  };
 }
 
 const ACTION_KEYS: { href: string; icon: string; key: string; bg: string; label?: string }[] = [
@@ -226,6 +231,59 @@ export default function ParentHomePage() {
             </Link>
           ))}
         </div>
+
+        {/* Your Teachers Card */}
+        {data?.teachers && (
+          <div style={{ background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)', borderRadius: 16, padding: 16, marginBottom: 20, border: '1px solid #E0E7FF', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                👨‍🏫 Your Teachers
+              </div>
+            </div>
+
+            {/* Class Teacher Section */}
+            {data.teachers.class_teacher ? (
+              <div style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: data.teachers.subject_teachers.length > 0 ? 10 : 0 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    ⭐ Class Teacher
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', marginTop: 2 }}>
+                    {data.teachers.class_teacher}
+                  </div>
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800 }}>
+                  🏫
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic', marginBottom: 8 }}>
+                No designated class teacher.
+              </div>
+            )}
+
+            {/* Subject Teachers Grid */}
+            {data.teachers.subject_teachers.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
+                  Subject Teachers
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {data.teachers.subject_teachers.map((t, idx) => (
+                    <div key={idx} style={{ background: '#fff', borderRadius: 10, padding: 10, border: '1px solid #F3F4F6' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.subjects.join(', ') || 'General'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Notices */}
         {notices.length > 0 && (

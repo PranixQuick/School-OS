@@ -24,3 +24,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const ctx = await requireAdminSession(req);
+    const body = await req.json().catch(() => null) as {
+      id: string; name?: string; phone?: string; is_active?: boolean;
+    } | null;
+    if (!body?.id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+    const update: Record<string, any> = {};
+    if (body.name !== undefined) update.name = body.name.trim();
+    if (body.phone !== undefined) update.phone = body.phone.trim();
+    if (body.is_active !== undefined) update.is_active = body.is_active;
+
+    const { data, error } = await supabaseAdmin
+      .from('parents')
+      .update(update)
+      .eq('id', body.id)
+      .eq('school_id', ctx.schoolId)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ parent: data });
+  } catch (err) {
+    if (err instanceof AdminAuthError) return NextResponse.json({ error: err.message }, { status: err.status });
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
