@@ -7,7 +7,9 @@ export default defineConfig({
   retries: 1,
   use: {
     baseURL: process.env.TEST_BASE_URL || 'https://www.schoolos.in',
-    trace: 'on-first-retry',
+    trace: 'on',
+    video: 'on',
+    screenshot: 'on',
     // E2E runs against a PWA whose service worker (registered globally in
     // app/layout.tsx -> public/sw.js) is network-first and precaches '/login'
     // via cache.addAll on install. Under the mobile (Pixel 5) project this keeps
