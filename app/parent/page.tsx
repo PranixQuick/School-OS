@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
+import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface StudentInfo { name: string; class: string; section: string; roll_number: string | null; admission_number: string | null; }
 interface Attendance { present_pct: number; total_days: number; present_days: number; }
@@ -219,6 +220,8 @@ export default function ParentHomePage() {
             )}
           </div>
         </div>
+
+        <VoiceQueryWidget />
 
         {/* Quick actions grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
