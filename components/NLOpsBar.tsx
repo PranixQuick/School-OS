@@ -4,7 +4,7 @@
 // Embed at top of admin or principal page. Sends plain English instructions
 // to /api/admin/nl-ops and shows the result inline.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLang } from '@/lib/useLang';
 
 interface NLResult {
@@ -79,6 +79,10 @@ export function NLOpsBar() {
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
 
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
   useEffect(() => {
     // Load recent NL ops commands
     fetch('/api/admin/conversations?limit=5&intent_prefix=nl_ops')
@@ -91,6 +95,49 @@ export function NLOpsBar() {
       .catch(() => {});
   }, []);
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      mediaRecorder.start();
+    } catch (err) {
+      console.error('Error starting media recorder:', err);
+    }
+  };
+
+  const stopRecording = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        resolve(null);
+        return;
+      }
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = (reader.result as string).split(',')[1];
+          resolve(base64data);
+        };
+        reader.readAsDataURL(audioBlob);
+        
+        // Stop all tracks to release microphone
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+      };
+      mediaRecorderRef.current.stop();
+    });
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -102,16 +149,34 @@ export function NLOpsBar() {
       
       rec.onstart = () => {
         setListening(true);
+        void startRecording();
       };
       
-      rec.onresult = (event: any) => {
+      rec.onresult = async (event: any) => {
         const resultText = event.results[0][0].transcript;
+        const confidence = event.results[0][0].confidence;
         setInstruction(resultText);
+        
+        // Stop recording
+        const audioBase64 = await stopRecording();
+        
+        if (confidence >= 0.8) {
+          // High confidence: Send transcript to /api/voice-query
+          await executeVoiceQuery({ transcript: resultText, confidence });
+        } else {
+          // Low confidence: Fallback to sending audio to cloud
+          await executeVoiceQuery({ audio_base64: audioBase64 || undefined });
+        }
       };
       
-      rec.onerror = (event: any) => {
+      rec.onerror = async (event: any) => {
         console.error('Speech recognition error:', event.error);
         setListening(false);
+        const audioBase64 = await stopRecording();
+        if (audioBase64) {
+          // Fallback to sending audio to cloud on speech recognition errors
+          await executeVoiceQuery({ audio_base64: audioBase64 });
+        }
       };
       
       rec.onend = () => {
@@ -120,7 +185,7 @@ export function NLOpsBar() {
       
       setRecognition(rec);
     }
-  }, []);
+  }, [lang]);
 
   function toggleListening() {
     if (!recognition) {
@@ -142,6 +207,65 @@ export function NLOpsBar() {
       recognition.lang = speechLangMap[lang] || 'en-IN';
       recognition.start();
     }
+  }
+
+  async function executeVoiceQuery(voicePayload: { transcript?: string; confidence?: number; audio_base64?: string }) {
+    setLoading(true);
+    setLastResult(null);
+    try {
+      const res = await fetch('/api/voice-query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...voicePayload,
+          language_pref: lang,
+          device_supports_tts: true
+        })
+      });
+      if (!res.ok) {
+        throw new Error('API request failed');
+      }
+      const data = await res.json();
+      
+      // Update UI with response
+      const voiceNLResp: NLResponse = {
+        intent: data.intent || 'voice_query',
+        preview: data.text_response || 'No speech query understood.',
+        result: {
+          executed: 'voice_query',
+          message: data.text_response || ''
+        },
+        instruction: voicePayload.transcript || 'Spoken instruction'
+      };
+      setLastResult(voiceNLResp);
+
+      // Device-native TTS: Speak the response
+      const speakText = data.text_response || '';
+      if (speakText && typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(speakText);
+        const speechLangMap: Record<string, string> = {
+          en: 'en-IN',
+          te: 'te-IN',
+          hi: 'hi-IN',
+          ta: 'ta-IN',
+          kn: 'kn-IN',
+          mr: 'mr-IN',
+          ml: 'ml-IN'
+        };
+        utterance.lang = speechLangMap[lang] || 'en-IN';
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (err) {
+      console.error('Voice query execution failed:', err);
+      setLastResult({
+        intent: 'error',
+        preview: null,
+        result: { executed: 'error', error: 'Voice query failed. Please try again.' },
+        instruction: voicePayload.transcript || 'Spoken instruction'
+      });
+    }
+    setLoading(false);
   }
 
   async function execute() {
