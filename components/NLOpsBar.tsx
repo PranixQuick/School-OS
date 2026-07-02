@@ -5,6 +5,7 @@
 // to /api/admin/nl-ops and shows the result inline.
 
 import { useState, useEffect } from 'react';
+import { useLang } from '@/lib/useLang';
 
 interface NLResult {
   executed: string;
@@ -74,6 +75,9 @@ export function NLOpsBar() {
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<NLResponse | null>(null);
   const [recent, setRecent] = useState<RecentCmd[]>([]);
+  const { lang } = useLang();
+  const [listening, setListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
   useEffect(() => {
     // Load recent NL ops commands
@@ -86,6 +90,59 @@ export function NLOpsBar() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      
+      rec.onstart = () => {
+        setListening(true);
+      };
+      
+      rec.onresult = (event: any) => {
+        const resultText = event.results[0][0].transcript;
+        setInstruction(resultText);
+      };
+      
+      rec.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setListening(false);
+      };
+      
+      rec.onend = () => {
+        setListening(false);
+      };
+      
+      setRecognition(rec);
+    }
+  }, []);
+
+  function toggleListening() {
+    if (!recognition) {
+      alert('Speech recognition is not supported in this browser.');
+      return;
+    }
+    if (listening) {
+      recognition.stop();
+    } else {
+      const speechLangMap: Record<string, string> = {
+        en: 'en-IN',
+        te: 'te-IN',
+        hi: 'hi-IN',
+        ta: 'ta-IN',
+        kn: 'kn-IN',
+        mr: 'mr-IN',
+        ml: 'ml-IN'
+      };
+      recognition.lang = speechLangMap[lang] || 'en-IN';
+      recognition.start();
+    }
+  }
 
   async function execute() {
     if (!instruction.trim() || loading) return;
@@ -104,6 +161,24 @@ export function NLOpsBar() {
         id: Date.now().toString(), message: instruction,
         intent: data.intent, response: JSON.stringify(data.result), created_at: new Date().toISOString(),
       }, ...prev].slice(0, 5));
+
+      // Device-native TTS: Speak result
+      const speakText = data.preview || data.result.message || data.result.error || '';
+      if (speakText && typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(speakText);
+        const speechLangMap: Record<string, string> = {
+          en: 'en-IN',
+          te: 'te-IN',
+          hi: 'hi-IN',
+          ta: 'ta-IN',
+          kn: 'kn-IN',
+          mr: 'mr-IN',
+          ml: 'ml-IN'
+        };
+        utterance.lang = speechLangMap[lang] || 'en-IN';
+        window.speechSynthesis.speak(utterance);
+      }
     } catch {
       setLastResult({ intent: 'error', preview: null, result: { executed: 'error', error: 'Network error' }, instruction });
     }
@@ -116,6 +191,27 @@ export function NLOpsBar() {
         🤖 NATURAL LANGUAGE OPERATIONS
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={toggleListening}
+          disabled={loading}
+          style={{
+            padding: '8px 12px',
+            background: listening ? '#EF4444' : '#F3F4F6',
+            color: listening ? '#FFFFFF' : '#4B5563',
+            border: '1px solid #D1D5DB',
+            borderRadius: 7,
+            fontSize: 14,
+            cursor: 'pointer',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          title="Voice Input"
+        >
+          {listening ? '🛑🎙️' : '🎙️'}
+        </button>
         <input
           value={instruction}
           onChange={e => setInstruction(e.target.value)}

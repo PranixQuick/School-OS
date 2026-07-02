@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabaseClient';
 import { getParentSession } from '../../../lib/parent-auth';
 import { verifySession } from '../../../lib/session';
+import { supabaseForUser } from '../../../lib/supabaseForUser';
+import { isTeacher, isAccountant } from '../../../lib/authz';
+import { canDo } from '../../../lib/permissions';
 
 interface VoiceQueryRequest {
   transcript?: string;
@@ -190,10 +193,12 @@ export async function POST(req: NextRequest) {
   let textResponse = '';
   console.log(`[POST] Starting DB query resolution for role=${role}, intent=${intent}...`);
   try {
+    const supabase = supabaseForUser(schoolId);
+
     if (role === 'parent') {
       // Fetch children registered via parent_students
       console.log(`[POST] Parent query: fetching parent_students for parent_id=${resolvedUserId}...`);
-      const { data: children, error: childrenErr } = await supabaseAdmin
+      const { data: children, error: childrenErr } = await supabase
         .from('parent_students')
         .select('student_id')
         .eq('parent_id', resolvedUserId);
@@ -208,14 +213,14 @@ export async function POST(req: NextRequest) {
 
       // Determine which child is queried (by name matching in transcript, defaulting to first)
       console.log(`[POST] Parent query: fetching students profile...`);
-      const { data: studentProfiles } = await supabaseAdmin
+      const { data: studentProfiles } = await supabase
         .from('students')
         .select('id, name')
         .in('id', childIds);
 
       console.log(`[POST] Parent studentProfiles: ${JSON.stringify(studentProfiles)}`);
       
-      const { data: allStudents } = await supabaseAdmin
+      const { data: allStudents } = await supabase
         .from('students')
         .select('id, name')
         .eq('school_id', schoolId);
@@ -259,7 +264,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (intent === 'parent_attendance') {
-        const { data: att } = await supabaseAdmin
+        const { data: att } = await supabase
           .from('attendance')
           .select('date, status')
           .eq('student_id', targetChild.id)
@@ -275,7 +280,7 @@ export async function POST(req: NextRequest) {
         }
       } else if (intent === 'parent_marks') {
         console.log(`[POST] Parent query: querying test_scores for child_id=${targetChild.id}...`);
-        const { data: scores, error: scoresErr } = await supabaseAdmin
+        const { data: scores, error: scoresErr } = await supabase
           .from('test_scores')
           .select('marks_obtained, tests(title, max_marks, subject)')
           .eq('student_id', targetChild.id);
@@ -291,7 +296,7 @@ export async function POST(req: NextRequest) {
           textResponse = `Exam marks for ${targetChild.name}: ${summary}.`;
         }
       } else if (intent === 'parent_fees') {
-        const { data: installments } = await supabaseAdmin
+        const { data: installments } = await supabase
           .from('fee_installments')
           .select('amount, status, due_date')
           .eq('student_id', targetChild.id);
@@ -306,8 +311,12 @@ export async function POST(req: NextRequest) {
       }
 
     } else if (role === 'teacher') {
+      if (!isTeacher(role)) {
+        return NextResponse.json({ error: 'Access Denied: Not a teacher' }, { status: 403 });
+      }
+
       // Resolve staff_id from school_users email link
-      const { data: userProfile } = await supabaseAdmin
+      const { data: userProfile } = await supabase
         .from('school_users')
         .select('email')
         .eq('id', resolvedUserId)
@@ -318,7 +327,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Access Denied: Teacher email profile not found' }, { status: 403 });
       }
 
-      const { data: staffMember } = await supabaseAdmin
+      const { data: staffMember } = await supabase
         .from('staff')
         .select('id')
         .eq('email', teacherEmail)
@@ -330,7 +339,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Fetch teacher's assigned classes/sections
-      const { data: assignments } = await supabaseAdmin
+      const { data: assignments } = await supabase
         .from('staff_class_assignments')
         .select('class, section')
         .eq('staff_id', staffId);
@@ -340,10 +349,14 @@ export async function POST(req: NextRequest) {
       }
 
       if (intent === 'teacher_class_summary') {
+        if (!(await canDo(role, 'attendance', 'view', true))) {
+          return NextResponse.json({ error: 'Access Denied: Not permitted to view class summary' }, { status: 403 });
+        }
+
         const classes = assignments.map(a => a.class);
         const sections = assignments.map(a => a.section);
 
-        const { data: clsStudents } = await supabaseAdmin
+        const { data: clsStudents } = await supabase
           .from('students')
           .select('id')
           .in('class', classes)
@@ -353,7 +366,7 @@ export async function POST(req: NextRequest) {
         if (studentIds.length === 0) {
           textResponse = `No students enrolled in your assigned classes.`;
         } else {
-          const { data: att } = await supabaseAdmin
+          const { data: att } = await supabase
             .from('attendance')
             .select('status')
             .in('student_id', studentIds);
@@ -364,16 +377,20 @@ export async function POST(req: NextRequest) {
           textResponse = `Class Performance Summary: Total assigned students: ${studentIds.length}. Overall attendance average: ${pct} percent.`;
         }
       } else if (intent === 'teacher_student_detail') {
+        if (!(await canDo(role, 'students', 'view', true))) {
+          return NextResponse.json({ error: 'Access Denied: Not permitted to view student details' }, { status: 403 });
+        }
+
         const classes = assignments.map(a => a.class);
         const sections = assignments.map(a => a.section);
 
-        const { data: assignedStudents } = await supabaseAdmin
+        const { data: assignedStudents } = await supabase
           .from('students')
           .select('id, name, class, section')
           .in('class', classes)
           .in('section', sections);
 
-        const { data: allStudents } = await supabaseAdmin
+        const { data: allStudents } = await supabase
           .from('students')
           .select('id, name, class, section')
           .eq('school_id', schoolId);
@@ -412,7 +429,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
         }
 
-        const { data: att } = await supabaseAdmin
+        const { data: att } = await supabase
           .from('attendance')
           .select('status')
           .eq('student_id', targetStudent.id);
@@ -424,9 +441,16 @@ export async function POST(req: NextRequest) {
       }
 
     } else if (role === 'accountant') {
+      if (!isAccountant(role)) {
+        return NextResponse.json({ error: 'Access Denied: Not an accountant' }, { status: 403 });
+      }
+      if (!(await canDo(role, 'fees', 'view', true))) {
+        return NextResponse.json({ error: 'Access Denied: Accountant not permitted to view fees' }, { status: 403 });
+      }
+
       if (intent === 'accountant_collection_totals') {
         console.log(`[POST] Accountant query: fetching paid fees for school_id=${schoolId}...`);
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await supabase
           .from('fees')
           .select('amount')
           .eq('school_id', schoolId)
