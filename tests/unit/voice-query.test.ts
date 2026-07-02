@@ -247,4 +247,96 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     const data = await res.json();
     expect(data.error).toContain('Unauthorized: Session not found');
   });
+
+  it('8. Parent query without name - Suresh Reddy asks "attendance of my child"', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
+    const payload = {
+      transcript: 'attendance of my child',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('parent_attendance');
+    expect(data.text_response).toContain('Arjun Reddy\'s overall attendance is 84 percent');
+    expect(data.text_response).toContain('Present for 21 out of 25 days');
+  });
+
+  it('9. Parent query without name - Suresh Reddy asks "marks of my child"', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
+    const payload = {
+      transcript: 'marks of my child',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('parent_marks');
+    expect(data.text_response).toContain('Chemistry: 73/100');
+    expect(data.text_response).toContain('Physics: 65/100');
+  });
+
+  it('10. Parent query without name - Suresh Reddy asks "fees of my child"', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
+    const payload = {
+      transcript: 'fees of my child',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('parent_fees');
+    expect(data.text_response).toContain('Arjun Reddy has no fee installments registered');
+  });
 });

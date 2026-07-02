@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
 
       if (allStudents) {
         for (const child of allStudents) {
-          if (transcript.toLowerCase().includes(child.name.toLowerCase())) {
+          if (child.name && transcript.toLowerCase().includes(child.name.toLowerCase())) {
             if (childIds.includes(child.id)) {
               targetChild = child;
             } else {
@@ -223,7 +223,13 @@ export async function POST(req: NextRequest) {
       }
 
       if (!targetChild) {
-        targetChild = studentProfiles?.[0];
+        const activeStudentId = parentSession?.studentId;
+        if (activeStudentId) {
+          targetChild = studentProfiles?.find(c => c.id === activeStudentId);
+        }
+        if (!targetChild) {
+          targetChild = studentProfiles?.[0];
+        }
       }
 
       if (!targetChild) {
@@ -244,6 +250,7 @@ export async function POST(req: NextRequest) {
         const { data: att } = await supabase
           .from('attendance')
           .select('date, status')
+          .eq('school_id', schoolId)
           .eq('student_id', targetChild.id)
           .order('date', { ascending: false });
 
@@ -260,6 +267,7 @@ export async function POST(req: NextRequest) {
         const { data: scores, error: scoresErr } = await supabase
           .from('test_scores')
           .select('marks_obtained, tests(title, max_marks, subject)')
+          .eq('school_id', schoolId)
           .eq('student_id', targetChild.id);
 
         console.log(`[POST] Parent test_scores result: count=${scores?.length}, error=${scoresErr}`);
@@ -276,6 +284,7 @@ export async function POST(req: NextRequest) {
         const { data: installments } = await supabase
           .from('fee_installments')
           .select('amount, status, due_date')
+          .eq('school_id', schoolId)
           .eq('student_id', targetChild.id);
 
         if (!installments || installments.length === 0) {
