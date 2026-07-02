@@ -1,21 +1,31 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST } from '../../app/api/voice-query/route';
+import { issueSession } from '../../lib/session';
+import { signParentSession } from '../../lib/parent-auth';
 
 describe('EdProSys read-only voice query endpoint tests', () => {
   it('1. Parent positive query - Suresh Reddy queries Arjun Reddy marks (Zero-Burn)', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
     const payload = {
       transcript: 'Give me the exam marks for my child Arjun Reddy',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: true,
-      test_role: 'parent',
-      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+      device_supports_tts: true
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
     });
 
     const res = await POST(req);
@@ -31,19 +41,27 @@ describe('EdProSys read-only voice query endpoint tests', () => {
   });
 
   it('2. Parent negative query - Suresh Reddy queries unassociated child (Rejected)', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
     // Probing with a non-associated student UUID in transcript
     const payload = {
       transcript: 'Show me marks of child 81d8b151-4bb2-4c8e-b2c1-f388c78c3d2c',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: true,
-      test_role: 'parent',
-      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+      device_supports_tts: true
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
     });
 
     const res = await POST(req);
@@ -53,18 +71,30 @@ describe('EdProSys read-only voice query endpoint tests', () => {
   });
 
   it('3. Teacher positive query - test.teacher queries assigned student Arjun Reddy', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
     const payload = {
       transcript: 'Give me the student detail for Arjun Reddy',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: true,
-      test_role: 'teacher',
-      test_user_id: '268d6f30-d964-4b37-adde-688a9d984cba' // test.teacher@schoolos.local
+      device_supports_tts: true
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
     });
 
     const res = await POST(req);
@@ -75,19 +105,31 @@ describe('EdProSys read-only voice query endpoint tests', () => {
   });
 
   it('4. Teacher negative query - test.teacher queries student Vikas Reddy (Outside class scope)', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
     // Vikas Reddy is in class 5-b, teacher is assigned only to 5-A
     const payload = {
       transcript: 'Show me details for Vikas Reddy',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: true,
-      test_role: 'teacher',
-      test_user_id: '268d6f30-d964-4b37-adde-688a9d984cba' // test.teacher@schoolos.local
+      device_supports_tts: true
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
     });
 
     const res = await POST(req);
@@ -97,18 +139,30 @@ describe('EdProSys read-only voice query endpoint tests', () => {
   });
 
   it('5. Accountant query - demo.accountant queries total collections', async () => {
+    const accountantToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: 'd2d90e8b-7d23-46a7-ab36-f90bab3e7de2', // demo.accountant
+      userEmail: 'demo.accountant@schoolos.local',
+      userRole: 'accountant',
+      userName: 'Demo Accountant'
+    });
+
     const payload = {
       transcript: 'Show total collections received',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: true,
-      test_role: 'accountant',
-      test_user_id: 'd2d90e8b-7d23-46a7-ab36-f90bab3e7de2' // demo.accountant
+      device_supports_tts: true
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${accountantToken}`
+      }
     });
 
     const res = await POST(req);
@@ -119,6 +173,13 @@ describe('EdProSys read-only voice query endpoint tests', () => {
   });
 
   it('6. Cloud Fallback Test - triggers cloud NLU & TTS fallbacks', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
     const originalFetch = global.fetch;
     const mockFetch = vi.fn().mockImplementation((url, init) => {
       const urlStr = url.toString();
@@ -143,14 +204,15 @@ describe('EdProSys read-only voice query endpoint tests', () => {
       transcript: 'some ambiguous query phrase',
       confidence: 0.95,
       language_pref: 'en',
-      device_supports_tts: false, // Forces cloud TTS
-      test_role: 'parent',
-      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+      device_supports_tts: false // Forces cloud TTS
     };
 
     const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
     });
 
     const res = await POST(req);
@@ -165,5 +227,24 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(data.zero_burn_ratio).toBeCloseTo(1 / 3, 2);
 
     vi.unstubAllGlobals();
+  });
+
+  it('7. Unauthenticated request - no session cookie (Rejected 401)', async () => {
+    const payload = {
+      transcript: 'Give me the exam marks for my child Arjun Reddy',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toContain('Unauthorized: Session not found');
   });
 });

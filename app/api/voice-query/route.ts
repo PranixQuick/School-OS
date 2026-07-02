@@ -12,10 +12,6 @@ interface VoiceQueryRequest {
   audio_base64?: string;
   language_pref?: string;
   device_supports_tts?: boolean;
-  
-  // Test parameters for direct evaluation bypassing cookies
-  test_role?: string;
-  test_user_id?: string; // parent_id or staff_id/user_id
 }
 
 const AARIA_BASE_URL = 'https://pranix-aaria.onrender.com';
@@ -62,49 +58,30 @@ export async function POST(req: NextRequest) {
     confidence,
     audio_base64,
     language_pref = 'en',
-    device_supports_tts = true,
-    test_role,
-    test_user_id
+    device_supports_tts = true
   } = body;
 
-  console.log(`[POST] Request received: role=${test_role}, user_id=${test_user_id}, transcript=${initialTranscript}`);
+  console.log(`[POST] Request received: transcript=${initialTranscript}`);
 
   // 1. Authenticate & Resolve Context
   let role: string | null = null;
   let resolvedUserId: string | null = null;
   let schoolId: string | null = null;
 
-  // Resolve session via test parameters or real cookies
-  if (test_role && test_user_id) {
-    role = test_role;
-    resolvedUserId = test_user_id;
-    
-    console.log(`[POST] Resolving test session...`);
-    // Fetch school_id for the test user context to maintain tenancy constraints
-    if (role === 'parent') {
-      const { data } = await supabaseAdmin.from('parents').select('school_id').eq('id', resolvedUserId).maybeSingle();
-      schoolId = data?.school_id || null;
-    } else {
-      const { data } = await supabaseAdmin.from('school_users').select('school_id').eq('id', resolvedUserId).maybeSingle();
-      schoolId = data?.school_id || null;
-    }
-    console.log(`[POST] Resolved test schoolId=${schoolId}`);
+  // Check parent cookie first
+  const parentSession = await getParentSession(req);
+  if (parentSession) {
+    role = 'parent';
+    resolvedUserId = parentSession.parentId;
+    schoolId = parentSession.schoolId;
   } else {
-    // Check parent cookie first
-    const parentSession = await getParentSession(req);
-    if (parentSession) {
-      role = 'parent';
-      resolvedUserId = parentSession.parentId;
-      schoolId = parentSession.schoolId;
-    } else {
-      // Check staff cookie
-      const token = req.cookies.get('school_session')?.value;
-      const staffSession = await verifySession(token);
-      if (staffSession) {
-        role = staffSession.userRole;
-        resolvedUserId = staffSession.userId;
-        schoolId = staffSession.schoolId;
-      }
+    // Check staff cookie
+    const token = req.cookies.get('school_session')?.value;
+    const staffSession = await verifySession(token);
+    if (staffSession) {
+      role = staffSession.userRole;
+      resolvedUserId = staffSession.userId;
+      schoolId = staffSession.schoolId;
     }
   }
 
