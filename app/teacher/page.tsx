@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
+import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface ScheduleItem  { time: string; class: string; subject: string; period: number; }
 interface HomeworkItem  { id: string; title: string; class: string; due: string; submissions: number; total: number; }
@@ -192,6 +193,8 @@ export default function TeacherPage() {
             })}
           </>
         )}
+
+        <VoiceQueryWidget />
 
         {/* Today's schedule */}
         <div style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>

@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface Summary {
   today_collections: { total_amount: number; count: number; by_method: Record<string, { amount: number; count: number }>; date: string };
@@ -155,6 +156,8 @@ export default function AccountantCockpit() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
+          <VoiceQueryWidget />
+
           {/* Quick links */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             {!isGovOrAnganwadi && (
