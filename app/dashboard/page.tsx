@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 
@@ -75,6 +76,7 @@ export default function DashboardPage() {
   const [setupIncomplete, setSetupIncomplete] = useState(false);
   // P3 3.2: institution context drives widget filtering
   const [ctx, setCtx] = useState<InstitutionContext>(DEFAULT_CTX);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setLoading(false); if (!kpis) setKpis(EMPTY_KPIS); }, 8000);
@@ -126,11 +128,14 @@ export default function DashboardPage() {
     fetch('/api/auth/me')
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (d && (d.institution_type || d.ownership_type)) {
-          setCtx(buildInstitutionContext(
-            d.institution_type ?? 'school_k12',
-            d.ownership_type ?? 'private',
-          ));
+        if (d) {
+          if (d.role) setRole(d.role);
+          if (d.institution_type || d.ownership_type) {
+            setCtx(buildInstitutionContext(
+              d.institution_type ?? 'school_k12',
+              d.ownership_type ?? 'private',
+            ));
+          }
         }
       })
       .catch(() => {});
@@ -258,6 +263,8 @@ export default function DashboardPage() {
         .kpi-card-inner { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 16px; cursor: pointer; transition: transform 0.12s, box-shadow 0.15s; }
         .kpi-card-inner:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
       `}</style>
+
+      {role === 'accountant' && <VoiceQueryWidget />}
 
       {setupIncomplete && (
         <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
