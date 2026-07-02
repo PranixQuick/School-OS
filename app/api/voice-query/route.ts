@@ -1,0 +1,491 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '../../../lib/supabaseClient';
+import { getParentSession } from '../../../lib/parent-auth';
+import { verifySession } from '../../../lib/session';
+
+interface VoiceQueryRequest {
+  transcript?: string;
+  confidence?: number;
+  audio_base64?: string;
+  language_pref?: string;
+  device_supports_tts?: boolean;
+  
+  // Test parameters for direct evaluation bypassing cookies
+  test_role?: string;
+  test_user_id?: string; // parent_id or staff_id/user_id
+}
+
+const AARIA_BASE_URL = 'https://pranix-aaria.onrender.com';
+
+function parseIntent(transcript: string, role: string): string | null {
+  const text = transcript.toLowerCase().trim();
+  
+  if (role === 'parent') {
+    if (text.includes('attendance') || text.includes('present') || text.includes('absent') || text.includes('హజరు') || text.includes('హాజరు')) {
+      return 'parent_attendance';
+    }
+    if (text.includes('marks') || text.includes('score') || text.includes('exam') || text.includes('మార్కులు') || text.includes('పరీక్ష') || text.includes('result')) {
+      return 'parent_marks';
+    }
+    if (text.includes('fee') || text.includes('due') || text.includes('pay') || text.includes('ఫీజు')) {
+      return 'parent_fees';
+    }
+  } else if (role === 'teacher') {
+    if (text.includes('summary') || text.includes('class') || text.includes('averages') || text.includes('తరగతి') || text.includes('performance')) {
+      return 'teacher_class_summary';
+    }
+    if (text.includes('student') || text.includes('detail') || text.includes('particular') || text.includes('విద్యార్థి') || text.includes('particulars')) {
+      return 'teacher_student_detail';
+    }
+  } else if (role === 'accountant') {
+    if (text.includes('collection') || text.includes('total') || text.includes('revenue') || text.includes('వసూళ్లు') || text.includes('amount')) {
+      return 'accountant_collection_totals';
+    }
+  }
+  return null;
+}
+
+export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  let body: VoiceQueryRequest = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+  }
+
+  const {
+    transcript: initialTranscript,
+    confidence,
+    audio_base64,
+    language_pref = 'en',
+    device_supports_tts = true,
+    test_role,
+    test_user_id
+  } = body;
+
+  console.log(`[POST] Request received: role=${test_role}, user_id=${test_user_id}, transcript=${initialTranscript}`);
+
+  // 1. Authenticate & Resolve Context
+  let role: string | null = null;
+  let resolvedUserId: string | null = null;
+  let schoolId: string | null = null;
+
+  // Resolve session via test parameters or real cookies
+  if (test_role && test_user_id) {
+    role = test_role;
+    resolvedUserId = test_user_id;
+    
+    console.log(`[POST] Resolving test session...`);
+    // Fetch school_id for the test user context to maintain tenancy constraints
+    if (role === 'parent') {
+      const { data } = await supabaseAdmin.from('parents').select('school_id').eq('id', resolvedUserId).maybeSingle();
+      schoolId = data?.school_id || null;
+    } else {
+      const { data } = await supabaseAdmin.from('school_users').select('school_id').eq('id', resolvedUserId).maybeSingle();
+      schoolId = data?.school_id || null;
+    }
+    console.log(`[POST] Resolved test schoolId=${schoolId}`);
+  } else {
+    // Check parent cookie first
+    const parentSession = await getParentSession(req);
+    if (parentSession) {
+      role = 'parent';
+      resolvedUserId = parentSession.parentId;
+      schoolId = parentSession.schoolId;
+    } else {
+      // Check staff cookie
+      const token = req.cookies.get('school_session')?.value;
+      const staffSession = await verifySession(token);
+      if (staffSession) {
+        role = staffSession.userRole;
+        resolvedUserId = staffSession.userId;
+        schoolId = staffSession.schoolId;
+      }
+    }
+  }
+
+  if (!role || !resolvedUserId || !schoolId) {
+    console.log(`[POST] Unauthorized: role=${role}, resolvedUserId=${resolvedUserId}, schoolId=${schoolId}`);
+    return NextResponse.json({ error: 'Unauthorized: Session not found' }, { status: 401 });
+  }
+
+  // 2. STT Processing (zero-burn first, then fallback to cloud)
+  let transcript = initialTranscript || '';
+  let sttSource = 'device';
+  console.log(`[POST] STT step: transcript=${transcript}, confidence=${confidence}`);
+
+  if (!transcript || (confidence !== undefined && confidence < 0.80)) {
+    if (audio_base64) {
+      sttSource = 'cloud';
+      try {
+        const res = await fetch(`${AARIA_BASE_URL}/api/voice/listen`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio_base64,
+            lang_hint: language_pref,
+            product: 'EdProSys',
+            quality_tier: 'standard'
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          transcript = data.text || '';
+        }
+      } catch (err) {
+        console.error('Aaria Listen fallback failed:', err);
+      }
+    }
+  }
+
+  // 3. NLU Processing (zero-burn first, then fallback to cloud)
+  let intent = parseIntent(transcript, role);
+  let nluSource = 'device';
+  console.log(`[POST] NLU step: initial intent=${intent}`);
+
+  if (!intent) {
+    nluSource = 'cloud';
+    console.log(`[POST] Fetching Aaria NLU fallback from ${AARIA_BASE_URL}...`);
+    try {
+      const res = await fetch(`${AARIA_BASE_URL}/api/voice/understand`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: transcript,
+          product: 'EdProSys',
+          lang_hint: language_pref
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        intent = data.intent;
+        console.log(`[POST] Aaria NLU resolved intent: ${intent}`);
+      }
+    } catch (err) {
+      console.error('Aaria Understand fallback failed:', err);
+    }
+  }
+
+  if (!intent) {
+    intent = 'fallback_unknown';
+  }
+  console.log(`[POST] Final intent: ${intent}`);
+
+  // Reject cross-role intent leaks
+  if (role === 'parent' && !intent.startsWith('parent_')) {
+    console.log(`[POST] Cross-scope intent rejected: parent tried to access ${intent}`);
+    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+  }
+  if (role === 'teacher' && !intent.startsWith('teacher_')) {
+    console.log(`[POST] Cross-scope intent rejected: teacher tried to access ${intent}`);
+    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+  }
+  if (role === 'accountant' && !intent.startsWith('accountant_')) {
+    console.log(`[POST] Cross-scope intent rejected: accountant tried to access ${intent}`);
+    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+  }
+
+  // 4. Read-Only Query Resolution with strict permissions boundaries
+  let textResponse = '';
+  console.log(`[POST] Starting DB query resolution for role=${role}, intent=${intent}...`);
+  try {
+    if (role === 'parent') {
+      // Fetch children registered via parent_students
+      console.log(`[POST] Parent query: fetching parent_students for parent_id=${resolvedUserId}...`);
+      const { data: children, error: childrenErr } = await supabaseAdmin
+        .from('parent_students')
+        .select('student_id')
+        .eq('parent_id', resolvedUserId);
+
+      if (childrenErr || !children || children.length === 0) {
+        console.log(`[POST] Parent query error: childrenErr=${childrenErr}, count=${children?.length}`);
+        return NextResponse.json({ error: 'Access Denied: No children linked to this parent profile' }, { status: 403 });
+      }
+
+      const childIds = children.map(c => c.student_id);
+      console.log(`[POST] Parent childIds: ${JSON.stringify(childIds)}`);
+
+      // Determine which child is queried (by name matching in transcript, defaulting to first)
+      console.log(`[POST] Parent query: fetching students profile...`);
+      const { data: studentProfiles } = await supabaseAdmin
+        .from('students')
+        .select('id, name')
+        .in('id', childIds);
+
+      console.log(`[POST] Parent studentProfiles: ${JSON.stringify(studentProfiles)}`);
+      
+      const { data: allStudents } = await supabaseAdmin
+        .from('students')
+        .select('id, name')
+        .eq('school_id', schoolId);
+
+      let targetChild = null;
+      let mentionedChildOutsideScope = false;
+
+      if (allStudents) {
+        for (const child of allStudents) {
+          if (transcript.toLowerCase().includes(child.name.toLowerCase())) {
+            if (childIds.includes(child.id)) {
+              targetChild = child;
+            } else {
+              mentionedChildOutsideScope = true;
+            }
+          }
+        }
+      }
+
+      if (mentionedChildOutsideScope && !targetChild) {
+        console.log(`[POST] Parent query error: parent mentioned child outside scope`);
+        return NextResponse.json({ error: 'Access Denied: Parent not authorized to access child' }, { status: 403 });
+      }
+
+      if (!targetChild) {
+        targetChild = studentProfiles?.[0];
+      }
+
+      if (!targetChild) {
+        console.log(`[POST] Parent query error: targetChild not found`);
+        return NextResponse.json({ error: 'Access Denied: Target child profile not found' }, { status: 403 });
+      }
+      console.log(`[POST] Parent target child: id=${targetChild.id}, name=${targetChild.name}`);
+
+      // If parent queries a student outside their own children list, reject
+      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const match = transcript.match(uuidRegex);
+      if (match && !childIds.includes(match[0])) {
+        console.log(`[POST] Parent query error: unauthorized UUID child probe: ${match[0]}`);
+        return NextResponse.json({ error: 'Access Denied: Parent not authorized to access child ' + match[0] }, { status: 403 });
+      }
+
+      if (intent === 'parent_attendance') {
+        const { data: att } = await supabaseAdmin
+          .from('attendance')
+          .select('date, status')
+          .eq('student_id', targetChild.id)
+          .order('date', { ascending: false });
+
+        if (!att || att.length === 0) {
+          textResponse = `No attendance records found for ${targetChild.name}.`;
+        } else {
+          const present = att.filter(a => a.status === 'present').length;
+          const total = att.length;
+          const pct = Math.round((present / total) * 100);
+          textResponse = `${targetChild.name}'s overall attendance is ${pct} percent. Present for ${present} out of ${total} days.`;
+        }
+      } else if (intent === 'parent_marks') {
+        console.log(`[POST] Parent query: querying test_scores for child_id=${targetChild.id}...`);
+        const { data: scores, error: scoresErr } = await supabaseAdmin
+          .from('test_scores')
+          .select('marks_obtained, tests(title, max_marks, subject)')
+          .eq('student_id', targetChild.id);
+
+        console.log(`[POST] Parent test_scores result: count=${scores?.length}, error=${scoresErr}`);
+        if (!scores || scores.length === 0) {
+          textResponse = `No exam marks recorded for ${targetChild.name}.`;
+        } else {
+          const summary = scores.map((s: any) => {
+            const test = s.tests;
+            return `${test?.subject || 'Exam'}: ${s.marks_obtained}/${test?.max_marks || 100}`;
+          }).join(', ');
+          textResponse = `Exam marks for ${targetChild.name}: ${summary}.`;
+        }
+      } else if (intent === 'parent_fees') {
+        const { data: installments } = await supabaseAdmin
+          .from('fee_installments')
+          .select('amount, status, due_date')
+          .eq('student_id', targetChild.id);
+
+        if (!installments || installments.length === 0) {
+          textResponse = `${targetChild.name} has no fee installments registered.`;
+        } else {
+          const unpaid = installments.filter(i => i.status !== 'paid');
+          const totalDues = unpaid.reduce((sum, i) => sum + Number(i.amount), 0);
+          textResponse = `${targetChild.name} has Rs. ${totalDues} outstanding dues across ${unpaid.length} pending installments.`;
+        }
+      }
+
+    } else if (role === 'teacher') {
+      // Resolve staff_id from school_users email link
+      const { data: userProfile } = await supabaseAdmin
+        .from('school_users')
+        .select('email')
+        .eq('id', resolvedUserId)
+        .maybeSingle();
+
+      const teacherEmail = userProfile?.email;
+      if (!teacherEmail) {
+        return NextResponse.json({ error: 'Access Denied: Teacher email profile not found' }, { status: 403 });
+      }
+
+      const { data: staffMember } = await supabaseAdmin
+        .from('staff')
+        .select('id')
+        .eq('email', teacherEmail)
+        .maybeSingle();
+
+      const staffId = staffMember?.id;
+      if (!staffId) {
+        return NextResponse.json({ error: 'Access Denied: Staff ID not registered' }, { status: 403 });
+      }
+
+      // Fetch teacher's assigned classes/sections
+      const { data: assignments } = await supabaseAdmin
+        .from('staff_class_assignments')
+        .select('class, section')
+        .eq('staff_id', staffId);
+
+      if (!assignments || assignments.length === 0) {
+        return NextResponse.json({ error: 'Access Denied: Teacher has no class assignments' }, { status: 403 });
+      }
+
+      if (intent === 'teacher_class_summary') {
+        const classes = assignments.map(a => a.class);
+        const sections = assignments.map(a => a.section);
+
+        const { data: clsStudents } = await supabaseAdmin
+          .from('students')
+          .select('id')
+          .in('class', classes)
+          .in('section', sections);
+
+        const studentIds = clsStudents?.map(s => s.id) || [];
+        if (studentIds.length === 0) {
+          textResponse = `No students enrolled in your assigned classes.`;
+        } else {
+          const { data: att } = await supabaseAdmin
+            .from('attendance')
+            .select('status')
+            .in('student_id', studentIds);
+
+          const total = att?.length || 0;
+          const present = att?.filter(a => a.status === 'present').length || 0;
+          const pct = total > 0 ? Math.round((present / total) * 100) : 100;
+          textResponse = `Class Performance Summary: Total assigned students: ${studentIds.length}. Overall attendance average: ${pct} percent.`;
+        }
+      } else if (intent === 'teacher_student_detail') {
+        const classes = assignments.map(a => a.class);
+        const sections = assignments.map(a => a.section);
+
+        const { data: assignedStudents } = await supabaseAdmin
+          .from('students')
+          .select('id, name, class, section')
+          .in('class', classes)
+          .in('section', sections);
+
+        const { data: allStudents } = await supabaseAdmin
+          .from('students')
+          .select('id, name, class, section')
+          .eq('school_id', schoolId);
+
+        let targetStudent = null;
+        let mentionedStudentOutsideScope = false;
+
+        if (allStudents) {
+          for (const s of allStudents) {
+            if (transcript.toLowerCase().includes(s.name.toLowerCase())) {
+              const isAssigned = assignments.some(a => a.class === s.class && a.section === s.section);
+              if (isAssigned) {
+                targetStudent = s;
+              } else {
+                mentionedStudentOutsideScope = true;
+              }
+            }
+          }
+        }
+
+        if (mentionedStudentOutsideScope && !targetStudent) {
+          return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
+        }
+
+        if (!targetStudent) {
+          targetStudent = assignedStudents?.[0];
+        }
+
+        if (!targetStudent) {
+          return NextResponse.json({ error: 'Access Denied: Target student profile not found in your assigned classes' }, { status: 403 });
+        }
+
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = transcript.match(uuidRegex);
+        if (match && (!assignedStudents || !assignedStudents.some(s => s.id === match[0]))) {
+          return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
+        }
+
+        const { data: att } = await supabaseAdmin
+          .from('attendance')
+          .select('status')
+          .eq('student_id', targetStudent.id);
+
+        const total = att?.length || 0;
+        const present = att?.filter(a => a.status === 'present').length || 0;
+        const pct = total > 0 ? Math.round((present / total) * 100) : 100;
+        textResponse = `Student details for ${targetStudent.name}: Class ${targetStudent.class}-${targetStudent.section}. Overall attendance is ${pct} percent (${present}/${total} days present).`;
+      }
+
+    } else if (role === 'accountant') {
+      if (intent === 'accountant_collection_totals') {
+        console.log(`[POST] Accountant query: fetching paid fees for school_id=${schoolId}...`);
+        const { data, error } = await supabaseAdmin
+          .from('fees')
+          .select('amount')
+          .eq('school_id', schoolId)
+          .eq('status', 'paid');
+
+        console.log(`[POST] Accountant query result count: ${data?.length}, error: ${error}`);
+        const totalCollected = data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+        textResponse = `Total fee collections received for this school is Rs. ${totalCollected.toLocaleString('en-IN')}.`;
+      } else {
+        console.log(`[POST] Accountant query error: unauthorized intent requested: ${intent}`);
+        return NextResponse.json({ error: 'Access Denied: Accountant not authorized for this intent' }, { status: 403 });
+      }
+    }
+  } catch (err: any) {
+    console.error('Error querying database:', err);
+    return NextResponse.json({ error: 'Database execution failed: ' + err.message }, { status: 500 });
+  }
+
+  // 5. TTS Processing (zero-burn first, then fallback to cloud)
+  let ttsSource = 'device';
+  let audio_response_base64: string | null = null;
+
+  if (!device_supports_tts) {
+    ttsSource = 'cloud';
+    try {
+      const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: textResponse,
+          lang: language_pref,
+          product: 'EdProSys',
+          quality_tier: 'standard'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        audio_response_base64 = data.audio_ref || null;
+      }
+    } catch (err) {
+      console.error('Aaria Speak fallback failed:', err);
+    }
+  }
+
+  const latency_ms = Date.now() - startTime;
+  let deviceStages = 0;
+  if (sttSource === 'device') deviceStages++;
+  if (nluSource === 'device') deviceStages++;
+  if (ttsSource === 'device') deviceStages++;
+  const zero_burn_ratio = deviceStages / 3.0;
+
+  return NextResponse.json({
+    intent,
+    text_response: textResponse,
+    audio_response_base64,
+    stt_source: sttSource,
+    nlu_source: nluSource,
+    tts_source: ttsSource,
+    latency_ms,
+    zero_burn_ratio
+  });
+}

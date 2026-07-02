@@ -1,0 +1,169 @@
+import { describe, it, expect, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { POST } from '../../app/api/voice-query/route';
+
+describe('EdProSys read-only voice query endpoint tests', () => {
+  it('1. Parent positive query - Suresh Reddy queries Arjun Reddy marks (Zero-Burn)', async () => {
+    const payload = {
+      transcript: 'Give me the exam marks for my child Arjun Reddy',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true,
+      test_role: 'parent',
+      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    
+    expect(data.intent).toBe('parent_marks');
+    expect(data.text_response).toContain('Exam marks for Arjun Reddy:');
+    expect(data.zero_burn_ratio).toBe(1.0);
+    expect(data.stt_source).toBe('device');
+    expect(data.nlu_source).toBe('device');
+    expect(data.tts_source).toBe('device');
+  });
+
+  it('2. Parent negative query - Suresh Reddy queries unassociated child (Rejected)', async () => {
+    // Probing with a non-associated student UUID in transcript
+    const payload = {
+      transcript: 'Show me marks of child 81d8b151-4bb2-4c8e-b2c1-f388c78c3d2c',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true,
+      test_role: 'parent',
+      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain('Access Denied: Parent not authorized');
+  });
+
+  it('3. Teacher positive query - test.teacher queries assigned student Arjun Reddy', async () => {
+    const payload = {
+      transcript: 'Give me the student detail for Arjun Reddy',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true,
+      test_role: 'teacher',
+      test_user_id: '268d6f30-d964-4b37-adde-688a9d984cba' // test.teacher@schoolos.local
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('Student details for Arjun Reddy: Class 5-A');
+  });
+
+  it('4. Teacher negative query - test.teacher queries student Vikas Reddy (Outside class scope)', async () => {
+    // Vikas Reddy is in class 5-b, teacher is assigned only to 5-A
+    const payload = {
+      transcript: 'Show me details for Vikas Reddy',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true,
+      test_role: 'teacher',
+      test_user_id: '268d6f30-d964-4b37-adde-688a9d984cba' // test.teacher@schoolos.local
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain('Access Denied: Student is not in your assigned class scope');
+  });
+
+  it('5. Accountant query - demo.accountant queries total collections', async () => {
+    const payload = {
+      transcript: 'Show total collections received',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true,
+      test_role: 'accountant',
+      test_user_id: 'd2d90e8b-7d23-46a7-ab36-f90bab3e7de2' // demo.accountant
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('accountant_collection_totals');
+    expect(data.text_response).toContain('Total fee collections received for this school is Rs. 2,12,000');
+  });
+
+  it('6. Cloud Fallback Test - triggers cloud NLU & TTS fallbacks', async () => {
+    const originalFetch = global.fetch;
+    const mockFetch = vi.fn().mockImplementation((url, init) => {
+      const urlStr = url.toString();
+      if (urlStr.endsWith('/api/voice/understand')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ intent: 'parent_attendance', confidence: 0.85 })
+        } as Response);
+      }
+      if (urlStr.endsWith('/api/voice/speak')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ audio_ref: 'cloud-tts-audio-base64' })
+        } as Response);
+      }
+      // Pass-through database requests to actual Supabase API
+      return originalFetch(url, init);
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const payload = {
+      transcript: 'some ambiguous query phrase',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: false, // Forces cloud TTS
+      test_role: 'parent',
+      test_user_id: '41074512-070e-4c20-9fd1-3fd00f5ee8b9' // Suresh Reddy
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    
+    expect(data.intent).toBe('parent_attendance');
+    expect(data.stt_source).toBe('device');
+    expect(data.nlu_source).toBe('cloud'); // Triggers cloud NLU
+    expect(data.tts_source).toBe('cloud'); // Triggers cloud TTS
+    expect(data.audio_response_base64).toBe('cloud-tts-audio-base64');
+    expect(data.zero_burn_ratio).toBeCloseTo(1 / 3, 2);
+
+    vi.unstubAllGlobals();
+  });
+});

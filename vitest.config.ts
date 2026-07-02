@@ -1,6 +1,12 @@
 import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './'),
+    },
+  },
   test: {
     include: ['tests/unit/**/*.test.ts'],
     environment: 'node',
@@ -12,5 +18,6 @@ export default defineConfig({
     coverage: {
       enabled: false, // coverage adds cost — enable explicitly when needed
     },
+    testTimeout: 30000,
   },
 });
