@@ -68,22 +68,44 @@ export async function POST(req: NextRequest) {
   let resolvedUserId: string | null = null;
   let schoolId: string | null = null;
 
-  // Check parent cookie first
-  const parentSession = await getParentSession(req);
-  if (parentSession) {
-    role = 'parent';
-    resolvedUserId = parentSession.parentId;
-    schoolId = parentSession.schoolId;
+  let parentSession: any = null;
+
+  // Check cookie prioritized by the requesting page (referer) to prevent cookie collision
+  const referer = req.headers.get('referer') || '';
+  const isParentPortal = referer.includes('/parent');
+
+  if (isParentPortal) {
+    parentSession = await getParentSession(req);
+    if (parentSession) {
+      role = 'parent';
+      resolvedUserId = parentSession.parentId;
+      schoolId = parentSession.schoolId;
+    } else {
+      const token = req.cookies.get('school_session')?.value;
+      const staffSession = await verifySession(token);
+      if (staffSession) {
+        role = staffSession.userRole;
+        resolvedUserId = staffSession.userId;
+        schoolId = staffSession.schoolId;
+      }
+    }
   } else {
-    // Check staff cookie
     const token = req.cookies.get('school_session')?.value;
     const staffSession = await verifySession(token);
     if (staffSession) {
       role = staffSession.userRole;
       resolvedUserId = staffSession.userId;
       schoolId = staffSession.schoolId;
+    } else {
+      parentSession = await getParentSession(req);
+      if (parentSession) {
+        role = 'parent';
+        resolvedUserId = parentSession.parentId;
+        schoolId = parentSession.schoolId;
+      }
     }
   }
+  console.log(`[DEBUG_VOICE] referer: ${referer}, resolved role: ${role}, resolvedUserId: ${resolvedUserId}, schoolId: ${schoolId}`);
 
   if (!role || !resolvedUserId || !schoolId) {
     console.log(`[POST] Unauthorized: role=${role}, resolvedUserId=${resolvedUserId}, schoolId=${schoolId}`);
@@ -151,19 +173,23 @@ export async function POST(req: NextRequest) {
     intent = 'fallback_unknown';
   }
   console.log(`[POST] Final intent: ${intent}`);
+  console.log(`[DEBUG_CROSS_SCOPE] role: ${role}, transcript: ${transcript}, intent: ${intent}`);
 
-  // Reject cross-role intent leaks
-  if (role === 'parent' && !intent.startsWith('parent_')) {
-    console.log(`[POST] Cross-scope intent rejected: parent tried to access ${intent}`);
-    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
-  }
-  if (role === 'teacher' && !intent.startsWith('teacher_')) {
-    console.log(`[POST] Cross-scope intent rejected: teacher tried to access ${intent}`);
-    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
-  }
-  if (role === 'accountant' && !intent.startsWith('accountant_')) {
-    console.log(`[POST] Cross-scope intent rejected: accountant tried to access ${intent}`);
-    return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+  // Reject cross-role intent leaks (allow fallback/unknown queries to bypass)
+  const isFallback = intent === 'fallback_unknown' || intent === 'unknown';
+  if (!isFallback) {
+    if (role === 'parent' && !intent.startsWith('parent_')) {
+      console.log(`[POST] Cross-scope intent rejected: parent tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
+    if (role === 'teacher' && !intent.startsWith('teacher_')) {
+      console.log(`[POST] Cross-scope intent rejected: teacher tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
+    if (role === 'accountant' && !intent.startsWith('accountant_')) {
+      console.log(`[POST] Cross-scope intent rejected: accountant tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
   }
 
   // 4. Read-Only Query Resolution with strict permissions boundaries
@@ -171,8 +197,17 @@ export async function POST(req: NextRequest) {
   console.log(`[POST] Starting DB query resolution for role=${role}, intent=${intent}...`);
   try {
     const supabase = supabaseForUser(schoolId);
-
-    if (role === 'parent') {
+    if (intent === 'fallback_unknown' || intent === 'unknown') {
+      if (role === 'parent') {
+        textResponse = "I'm sorry, I couldn't understand that. Please try asking about your child's attendance, marks, or fees.";
+      } else if (role === 'teacher') {
+        textResponse = "I'm sorry, I couldn't understand that. Please try asking about class summary or student details.";
+      } else if (role === 'accountant') {
+        textResponse = "I'm sorry, I couldn't understand that. Please try asking about total collections.";
+      } else {
+        textResponse = "I'm sorry, I couldn't understand your request.";
+      }
+    } else if (role === 'parent') {
       // Fetch children registered via parent_students
       console.log(`[POST] Parent query: fetching parent_students for parent_id=${resolvedUserId}...`);
       const { data: children, error: childrenErr } = await supabase
@@ -301,27 +336,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Access Denied: Not a teacher' }, { status: 403 });
       }
 
-      // Resolve staff_id from school_users email link
-      const { data: userProfile } = await supabase
+      // Resolve staff_id directly from school_users
+      const { data: userProfile, error: profileErr } = await supabase
         .from('school_users')
-        .select('email')
+        .select('staff_id')
         .eq('id', resolvedUserId)
         .maybeSingle();
 
-      const teacherEmail = userProfile?.email;
-      if (!teacherEmail) {
-        return NextResponse.json({ error: 'Access Denied: Teacher email profile not found' }, { status: 403 });
-      }
-
-      const { data: staffMember } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('email', teacherEmail)
-        .maybeSingle();
-
-      const staffId = staffMember?.id;
-      if (!staffId) {
-        return NextResponse.json({ error: 'Access Denied: Staff ID not registered' }, { status: 403 });
+      const staffId = userProfile?.staff_id;
+      if (profileErr || !staffId) {
+        console.log(`[POST] Teacher staff linkage error: profileErr=${profileErr}, staffId=${staffId}`);
+        return NextResponse.json({ error: 'Access Denied: Teacher staff linkage not found' }, { status: 403 });
       }
 
       // Fetch teacher's assigned classes/sections

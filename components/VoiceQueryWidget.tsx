@@ -146,7 +146,8 @@ export function VoiceQueryWidget() {
         })
       });
       if (!res.ok) {
-        throw new Error('API request failed');
+        const bodyText = await res.text();
+        throw new Error(`HTTP ${res.status} - ${bodyText}`);
       }
       const data = await res.json() as VoiceNLResp;
       setLastResult(data.text_response || 'No response details found.');
@@ -168,9 +169,9 @@ export function VoiceQueryWidget() {
         utterance.lang = speechLangMap[lang] || 'en-IN';
         window.speechSynthesis.speak(utterance);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Voice query execution failed:', err);
-      setLastResult('Voice query failed. Please try again.');
+      setLastResult(`Voice query failed: ${err.message || err}`);
     }
     setLoading(false);
   }
