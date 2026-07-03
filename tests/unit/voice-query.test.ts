@@ -569,6 +569,125 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(data.intent).toBe('accountant_collection_totals');
     expect(data.text_response).toContain('ఫీజు వసూళ్లు రూ. 2,12,000');
   });
+
+  it('18. Phonetic Telugu - Class summary transliterated matches locally (Zero-Burn)', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'క్లాస్ సమ్మరీ',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_class_summary');
+    expect(data.text_response).toContain('తరగతి పనితీరు సారాంశం');
+  });
+
+  it('19. Name-only student query - overrides to teacher_student_detail', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'అర్జున్ రెడ్డి',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('వివరాలు: తరగతి 5-A. మొత్తం హాజరు 84 శాతం');
+  });
+
+  it('20. Aaria Fallback - maps get_student_info to teacher_student_detail', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const originalFetch = global.fetch;
+    const mockFetch = vi.fn().mockImplementation((url, init) => {
+      const urlStr = url.toString();
+      if (urlStr.endsWith('/api/voice/understand')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ intent: 'get_student_info', confidence: 0.85 })
+        } as Response);
+      }
+      return originalFetch(url, init);
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    try {
+      const payload = {
+        transcript: 'show Arjun Reddy',
+        confidence: 0.95,
+        language_pref: 'en',
+        device_supports_tts: true
+      };
+
+      const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Cookie': `school_session=${teacherToken}`
+        }
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.intent).toBe('teacher_student_detail');
+      expect(data.text_response).toContain('Student details for Arjun Reddy: Class 5-A');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 
