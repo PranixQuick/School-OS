@@ -4,6 +4,7 @@
   "crons": [
     { "path": "/api/cron/daily",               "schedule": "0 2 * * *" },
     { "path": "/api/cron/abuse-monitor",       "schedule": "0 8 * * *" },
-    { "path": "/api/cron/magic-link-reminder", "schedule": "0 3 * * 0" }
+    { "path": "/api/cron/magic-link-reminder", "schedule": "0 3 * * 0" },
+    { "path": "/api/cron/keep-alive",           "schedule": "*/10 * * * *" }
   ]
 }

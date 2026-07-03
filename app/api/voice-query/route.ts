@@ -215,21 +215,7 @@ function getFallbackResponse(lang: string, role: string): string {
     default: return "I'm sorry, I couldn't understand your request.";
   }
 }
-
-let keepAliveStarted = false;
-function startKeepAlive() {
-  if (keepAliveStarted) return;
-  keepAliveStarted = true;
-  console.log('[KEEP_ALIVE] Starting Render keep-alive ping...');
-  fetch('https://pranix-aaria.onrender.com/').catch(() => {});
-  setInterval(() => {
-    console.log('[KEEP_ALIVE] Pinging Render to keep warm...');
-    fetch('https://pranix-aaria.onrender.com/').catch(() => {});
-  }, 300000);
-}
-
 export async function POST(req: NextRequest) {
-  startKeepAlive();
   const startTime = Date.now();
   let body: VoiceQueryRequest = {};
   try {
