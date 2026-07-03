@@ -407,5 +407,66 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(data.intent).toBe('teacher_student_detail');
     expect(data.text_response).toContain('I couldn\'t find a student matching "nonexistentstudent" in your assigned classes.');
   });
+
+  it('13. Localized Response - Parent query for attendance in Telugu (language_pref: "te")', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
+    const payload = {
+      transcript: 'హాజరు',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('parent_attendance');
+    expect(data.text_response).toContain('మొత్తం హాజరు 84 శాతం');
+  });
+
+  it('14. Localized Response - Parent query for marks in Telugu (language_pref: "te")', async () => {
+    const parentToken = await signParentSession({
+      parentId: '41074512-070e-4c20-9fd1-3fd00f5ee8b9', // Suresh Reddy
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      studentId: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      phone: '+919515479595'
+    });
+
+    const payload = {
+      transcript: 'మార్కులు',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `parent_session=${parentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('parent_marks');
+    expect(data.text_response).toContain('పరీక్ష మార్కులు');
+  });
 });
+
 
