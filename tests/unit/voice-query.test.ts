@@ -467,6 +467,108 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(data.intent).toBe('parent_marks');
     expect(data.text_response).toContain('పరీక్ష మార్కులు');
   });
+
+  it('15. Localized Response - Teacher query for student details in Telugu (language_pref: "te")', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'అర్జున్ రెడ్డి వివరాలు',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('వివరాలు: తరగతి 5-A. మొత్తం హాజరు 84 శాతం');
+  });
+
+  it('16. Localized Response - Teacher query for class summary in Telugu (language_pref: "te")', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'తరగతి పనితీరు',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_class_summary');
+    expect(data.text_response).toContain('తరగతి పనితీరు సారాంశం');
+  });
+
+  it('17. Localized Response - Accountant query for collections in Telugu (language_pref: "te")', async () => {
+    const accountantToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: 'd2d90e8b-7d23-46a7-ab36-f90bab3e7de2', // demo.accountant
+      userEmail: 'demo.accountant@schoolos.local',
+      userRole: 'accountant',
+      userName: 'Demo Accountant'
+    });
+
+    const payload = {
+      transcript: 'వసూళ్లు',
+      confidence: 0.95,
+      language_pref: 'te',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${accountantToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('accountant_collection_totals');
+    expect(data.text_response).toContain('ఫీజు వసూళ్లు రూ. 2,12,000');
+  });
 });
 
 

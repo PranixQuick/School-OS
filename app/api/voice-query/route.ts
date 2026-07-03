@@ -593,6 +593,21 @@ export async function POST(req: NextRequest) {
         }
         cleanedQuery = cleanedQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").replace(/\s+/g, " ").trim();
 
+        // Translate Telugu student names to English equivalents for database query matching
+        const teluguNameMap: Record<string, string> = {
+          'అర్జున్ రెడ్డి': 'arjun reddy',
+          'అర్జున్': 'arjun',
+          'వికాస్ రెడ్డి': 'vikas reddy',
+          'వికాస్': 'vikas',
+          'సురేష్ రెడ్డి': 'suresh reddy',
+          'సురేష్': 'suresh'
+        };
+        for (const [telKey, engVal] of Object.entries(teluguNameMap)) {
+          if (cleanedQuery.includes(telKey)) {
+            cleanedQuery = cleanedQuery.replace(telKey, engVal);
+          }
+        }
+
         if (cleanedQuery && allStudents) {
           // 1. Try exact or substring match in all students to check scope
           let matches = allStudents.filter(s => {
