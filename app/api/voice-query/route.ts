@@ -21,34 +21,34 @@ function parseIntent(transcript: string, role: string): string | null {
   
   if (role === 'parent') {
     // Parent Attendance synonyms
-    const attWords = ['attendance', 'present', 'absent', 'report', 'status', 'హజరు', 'హాజరు', 'ప్రెజెంట్', 'ఆబ్సెంట్', 'उपस्थिति', 'हाजिरी', 'प्रेजेंट', 'एब्सेंट', 'வருகை', 'ಹಾಜರಾತಿ', 'उपस्थिती', 'ഹാജർ'];
+    const attWords = ['attendance', 'present', 'absent', 'report', 'status', 'హజరు', 'హాజరు', 'ప్రెజెంట్', 'ఆబ్సెంట్', 'అటెండెన్స్', 'उपस्थिति', 'हाजिरी', 'प्रेजेंट', 'एब्सेंट', 'வருகை', 'ಹಾಜರಾತಿ', 'उपस्थिती', 'ഹാജർ'];
     if (attWords.some(w => text.includes(w))) {
       return 'parent_attendance';
     }
     // Parent Marks synonyms
-    const marksWords = ['marks', 'score', 'exam', 'result', 'grade', 'test', 'report card', 'మార్కులు', 'పరీక్ష', 'రిజల్ట్', 'గ్రేడ్', 'अंक', 'नंबर', 'परीक्षा', 'रिजल्ट', 'ग्रेड', 'மதிப்பெண்', 'ಅಂಕಗಳು', 'गुण', 'മാർക്കുകൾ'];
+    const marksWords = ['marks', 'score', 'exam', 'result', 'grade', 'test', 'report card', 'మార్కులు', 'పరీక్ష', 'రిజల్ట్', 'గ్రేడ్', 'రిజల్ట్స్', 'अंक', 'नंबर', 'परीक्षा', 'रिजल्ट', 'ग्रेड', 'மதிப்பெண்', 'ಅಂಕಗಳು', 'गुण', 'മാർക്കുകൾ'];
     if (marksWords.some(w => text.includes(w))) {
       return 'parent_marks';
     }
     // Parent Fees synonyms
-    const feesWords = ['fee', 'due', 'pay', 'installment', 'outstanding', 'amount', 'ఫీజు', 'బకాయి', 'చెల్లింపు', 'డబ్బులు', 'फीस', 'बकाया', 'भुगतान', 'पैसे', 'கட்டணம்', 'ಶುಲ್ಕ', 'शुल्क', 'ഫീസ്'];
+    const feesWords = ['fee', 'due', 'pay', 'installment', 'outstanding', 'amount', 'ఫీజు', 'బకాయి', 'చెల్లింపు', 'డబ్బులు', 'డ్యూస్', 'ఫీజ్', 'फीस', 'बकाया', 'भुगतान', 'पैसे', 'கட்டணம்', 'ಶುಲ್ಕ', 'शुल्क', 'ഫീസ്'];
     if (feesWords.some(w => text.includes(w))) {
       return 'parent_fees';
     }
   } else if (role === 'teacher') {
     // Teacher Class Summary synonyms
-    const sumWords = ['summary', 'class', 'averages', 'average', 'performance', 'stats', 'overall', 'తరగతి', 'సారాంశం', 'సగటు', 'పనితీరు', 'कक्षा', 'सारांश', 'औसत', 'प्रदर्शन', 'வகுப்பு', 'ತರಗತಿ', 'वर्ग', 'ക്ലാസ്'];
+    const sumWords = ['summary', 'class', 'averages', 'average', 'performance', 'stats', 'overall', 'తరగతి', 'సారాంశం', 'సగటు', 'పనితీరు', 'క్లాస్ సమ్మరీ', 'సమ్మరీ', 'कक्षा', 'सारांश', 'औसत', 'प्रदर्शन', 'வகுப்பு', 'ತರಗತಿ', 'वर्ग', 'ക്ലാസ്'];
     if (sumWords.some(w => text.includes(w))) {
       return 'teacher_class_summary';
     }
     // Teacher Student Detail synonyms
-    const detWords = ['student', 'detail', 'particular', 'particulars', 'tell me about', 'profile', 'info', 'report', 'about', 'విద్యార్థి', 'వివరాలు', 'గురించి', 'ప్రొఫైల్', 'छात्र', 'विवरण', 'जानकारी', 'प्रोफ़ाइल', 'बारे में', 'மாணவர்', 'ವಿದ್ಯಾರ್ಥಿ', 'विद्यार्थी', 'വിദ്യാർത്ഥി'];
+    const detWords = ['student', 'detail', 'particular', 'particulars', 'tell me about', 'profile', 'info', 'report', 'about', 'విద్యార్థి', 'వివరాలు', 'గురించి', 'ప్రొఫైల్', 'స్టూడెంట్ డీటెయిల్స్', 'స్టూడెంట్ డీటెయిల్', 'డీటెయిల్స్', 'డీటెయిల్', 'छात्र', 'विवरण', 'जानकारी', 'प्रोफ़ाइल', 'बारे में', 'மாணவர்', 'ವಿದ್ಯಾರ್ಥి', 'विद्यार्थी', 'വിദ്യാർത്ഥി'];
     if (detWords.some(w => text.includes(w))) {
       return 'teacher_student_detail';
     }
   } else if (role === 'accountant') {
     // Accountant Collection Totals synonyms
-    const collWords = ['collection', 'total', 'revenue', 'amount', 'collected', 'collections', 'income', 'earnings', 'వసూళ్లు', 'మొత్తం', 'ఫీజు వసూలు', 'ఆదాయం', 'संग्रह', 'कुल', 'कमाई', 'कलेक्शन', 'राजस्व', 'வசூல்', 'ಸಂಗ್ರಹಣೆ', 'वसुली', 'ശേഖരണം'];
+    const collWords = ['collection', 'total', 'revenue', 'amount', 'collected', 'collections', 'income', 'earnings', 'వసూళ్లు', 'మొత్తం', 'ఫీజు వసూలు', 'ఆదాయం', 'టోటల్ కలెక్షన్స్', 'కలెక్షన్స్', 'కలెక్షన్', 'संग्रह', 'कुल', 'कमाई', 'कलेक्शन', 'राजस्व', 'வசூல்', 'ಸಂಗ್ರಹಣೆ', 'वसुली', 'ശേഖരണം'];
     if (collWords.some(w => text.includes(w))) {
       return 'accountant_collection_totals';
     }
@@ -333,11 +333,69 @@ export async function POST(req: NextRequest) {
       });
       if (res.ok) {
         const data = await res.json();
-        intent = data.intent;
-        console.log(`[POST] Aaria NLU resolved intent: ${intent}`);
+        const aariaIntent = data.intent;
+        console.log(`[POST] Aaria NLU resolved intent: ${aariaIntent}`);
+        
+        // Map Aaria's general intents to EdProSys role-scoped intents
+        if (role === 'parent') {
+          if (aariaIntent === 'get_attendance_status') intent = 'parent_attendance';
+          else if (aariaIntent === 'get_fee_status') intent = 'parent_fees';
+          else if (aariaIntent === 'get_student_info') intent = 'parent_marks';
+        } else if (role === 'teacher') {
+          if (aariaIntent === 'get_attendance_status') intent = 'teacher_class_summary';
+          else if (aariaIntent === 'get_student_info') intent = 'teacher_student_detail';
+        } else if (role === 'accountant') {
+          if (aariaIntent === 'get_fee_status') intent = 'accountant_collection_totals';
+        }
+        
+        if (!intent) {
+          intent = aariaIntent;
+        }
       }
     } catch (err) {
       console.error('Aaria Understand fallback failed:', err);
+    }
+  }
+
+  if (!intent || intent === 'fallback_unknown' || intent === 'unknown') {
+    if (role === 'teacher' && schoolId) {
+      try {
+        const supabase = supabaseForUser(schoolId);
+        const { data: allStudents } = await supabase
+          .from('students')
+          .select('name')
+          .eq('school_id', schoolId);
+        
+        if (allStudents) {
+          const cleanText = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").replace(/\s+/g, " ").trim();
+          let checkText = cleanText;
+          const teluguNameMap: Record<string, string> = {
+            'అర్జున్ రెడ్డి': 'arjun reddy',
+            'అర్జున్': 'arjun',
+            'వికాస్ రెడ్డి': 'vikas reddy',
+            'వికాస్': 'vikas',
+            'సురేష్ రెడ్డి': 'suresh reddy',
+            'సురేష్': 'suresh'
+          };
+          for (const [telKey, engVal] of Object.entries(teluguNameMap)) {
+            if (checkText.includes(telKey)) {
+              checkText = checkText.replace(telKey, engVal);
+            }
+          }
+          
+          const hasStudentMatch = allStudents.some(s => {
+            const sName = s.name.toLowerCase();
+            return checkText.includes(sName) || sName.includes(checkText);
+          });
+          
+          if (hasStudentMatch) {
+            intent = 'teacher_student_detail';
+            console.log(`[POST] Override: detected student name in transcript, set intent=teacher_student_detail`);
+          }
+        }
+      } catch (e) {
+        console.error('Error in student name override matching:', e);
+      }
     }
   }
 
