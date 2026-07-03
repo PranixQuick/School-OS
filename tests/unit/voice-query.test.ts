@@ -688,6 +688,264 @@ describe('EdProSys read-only voice query endpoint tests', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('21. Teacher query - robust student name matching for "details for Arjun" (regression fix)', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'Give me details for Arjun',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('Student details for Arjun Reddy: Class 5-A');
+  });
+
+  it('22. Principal positive query - school summary', async () => {
+    const principalToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '5157c505-56db-421a-9dbc-95dbaeae2d78', // demo.principal
+      userEmail: 'demo.principal@suchitra.edprosys.demo',
+      userRole: 'principal',
+      userName: 'Demo Principal'
+    });
+
+    const payload = {
+      transcript: 'school performance summary',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${principalToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('principal_school_summary');
+    expect(data.text_response).toContain('School Performance Summary: Total students:');
+  });
+
+  it('23. Principal negative query - query other school ID (Rejected)', async () => {
+    const principalToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '5157c505-56db-421a-9dbc-95dbaeae2d78', // demo.principal
+      userEmail: 'demo.principal@suchitra.edprosys.demo',
+      userRole: 'principal',
+      userName: 'Demo Principal'
+    });
+
+    // Probing for a different school ID
+    const payload = {
+      transcript: 'school summary of school 7cd5c9af-f218-441c-9c7c-52068539861c',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${principalToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain('Access Denied: Principal not authorized to access school');
+  });
+
+  it('24. Owner positive query - multi-school summary', async () => {
+    const ownerToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '47b4e521-8f60-4712-85d6-da8bf093594b', // demo.owner
+      userEmail: 'demo.owner@suchitra.edprosys.demo',
+      userRole: 'owner',
+      userName: 'Demo Owner'
+    });
+
+    const payload = {
+      transcript: 'all schools summary',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${ownerToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('owner_multi_school_summary');
+    expect(data.text_response).toContain('Portfolio Performance Summary: Schools:');
+  });
+
+  it('25. Owner negative query - query other school ID (Rejected)', async () => {
+    const ownerToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '47b4e521-8f60-4712-85d6-da8bf093594b', // demo.owner
+      userEmail: 'demo.owner@suchitra.edprosys.demo',
+      userRole: 'owner',
+      userName: 'Demo Owner'
+    });
+
+    // Probing for a different school ID not owned
+    const payload = {
+      transcript: 'summary of school 7cd5c9af-f218-441c-9c7c-52068539861c',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${ownerToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain('Access Denied: Owner not authorized to access school');
+  });
+
+  it('26. Student positive query - self attendance & marks', async () => {
+    const { issueStudentSession } = await import('../../lib/student-auth');
+    const studentToken = await issueStudentSession({
+      id: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      school_id: '00000000-0000-0000-0000-000000000001',
+      name: 'Arjun Reddy',
+      class: '5',
+      section: 'A'
+    });
+
+    // 1. Attendance query
+    const payloadAttendance = {
+      transcript: 'my attendance',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const reqAttendance = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payloadAttendance),
+      headers: {
+        'Cookie': `student_session=${studentToken}`
+      }
+    });
+
+    const resAttendance = await POST(reqAttendance);
+    expect(resAttendance.status).toBe(200);
+    const dataAttendance = await resAttendance.json();
+    expect(dataAttendance.intent).toBe('student_self_attendance');
+    expect(dataAttendance.text_response).toContain('Your overall attendance is');
+
+    // 2. Marks query
+    const payloadMarks = {
+      transcript: 'my marks',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const reqMarks = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payloadMarks),
+      headers: {
+        'Cookie': `student_session=${studentToken}`
+      }
+    });
+
+    const resMarks = await POST(reqMarks);
+    expect(resMarks.status).toBe(200);
+    const dataMarks = await resMarks.json();
+    expect(dataMarks.intent).toBe('student_self_marks');
+    expect(dataMarks.text_response).toContain('Your exam marks:');
+  });
+
+  it('27. Student query - query mentioning other student name (Resolves to self)', async () => {
+    const { issueStudentSession } = await import('../../lib/student-auth');
+    const studentToken = await issueStudentSession({
+      id: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
+      school_id: '00000000-0000-0000-0000-000000000001',
+      name: 'Arjun Reddy',
+      class: '5',
+      section: 'A'
+    });
+
+    // Student queries marks mentioning other student name, resolves strictly to self
+    const payload = {
+      transcript: 'marks for CertTest Child2',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `student_session=${studentToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('student_self_marks');
+    expect(data.text_response).toContain('Your exam marks:');
+  });
 });
 
 
