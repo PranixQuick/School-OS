@@ -6,6 +6,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLang } from '@/lib/useLang';
 
+import LanguageSelector from './LanguageSelector';
+
 interface VoiceNLResp {
   intent: string;
   text_response: string;
@@ -184,8 +186,11 @@ export function VoiceQueryWidget() {
 
   return (
     <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', marginBottom: 8, letterSpacing: 0.5 }}>
-        🎙️ VOICE QUERY ASSISTANT
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', letterSpacing: 0.5 }}>
+          🎙️ VOICE QUERY ASSISTANT
+        </div>
+        <LanguageSelector compact />
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button

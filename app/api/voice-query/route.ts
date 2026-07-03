@@ -33,7 +33,7 @@ function parseIntent(transcript: string, role: string): string | null {
     if (text.includes('summary') || text.includes('class') || text.includes('averages') || text.includes('తరగతి') || text.includes('performance')) {
       return 'teacher_class_summary';
     }
-    if (text.includes('student') || text.includes('detail') || text.includes('particular') || text.includes('విద్యార్థి') || text.includes('particulars')) {
+    if (text.includes('student') || text.includes('detail') || text.includes('particular') || text.includes('విద్యార్థి') || text.includes('particulars') || text.includes('tell me about') || text.includes('profile')) {
       return 'teacher_student_detail';
     }
   } else if (role === 'accountant') {
@@ -409,15 +409,49 @@ export async function POST(req: NextRequest) {
         let targetStudent = null;
         let mentionedStudentOutsideScope = false;
 
-        if (allStudents) {
-          for (const s of allStudents) {
-            if (transcript.toLowerCase().includes(s.name.toLowerCase())) {
-              const isAssigned = assignments.some(a => a.class === s.class && a.section === s.section);
-              if (isAssigned) {
-                targetStudent = s;
-              } else {
-                mentionedStudentOutsideScope = true;
-              }
+        // Clean/strip intent keywords to extract name
+        let cleanedQuery = transcript.toLowerCase();
+        const keywordsToRemove = [
+          'student details for', 'student detail for', 'student details of', 'student detail of',
+          'particulars of', 'particular of', 'details of', 'detail of', 'tell me about',
+          'student details', 'student detail', 'particulars', 'particular', 'details', 'detail',
+          'student', 'show', 'info for', 'info of', 'info', 'profile for', 'profile of', 'profile'
+        ];
+        
+        for (const kw of keywordsToRemove) {
+          const regex = new RegExp('\\b' + kw + '\\b', 'gi');
+          cleanedQuery = cleanedQuery.replace(regex, '');
+        }
+        cleanedQuery = cleanedQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").replace(/\s+/g, " ").trim();
+
+        if (cleanedQuery && allStudents) {
+          // 1. Try exact or substring match in all students to check scope
+          let matches = allStudents.filter(s => {
+            const sName = s.name.toLowerCase();
+            return sName === cleanedQuery || sName.includes(cleanedQuery) || cleanedQuery.includes(sName);
+          });
+
+          // 2. If no exact/substring matches, try matching by individual words (robust matching)
+          if (matches.length === 0) {
+            const words = cleanedQuery.split(' ').filter(w => w.length > 2);
+            if (words.length > 0) {
+              matches = allStudents.filter(s => {
+                const sName = s.name.toLowerCase();
+                return words.some(w => sName.includes(w));
+              });
+            }
+          }
+
+          if (matches.length > 0) {
+            // Check if any match is in the teacher's assigned classes
+            const assignedMatches = matches.filter(s => 
+              assignments.some(a => a.class === s.class && a.section === s.section)
+            );
+
+            if (assignedMatches.length > 0) {
+              targetStudent = assignedMatches[0];
+            } else {
+              mentionedStudentOutsideScope = true;
             }
           }
         }
@@ -426,29 +460,31 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
         }
 
-        if (!targetStudent) {
+        // If no explicit query name was searched, default to the first assigned student
+        if (!cleanedQuery && !targetStudent) {
           targetStudent = assignedStudents?.[0];
         }
 
         if (!targetStudent) {
-          return NextResponse.json({ error: 'Access Denied: Target student profile not found in your assigned classes' }, { status: 403 });
+          const searchName = cleanedQuery || 'the requested student';
+          textResponse = `I couldn't find a student matching "${searchName}" in your assigned classes.`;
+        } else {
+          const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+          const match = transcript.match(uuidRegex);
+          if (match && (!assignedStudents || !assignedStudents.some(s => s.id === match[0]))) {
+            return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
+          }
+
+          const { data: att } = await supabase
+            .from('attendance')
+            .select('status')
+            .eq('student_id', targetStudent.id);
+
+          const total = att?.length || 0;
+          const present = att?.filter(a => a.status === 'present').length || 0;
+          const pct = total > 0 ? Math.round((present / total) * 100) : 100;
+          textResponse = `Student details for ${targetStudent.name}: Class ${targetStudent.class}-${targetStudent.section}. Overall attendance is ${pct} percent (${present}/${total} days present).`;
         }
-
-        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-        const match = transcript.match(uuidRegex);
-        if (match && (!assignedStudents || !assignedStudents.some(s => s.id === match[0]))) {
-          return NextResponse.json({ error: 'Access Denied: Student is not in your assigned class scope' }, { status: 403 });
-        }
-
-        const { data: att } = await supabase
-          .from('attendance')
-          .select('status')
-          .eq('student_id', targetStudent.id);
-
-        const total = att?.length || 0;
-        const present = att?.filter(a => a.status === 'present').length || 0;
-        const pct = total > 0 ? Math.round((present / total) * 100) : 100;
-        textResponse = `Student details for ${targetStudent.name}: Class ${targetStudent.class}-${targetStudent.section}. Overall attendance is ${pct} percent (${present}/${total} days present).`;
       }
 
     } else if (role === 'accountant') {
