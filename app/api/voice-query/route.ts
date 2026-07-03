@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabaseClient';
 import { getParentSession } from '../../../lib/parent-auth';
 import { verifySession } from '../../../lib/session';
+import { verifyStudentSession } from '../../../lib/student-auth';
 import { supabaseForUser } from '../../../lib/supabaseForUser';
 import { isTeacher, isAccountant } from '../../../lib/authz';
 import { canDo } from '../../../lib/permissions';
@@ -51,6 +52,25 @@ function parseIntent(transcript: string, role: string): string | null {
     const collWords = ['collection', 'total', 'revenue', 'amount', 'collected', 'collections', 'income', 'earnings', 'వసూళ్లు', 'మొత్తం', 'ఫీజు వసూలు', 'ఆదాయం', 'టోటల్ కలెక్షన్స్', 'కలెక్షన్స్', 'కలెక్షన్', 'संग्रह', 'कुल', 'कमाई', 'कलेक्शन', 'राजस्व', 'வசூல்', 'ಸಂಗ್ರಹಣೆ', 'वसुली', 'ശേഖരണം'];
     if (collWords.some(w => text.includes(w))) {
       return 'accountant_collection_totals';
+    }
+  } else if (role === 'principal') {
+    const sumWords = ['summary', 'school', 'averages', 'average', 'performance', 'stats', 'overall', 'పాఠశాల', 'సారాంశం', 'స్కూల్', 'సమ్మరీ'];
+    if (sumWords.some(w => text.includes(w))) {
+      return 'principal_school_summary';
+    }
+  } else if (role === 'owner') {
+    const sumWords = ['all schools', 'schools', 'summary', 'portfolio', 'performance', 'మొత్తం పాఠశాలలు', 'స్కూల్స్', 'సమ్మరీ'];
+    if (sumWords.some(w => text.includes(w))) {
+      return 'owner_multi_school_summary';
+    }
+  } else if (role === 'student') {
+    const attWords = ['attendance', 'present', 'absent', 'report', 'status', 'హాజరు', 'అటెండెన్స్'];
+    const marksWords = ['marks', 'score', 'exam', 'result', 'grade', 'test', 'మార్కులు', 'పరీక్ష', 'రిజల్ట్'];
+    if (attWords.some(w => text.includes(w))) {
+      return 'student_self_attendance';
+    }
+    if (marksWords.some(w => text.includes(w))) {
+      return 'student_self_marks';
     }
   }
   return null;
@@ -172,6 +192,34 @@ function getAccountantCollectionResponse(lang: string, amount: number): string {
   }
 }
 
+function getPrincipalSchoolSummaryResponse(lang: string, count: number, pct: number): string {
+  switch (lang) {
+    case 'te': return `పాఠశాల పనితీరు సారాంశం: మొత్తం విద్యార్థులు: ${count}. సగటు హాజరు: ${pct} శాతం.`;
+    default: return `School Performance Summary: Total students: ${count}. Overall attendance average: ${pct} percent.`;
+  }
+}
+
+function getOwnerMultiSchoolSummaryResponse(lang: string, schoolCount: number, studentCount: number, pct: number): string {
+  switch (lang) {
+    case 'te': return `మొత్తం పాఠశాలల పనితీరు సారాంశం: పాఠశాలలు: ${schoolCount}, మొత్తం విద్యార్థులు: ${studentCount}. సగటు హాజరు: ${pct} శాతం.`;
+    default: return `Portfolio Performance Summary: Schools: ${schoolCount}, Total students: ${studentCount}. Overall attendance average: ${pct} percent.`;
+  }
+}
+
+function getStudentSelfAttendanceResponse(lang: string, pct: number, present: number, total: number): string {
+  switch (lang) {
+    case 'te': return `మీ మొత్తం హాజరు ${pct} శాతం (${present}/${total} రోజులు హాజరు).`;
+    default: return `Your overall attendance is ${pct} percent. Present for ${present} out of ${total} days.`;
+  }
+}
+
+function getStudentSelfMarksResponse(lang: string, summary: string): string {
+  switch (lang) {
+    case 'te': return `మీ పరీక్ష మార్కులు: ${summary}.`;
+    default: return `Your exam marks: ${summary}.`;
+  }
+}
+
 function getFallbackResponse(lang: string, role: string): string {
   if (role === 'parent') {
     switch (lang) {
@@ -204,6 +252,24 @@ function getFallbackResponse(lang: string, role: string): string {
       case 'mr': return "क्षमस्व, मला समजले नाही. कृपया एकूण वसुलीबद्दल विचारून पहा.";
       case 'ml': return "ക്ഷമിക്കണം, എനിക്ക് മനസ്സിലായില്ല. ദയവായി ആകെ ശേഖരണത്തെക്കുറിച്ച് ചോദിക്കുക.";
       default: return "I'm sorry, I couldn't understand that. Please try asking about total collections.";
+    }
+  }
+  if (role === 'principal') {
+    switch (lang) {
+      case 'te': return "క్షమించండి, నాకు అర్థం కాలేదు. దయచేసి పాఠశాల సారాంశం గురించి అడగండి.";
+      default: return "I'm sorry, I couldn't understand that. Please try asking about the school summary.";
+    }
+  }
+  if (role === 'owner') {
+    switch (lang) {
+      case 'te': return "క్షమించండి, నాకు అర్థం కాలేదు. దయచేసి పాఠశాలల సారాంశం గురించి అడగండి.";
+      default: return "I'm sorry, I couldn't understand that. Please try asking about the multi-school portfolio summary.";
+    }
+  }
+  if (role === 'student') {
+    switch (lang) {
+      case 'te': return "క్షమించండి, నాకు అర్థం కాలేదు. దయచేసి మీ మార్కులు లేదా హాజరు గురించి అడగండి.";
+      default: return "I'm sorry, I couldn't understand that. Please try asking about your marks or attendance.";
     }
   }
   switch (lang) {
@@ -241,10 +307,13 @@ export async function POST(req: NextRequest) {
   let schoolId: string | null = null;
 
   let parentSession: any = null;
+  let studentSession: any = null;
+  let staffSession: any = null;
 
   // Check cookie prioritized by the requesting page (referer) to prevent cookie collision
   const referer = req.headers.get('referer') || '';
   const isParentPortal = referer.includes('/parent');
+  const isStudentPortal = referer.includes('/student');
 
   if (isParentPortal) {
     parentSession = await getParentSession(req);
@@ -254,26 +323,42 @@ export async function POST(req: NextRequest) {
       schoolId = parentSession.schoolId;
     } else {
       const token = req.cookies.get('school_session')?.value;
-      const staffSession = await verifySession(token);
+      staffSession = await verifySession(token);
       if (staffSession) {
         role = staffSession.userRole;
         resolvedUserId = staffSession.userId;
         schoolId = staffSession.schoolId;
       }
     }
+  } else if (isStudentPortal) {
+    const token = req.cookies.get('student_session')?.value;
+    studentSession = await verifyStudentSession(token);
+    if (studentSession) {
+      role = 'student';
+      resolvedUserId = studentSession.studentId;
+      schoolId = studentSession.schoolId;
+    }
   } else {
     const token = req.cookies.get('school_session')?.value;
-    const staffSession = await verifySession(token);
+    staffSession = await verifySession(token);
     if (staffSession) {
       role = staffSession.userRole;
       resolvedUserId = staffSession.userId;
       schoolId = staffSession.schoolId;
     } else {
-      parentSession = await getParentSession(req);
-      if (parentSession) {
-        role = 'parent';
-        resolvedUserId = parentSession.parentId;
-        schoolId = parentSession.schoolId;
+      const tokenStudent = req.cookies.get('student_session')?.value;
+      studentSession = await verifyStudentSession(tokenStudent);
+      if (studentSession) {
+        role = 'student';
+        resolvedUserId = studentSession.studentId;
+        schoolId = studentSession.schoolId;
+      } else {
+        parentSession = await getParentSession(req);
+        if (parentSession) {
+          role = 'parent';
+          resolvedUserId = parentSession.parentId;
+          schoolId = parentSession.schoolId;
+        }
       }
     }
   }
@@ -340,12 +425,19 @@ export async function POST(req: NextRequest) {
         if (role === 'parent') {
           if (aariaIntent === 'get_attendance_status') intent = 'parent_attendance';
           else if (aariaIntent === 'get_fee_status') intent = 'parent_fees';
-          else if (aariaIntent === 'get_student_info') intent = 'parent_marks';
+          else if (aariaIntent === 'get_student_info' || aariaIntent === 'student_detail') intent = 'parent_marks';
         } else if (role === 'teacher') {
-          if (aariaIntent === 'get_attendance_status') intent = 'teacher_class_summary';
-          else if (aariaIntent === 'get_student_info') intent = 'teacher_student_detail';
+          if (aariaIntent === 'get_attendance_status' || aariaIntent === 'class_summary') intent = 'teacher_class_summary';
+          else if (aariaIntent === 'get_student_info' || aariaIntent === 'student_detail') intent = 'teacher_student_detail';
         } else if (role === 'accountant') {
-          if (aariaIntent === 'get_fee_status') intent = 'accountant_collection_totals';
+          if (aariaIntent === 'get_fee_status' || aariaIntent === 'collection_totals') intent = 'accountant_collection_totals';
+        } else if (role === 'principal') {
+          if (aariaIntent === 'get_attendance_status' || aariaIntent === 'class_summary' || aariaIntent === 'school_summary') intent = 'principal_school_summary';
+        } else if (role === 'owner') {
+          if (aariaIntent === 'get_attendance_status' || aariaIntent === 'class_summary' || aariaIntent === 'school_summary' || aariaIntent === 'collection_totals') intent = 'owner_multi_school_summary';
+        } else if (role === 'student') {
+          if (aariaIntent === 'get_attendance_status') intent = 'student_self_attendance';
+          else if (aariaIntent === 'get_student_info' || aariaIntent === 'student_detail') intent = 'student_self_marks';
         }
         
         if (!intent) {
@@ -418,6 +510,18 @@ export async function POST(req: NextRequest) {
     }
     if (role === 'accountant' && !intent.startsWith('accountant_')) {
       console.log(`[POST] Cross-scope intent rejected: accountant tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
+    if (role === 'principal' && !intent.startsWith('principal_')) {
+      console.log(`[POST] Cross-scope intent rejected: principal tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
+    if (role === 'owner' && !intent.startsWith('owner_')) {
+      console.log(`[POST] Cross-scope intent rejected: owner tried to access ${intent}`);
+      return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
+    }
+    if (role === 'student' && !intent.startsWith('student_')) {
+      console.log(`[POST] Cross-scope intent rejected: student tried to access ${intent}`);
       return NextResponse.json({ error: 'Access Denied: Cross-scope intent requested' }, { status: 403 });
     }
   }
@@ -642,13 +746,23 @@ export async function POST(req: NextRequest) {
           'particulars of', 'particular of', 'details of', 'detail of', 'tell me about',
           'student details', 'student detail', 'particulars', 'particular', 'details', 'detail',
           'student', 'show', 'info for', 'info of', 'info', 'profile for', 'profile of', 'profile',
-          'విద్యార్థి వివరాలు', 'విద్యార్థి గురించి', 'వివరాలు', 'గురించి', 'యొక్క', 'వివరం', 'విద్యార్థి'
+          'విద్యార్థి వివరాలు', 'విద్యార్థి గురించి', 'వివరాలు', 'గురించి', 'వివరం', 'విద్యార్థి',
+          'give me', 'get details', 'get detail', 'show details', 'show detail',
+          'మరియు వివరాలు', 'యొక్క వివరాలు', 'యొక్క వివరం'
         ];
         
         for (const kw of keywordsToRemove) {
           const regex = new RegExp('\\b' + kw + '\\b', 'gi');
           cleanedQuery = cleanedQuery.replace(regex, '');
         }
+
+        // Remove prepositions/fillers
+        const fillers = ['for', 'of', 'about', 'the', 'my', 'please', 'to', 'in', 'a', 'an', 'అఫ్', 'యొక్క'];
+        for (const f of fillers) {
+          const regex = new RegExp('\\b' + f + '\\b', 'gi');
+          cleanedQuery = cleanedQuery.replace(regex, '');
+        }
+
         cleanedQuery = cleanedQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").replace(/\s+/g, " ").trim();
 
         // Translate Telugu student names to English equivalents for database query matching
@@ -751,6 +865,196 @@ export async function POST(req: NextRequest) {
       } else {
         console.log(`[POST] Accountant query error: unauthorized intent requested: ${intent}`);
         return NextResponse.json({ error: 'Access Denied: Accountant not authorized for this intent' }, { status: 403 });
+      }
+    } else if (role === 'principal') {
+      if (!(await canDo(role, 'dashboard', 'view', true))) {
+        return NextResponse.json({ error: 'Access Denied: Principal not permitted to view dashboard' }, { status: 403 });
+      }
+
+      if (intent === 'principal_school_summary') {
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = transcript.match(uuidRegex);
+        if (match && match[0] !== schoolId) {
+          return NextResponse.json({ error: 'Access Denied: Principal not authorized to access school ' + match[0] }, { status: 403 });
+        }
+
+        const { data: clsStudents } = await supabase
+          .from('students')
+          .select('id')
+          .eq('school_id', schoolId);
+
+        const studentCount = clsStudents?.length || 0;
+        const studentIds = clsStudents?.map(s => s.id) || [];
+        let pct = 100;
+        if (studentIds.length > 0) {
+          const { data: att } = await supabase
+            .from('attendance')
+            .select('status')
+            .in('student_id', studentIds);
+          const total = att?.length || 0;
+          const present = att?.filter(a => a.status === 'present').length || 0;
+          pct = total > 0 ? Math.round((present / total) * 100) : 100;
+        }
+
+        textResponse = getPrincipalSchoolSummaryResponse(language_pref, studentCount, pct);
+      } else {
+        return NextResponse.json({ error: 'Access Denied: Principal not authorized for this intent' }, { status: 403 });
+      }
+
+    } else if (role === 'owner') {
+      if (!(await canDo(role, 'dashboard', 'view', true))) {
+        return NextResponse.json({ error: 'Access Denied: Owner not permitted to view dashboard' }, { status: 403 });
+      }
+
+      if (intent === 'owner_multi_school_summary') {
+        // Fetch owner institution mapping
+        const { data: userProfile } = await supabase
+          .from('school_users')
+          .select('institution_id')
+          .eq('id', resolvedUserId)
+          .maybeSingle();
+        
+        let institutionId = userProfile?.institution_id;
+        if (!institutionId) {
+          const { data: sch } = await supabase
+            .from('schools')
+            .select('institution_id')
+            .eq('id', schoolId)
+            .maybeSingle();
+          institutionId = sch?.institution_id;
+        }
+
+        let ownedSchoolIds: string[] = [];
+        
+        if (institutionId) {
+          const { data: ownedSchools } = await supabase
+            .from('schools')
+            .select('id, name')
+            .eq('institution_id', institutionId)
+            .eq('is_active', true);
+          ownedSchoolIds = ownedSchools?.map(s => s.id) || [];
+        } else {
+          // Fallback strictly to the owner's own school_id if institution_id is NULL
+          ownedSchoolIds = [schoolId];
+        }
+
+        if (ownedSchoolIds.length === 0) {
+          return NextResponse.json({ error: 'Access Denied: Owner has no active schools' }, { status: 403 });
+        }
+
+        // Negative test check: if they probe any UUID school outside of their owned schools
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = transcript.match(uuidRegex);
+        if (match && !ownedSchoolIds.includes(match[0])) {
+          return NextResponse.json({ error: 'Access Denied: Owner not authorized to access school ' + match[0] }, { status: 403 });
+        }
+
+        const { data: students } = await supabase
+          .from('students')
+          .select('id')
+          .in('school_id', ownedSchoolIds);
+
+        const studentCount = students?.length || 0;
+        const studentIds = students?.map(s => s.id) || [];
+        let pct = 100;
+        if (studentIds.length > 0) {
+          const { data: att } = await supabase
+            .from('attendance')
+            .select('status')
+            .in('student_id', studentIds);
+          const total = att?.length || 0;
+          const present = att?.filter(a => a.status === 'present').length || 0;
+          pct = total > 0 ? Math.round((present / total) * 100) : 100;
+        }
+
+        textResponse = getOwnerMultiSchoolSummaryResponse(language_pref, ownedSchoolIds.length, studentCount, pct);
+      } else {
+        return NextResponse.json({ error: 'Access Denied: Owner not authorized for this intent' }, { status: 403 });
+      }
+
+    } else if (role === 'student') {
+      if (intent === 'student_self_attendance') {
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = transcript.match(uuidRegex);
+        if (match && match[0] !== resolvedUserId) {
+          return NextResponse.json({ error: 'Access Denied: Student not authorized to access record ' + match[0] }, { status: 403 });
+        }
+
+        // Strict cross-student name query rejection (negative test boundary)
+        const { data: otherStudents } = await supabase
+          .from('students')
+          .select('name')
+          .eq('school_id', schoolId)
+          .neq('id', resolvedUserId);
+        
+        if (otherStudents) {
+          const hasOtherMentioned = otherStudents.some(s => 
+            transcript.toLowerCase().includes(s.name.toLowerCase())
+          );
+          if (hasOtherMentioned) {
+            return NextResponse.json({ error: 'Access Denied: Student not authorized to access other student records' }, { status: 403 });
+          }
+        }
+
+        const { data: att } = await supabase
+          .from('attendance')
+          .select('date, status')
+          .eq('school_id', schoolId)
+          .eq('student_id', resolvedUserId)
+          .order('date', { ascending: false });
+
+        if (!att || att.length === 0) {
+          textResponse = language_pref === 'te' 
+            ? `మీకు హాజరు రికార్డులు ఏవీ కనుగొనబడలేదు.`
+            : `No attendance records found for you.`;
+        } else {
+          const present = att.filter(a => a.status === 'present').length;
+          const total = att.length;
+          const pct = Math.round((present / total) * 100);
+          textResponse = getStudentSelfAttendanceResponse(language_pref, pct, present, total);
+        }
+      } else if (intent === 'student_self_marks') {
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = transcript.match(uuidRegex);
+        if (match && match[0] !== resolvedUserId) {
+          return NextResponse.json({ error: 'Access Denied: Student not authorized to access record ' + match[0] }, { status: 403 });
+        }
+
+        // Strict cross-student name query rejection (negative test boundary)
+        const { data: otherStudents } = await supabase
+          .from('students')
+          .select('name')
+          .eq('school_id', schoolId)
+          .neq('id', resolvedUserId);
+        
+        if (otherStudents) {
+          const hasOtherMentioned = otherStudents.some(s => 
+            transcript.toLowerCase().includes(s.name.toLowerCase())
+          );
+          if (hasOtherMentioned) {
+            return NextResponse.json({ error: 'Access Denied: Student not authorized to access other student records' }, { status: 403 });
+          }
+        }
+
+        const { data: scores } = await supabase
+          .from('test_scores')
+          .select('marks_obtained, tests(title, max_marks, subject)')
+          .eq('school_id', schoolId)
+          .eq('student_id', resolvedUserId);
+
+        if (!scores || scores.length === 0) {
+          textResponse = language_pref === 'te'
+            ? `మీకు పరీక్ష మార్కులు ఏవీ నమోదు కాలేదు.`
+            : `No exam marks recorded for you.`;
+        } else {
+          const summary = scores.map((s: any) => {
+            const test = s.tests;
+            return `${test?.subject || 'Exam'}: ${s.marks_obtained}/${test?.max_marks || 100}`;
+          }).join(', ');
+          textResponse = getStudentSelfMarksResponse(language_pref, summary);
+        }
+      } else {
+        return NextResponse.json({ error: 'Access Denied: Student not authorized for this intent' }, { status: 403 });
       }
     }
   } catch (err: any) {
