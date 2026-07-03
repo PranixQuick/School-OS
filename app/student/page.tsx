@@ -7,7 +7,6 @@
 import { useState, useEffect } from 'react';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
-import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface TimetableSlot { id: string; day_of_week: number; period: number; start_time: string; end_time: string; subject_name: string; teacher_name: string; }
 interface HomeworkItem { id: string; title: string; due_date: string; subject_name: string; submission_status: string | null; is_overdue: boolean; }
@@ -77,8 +76,6 @@ export default function StudentHomePage() {
         <div style={{ fontSize: 22, fontWeight: 800, marginTop: 2 }}>{profile?.name ?? '…'}</div>
         <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{T('ov_class', lang)} {profile?.class}-{profile?.section}</div>
       </div>
-
-      <VoiceQueryWidget />
 
       {/* EdGridAI launch — opens adaptive learning via SSO from inside the student session */}
       <a

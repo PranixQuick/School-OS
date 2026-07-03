@@ -7,7 +7,6 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
-import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface SchoolStat {
   school_id: string; school_name: string; plan: string; is_active: boolean;
@@ -118,8 +117,6 @@ export default function OwnerPage() {
           ))}
         </div>
       )}
-
-      <VoiceQueryWidget />
 
       {/* KPI cards */}
       <div className="kpi2" style={{ marginBottom: 20 }}>
