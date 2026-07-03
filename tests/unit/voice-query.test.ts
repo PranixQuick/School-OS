@@ -914,7 +914,7 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(dataMarks.text_response).toContain('Your exam marks:');
   });
 
-  it('27. Student negative query - query other student name (Rejected)', async () => {
+  it('27. Student query - query mentioning other student name (Resolves to self)', async () => {
     const { issueStudentSession } = await import('../../lib/student-auth');
     const studentToken = await issueStudentSession({
       id: '00000000-0000-0000-0000-000000000020', // Arjun Reddy
@@ -924,7 +924,7 @@ describe('EdProSys read-only voice query endpoint tests', () => {
       section: 'A'
     });
 
-    // Student attempts to query marks for CertTest Child2 (which is in their school)
+    // Student queries marks mentioning other student name, resolves strictly to self
     const payload = {
       transcript: 'marks for CertTest Child2',
       confidence: 0.95,
@@ -941,9 +941,10 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.error).toContain('Access Denied: Student not authorized to access other student records');
+    expect(data.intent).toBe('student_self_marks');
+    expect(data.text_response).toContain('Your exam marks:');
   });
 });
 

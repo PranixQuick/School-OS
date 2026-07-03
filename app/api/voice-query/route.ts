@@ -974,28 +974,6 @@ export async function POST(req: NextRequest) {
 
     } else if (role === 'student') {
       if (intent === 'student_self_attendance') {
-        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-        const match = transcript.match(uuidRegex);
-        if (match && match[0] !== resolvedUserId) {
-          return NextResponse.json({ error: 'Access Denied: Student not authorized to access record ' + match[0] }, { status: 403 });
-        }
-
-        // Strict cross-student name query rejection (negative test boundary)
-        const { data: otherStudents } = await supabase
-          .from('students')
-          .select('name')
-          .eq('school_id', schoolId)
-          .neq('id', resolvedUserId);
-        
-        if (otherStudents) {
-          const hasOtherMentioned = otherStudents.some(s => 
-            transcript.toLowerCase().includes(s.name.toLowerCase())
-          );
-          if (hasOtherMentioned) {
-            return NextResponse.json({ error: 'Access Denied: Student not authorized to access other student records' }, { status: 403 });
-          }
-        }
-
         const { data: att } = await supabase
           .from('attendance')
           .select('date, status')
@@ -1014,28 +992,6 @@ export async function POST(req: NextRequest) {
           textResponse = getStudentSelfAttendanceResponse(language_pref, pct, present, total);
         }
       } else if (intent === 'student_self_marks') {
-        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-        const match = transcript.match(uuidRegex);
-        if (match && match[0] !== resolvedUserId) {
-          return NextResponse.json({ error: 'Access Denied: Student not authorized to access record ' + match[0] }, { status: 403 });
-        }
-
-        // Strict cross-student name query rejection (negative test boundary)
-        const { data: otherStudents } = await supabase
-          .from('students')
-          .select('name')
-          .eq('school_id', schoolId)
-          .neq('id', resolvedUserId);
-        
-        if (otherStudents) {
-          const hasOtherMentioned = otherStudents.some(s => 
-            transcript.toLowerCase().includes(s.name.toLowerCase())
-          );
-          if (hasOtherMentioned) {
-            return NextResponse.json({ error: 'Access Denied: Student not authorized to access other student records' }, { status: 403 });
-          }
-        }
-
         const { data: scores } = await supabase
           .from('test_scores')
           .select('marks_obtained, tests(title, max_marks, subject)')
