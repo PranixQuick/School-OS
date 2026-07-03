@@ -8,6 +8,7 @@ import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { T } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
+import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
 
 interface AttData    { today_pct: number|null; today_present: number; today_total: number; today_marked: boolean; month_avg_pct: number; status: string; }
 interface FeeData    { pending_amount: number; pending_students: number; overdue_count: number; collected_month: number; collection_pct: number; status: string; }
@@ -162,6 +163,8 @@ export default function PrincipalPage() {
           </div>
         )}
       </div>
+
+      <VoiceQueryWidget />
 
       {/* OPERATIONAL ALERTS */}
       {alerts.length > 0 && (

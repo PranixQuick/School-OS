@@ -339,4 +339,73 @@ describe('EdProSys read-only voice query endpoint tests', () => {
     expect(data.intent).toBe('parent_fees');
     expect(data.text_response).toContain('Arjun Reddy has no fee installments registered');
   });
+
+  it('11. Teacher query - robust student name matching for "tell me about Arjun"', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'tell me about Arjun',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('Student details for Arjun Reddy: Class 5-A');
+  });
+
+  it('12. Teacher query - robust matching fallback for nonexistent student', async () => {
+    const teacherToken = await issueSession({
+      schoolId: '00000000-0000-0000-0000-000000000001',
+      schoolName: 'Demo Institution',
+      schoolSlug: 'demo',
+      plan: 'campus',
+      userId: '268d6f30-d964-4b37-adde-688a9d984cba', // test.teacher
+      userEmail: 'test.teacher@schoolos.local',
+      userRole: 'teacher',
+      userName: 'Test Teacher'
+    });
+
+    const payload = {
+      transcript: 'details of NonexistentStudent',
+      confidence: 0.95,
+      language_pref: 'en',
+      device_supports_tts: true
+    };
+
+    const req = new NextRequest(new URL('http://localhost:3000/api/voice-query'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Cookie': `school_session=${teacherToken}`
+      }
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.intent).toBe('teacher_student_detail');
+    expect(data.text_response).toContain('I couldn\'t find a student matching "nonexistentstudent" in your assigned classes.');
+  });
 });
+
