@@ -147,6 +147,31 @@ export function VoiceQueryWidget() {
           device_supports_tts: true
         })
       });
+      if (res.status === 403) {
+        const friendlyDenials: Record<string, string> = {
+          en: "You don't have access to this student's records.",
+          te: "మీకు ఈ విద్యార్థి వివరాలను చూసే అనుమతి లేదు.",
+          hi: "आपके पास इस छात्र के विवरण देखने की अनुमति नहीं है।",
+          ta: "இந்த மாணவரின் விவரங்களை அணுக உங்களுக்கு அனுமதி இல்லை.",
+          kn: "ನಿಮಗೆ ಈ ವಿದ್ಯಾರ್ಥಿಯ ವಿವರಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಯಿಲ್ಲ.",
+          mr: "तुम्हाला या विद्यार्थ्याची माहिती पाहण्याची परवानगी नाही.",
+          ml: "ഈ വിദ്യാർത്ഥിയുടെ വിവരങ്ങൾ കാണാൻ നിങ്ങൾക്ക് അനുമതിയില്ല."
+        };
+        const speakText = friendlyDenials[lang] || friendlyDenials['en'];
+        setLastResult(speakText);
+
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(speakText);
+          const speechLangMap: Record<string, string> = {
+            en: 'en-IN', te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', mr: 'mr-IN', ml: 'ml-IN'
+          };
+          utterance.lang = speechLangMap[lang] || 'en-IN';
+          window.speechSynthesis.speak(utterance);
+        }
+        setLoading(false);
+        return;
+      }
       if (!res.ok) {
         const bodyText = await res.text();
         throw new Error(`HTTP ${res.status} - ${bodyText}`);

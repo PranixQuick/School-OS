@@ -340,12 +340,12 @@ export async function POST(req: NextRequest) {
         if (role === 'parent') {
           if (aariaIntent === 'get_attendance_status') intent = 'parent_attendance';
           else if (aariaIntent === 'get_fee_status') intent = 'parent_fees';
-          else if (aariaIntent === 'get_student_info') intent = 'parent_marks';
+          else if (aariaIntent === 'get_student_info' || aariaIntent === 'student_detail') intent = 'parent_marks';
         } else if (role === 'teacher') {
-          if (aariaIntent === 'get_attendance_status') intent = 'teacher_class_summary';
-          else if (aariaIntent === 'get_student_info') intent = 'teacher_student_detail';
+          if (aariaIntent === 'get_attendance_status' || aariaIntent === 'class_summary') intent = 'teacher_class_summary';
+          else if (aariaIntent === 'get_student_info' || aariaIntent === 'student_detail') intent = 'teacher_student_detail';
         } else if (role === 'accountant') {
-          if (aariaIntent === 'get_fee_status') intent = 'accountant_collection_totals';
+          if (aariaIntent === 'get_fee_status' || aariaIntent === 'collection_totals') intent = 'accountant_collection_totals';
         }
         
         if (!intent) {
