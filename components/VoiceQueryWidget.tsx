@@ -157,18 +157,8 @@ export function VoiceQueryWidget() {
           mr: "तुम्हाला या विद्यार्थ्याची माहिती पाहण्याची परवानगी नाही.",
           ml: "ഈ വിദ്യാർത്ഥിയുടെ വിവരങ്ങൾ കാണാൻ നിങ്ങൾക്ക് അനുമതിയില്ല."
         };
-        const speakText = friendlyDenials[lang] || friendlyDenials['en'];
-        setLastResult(speakText);
-
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(speakText);
-          const speechLangMap: Record<string, string> = {
-            en: 'en-IN', te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', mr: 'mr-IN', ml: 'ml-IN'
-          };
-          utterance.lang = speechLangMap[lang] || 'en-IN';
-          window.speechSynthesis.speak(utterance);
-        }
+        const denialText = friendlyDenials[lang] || friendlyDenials['en'];
+        setLastResult(denialText);
         setLoading(false);
         return;
       }
