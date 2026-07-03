@@ -53,6 +53,7 @@ function parseIntent(transcript: string, role: string): string | null {
       return 'accountant_collection_totals';
     }
   }
+  return null;
 }
 
 function getParentAttendanceResponse(lang: string, name: string, pct: number, present: number, total: number): string {
