@@ -134,17 +134,70 @@ export function VoiceQueryWidget() {
     }
   }
 
+  function getSpeechLangCode(l: string): string {
+    const speechLangMap: Record<string, string> = {
+      en: 'en-IN',
+      te: 'te-IN',
+      hi: 'hi-IN',
+      ta: 'ta-IN',
+      kn: 'kn-IN',
+      mr: 'mr-IN',
+      ml: 'ml-IN'
+    };
+    return speechLangMap[l] || 'en-IN';
+  }
+
+  // Chrome/Edge load voices asynchronously - getVoices() can return [] on first call.
+  function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        resolve([]);
+        return;
+      }
+      const existing = window.speechSynthesis.getVoices();
+      if (existing.length > 0) {
+        resolve(existing);
+        return;
+      }
+      const handle = () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', handle);
+        resolve(window.speechSynthesis.getVoices());
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', handle);
+      setTimeout(() => {
+        window.speechSynthesis.removeEventListener('voiceschanged', handle);
+        resolve(window.speechSynthesis.getVoices());
+      }, 500);
+    });
+  }
+
+  // Real capability check: does this device actually have a voice for langCode?
+  // Replaces the old hardcoded device_supports_tts:true, which silently claimed
+  // TTS support even when the browser had no matching voice (root cause of
+  // Telugu voice output never being heard - EdProSys never called Aaria's
+  // cloud speak endpoint as a fallback because this always reported true).
+  async function hasLocalVoiceFor(langCode: string): Promise<boolean> {
+    const voices = await getVoicesAsync();
+    const prefix = langCode.split('-')[0].toLowerCase();
+    return voices.some(
+      (v) => v.lang.toLowerCase() === langCode.toLowerCase() || v.lang.toLowerCase().startsWith(prefix)
+    );
+  }
+
   async function executeVoiceQuery(voicePayload: { transcript?: string; confidence?: number; audio_base64?: string }) {
     setLoading(true);
     setLastResult(null);
     try {
+      const speechLangCode = getSpeechLangCode(lang);
+      const localVoiceAvailable = await hasLocalVoiceFor(speechLangCode);
+
       const res = await fetch('/api/voice-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...voicePayload,
           language_pref: lang,
-          device_supports_tts: true
+          device_supports_tts: localVoiceAvailable
         })
       });
       if (!res.ok) {
@@ -152,24 +205,23 @@ export function VoiceQueryWidget() {
         throw new Error(`HTTP ${res.status} - ${bodyText}`);
       }
       const data = await res.json() as VoiceNLResp;
-      setLastResult(data.text_response || 'No response details found.');
-
-      // Device-native TTS
       const speakText = data.text_response || '';
-      if (speakText && typeof window !== 'undefined' && window.speechSynthesis) {
+
+      // Device-native TTS - only attempt it when we confirmed a matching voice exists.
+      if (speakText && localVoiceAvailable && typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(speakText);
-        const speechLangMap: Record<string, string> = {
-          en: 'en-IN',
-          te: 'te-IN',
-          hi: 'hi-IN',
-          ta: 'ta-IN',
-          kn: 'kn-IN',
-          mr: 'mr-IN',
-          ml: 'ml-IN'
-        };
-        utterance.lang = speechLangMap[lang] || 'en-IN';
+        utterance.lang = speechLangCode;
         window.speechSynthesis.speak(utterance);
+        setLastResult(speakText || 'No response details found.');
+      } else if (speakText && !localVoiceAvailable) {
+        // Don't silently fail: tell the user why they aren't hearing audio.
+        // TODO(follow-up): fall back to Aaria's cloud /api/voice/speak endpoint
+        // here instead of just showing text - needs a small server route change,
+        // scoped separately from this fix.
+        setLastResult(`${speakText}\n\n(Voice playback isn't available in this language on this device yet - showing text only.)`);
+      } else {
+        setLastResult(speakText || 'No response details found.');
       }
     } catch (err: any) {
       console.error('Voice query execution failed:', err);
