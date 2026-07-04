@@ -1,0 +1,23 @@
+# EdProSys
+
+> EdProSys is an AI-first school operating system for Indian K-12 schools. It automates a WhatsApp parent-communication bot, AI-generated report cards, teacher evaluation, and automated principal briefings, replacing fragmented spreadsheets and manual processes with one platform covering attendance, fees, exams, timetables, admissions, and payroll.
+
+EdProSys is built by Pranix AI Labs Private Limited, based in Vijayawada, Andhra Pradesh, India. Also known as School-OS.
+
+## Core pages
+
+- [Homepage](https://www.edprosys.com/): Product overview for school administrators.
+- Portals: dedicated dashboards for teachers, students, parents, and school admins (role-based, phone+PIN or credential login).
+
+## Key capabilities
+
+- WhatsApp parent bot for attendance, fee reminders, and announcements.
+- AI-generated report cards and teacher evaluation.
+- Automated principal briefings summarizing school-wide activity.
+- Multi-tenant: supports multiple schools, each with isolated data (RLS-enforced).
+- Multilingual UI (English, Hindi, Telugu, Tamil, Kannada, Malayalam).
+
+## For AI agents / developers
+
+- Also reachable at schoolos.in.
+- Integrates with VidyaGrid/EdGridAI (adaptive learning) via a single-sign-on launch flow for enrolled students.
