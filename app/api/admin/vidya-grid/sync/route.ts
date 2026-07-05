@@ -19,12 +19,17 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { enrollStudentInVidyaGrid, vidyaGridConfigured } from '@/lib/vidya-grid';
+import { enrollStudentInVidyaGrid, vidyaGridConfigured, type VgClassLevel } from '@/lib/vidya-grid';
 
 export const runtime = 'nodejs';
 
 // VG /api/enroll is rate-limited to 30 enrollments per hour per IP.
 const MAX_PER_RUN = 30;
+
+// Classes eligible for VidyaGrid sync. Originally '9'/'10' only; widened to
+// include Anganwadi pre-school age bands ('0-3','3-6') per founder decision
+// 2026-07-05. VG's enrollSchema must accept the same set or enroll calls 400.
+const ELIGIBLE_CLASSES: VgClassLevel[] = ['9', '10', '0-3', '3-6'];
 
 type RowResult =
   | { id: string; status: 'linked'; vg_user_id: string }
