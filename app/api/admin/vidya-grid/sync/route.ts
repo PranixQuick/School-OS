@@ -19,12 +19,17 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { enrollStudentInVidyaGrid, vidyaGridConfigured } from '@/lib/vidya-grid';
+import { enrollStudentInVidyaGrid, vidyaGridConfigured, type VgClassLevel } from '@/lib/vidya-grid';
 
 export const runtime = 'nodejs';
 
 // VG /api/enroll is rate-limited to 30 enrollments per hour per IP.
 const MAX_PER_RUN = 30;
+
+// Classes eligible for VidyaGrid sync. Originally '9'/'10' only; widened to
+// include Anganwadi pre-school age bands ('0-3','3-6') per founder decision
+// 2026-07-05. VG's enrollSchema must accept the same set or enroll calls 400.
+const ELIGIBLE_CLASSES: VgClassLevel[] = ['9', '10', '0-3', '3-6'];
 
 type RowResult =
   | { id: string; status: 'linked'; vg_user_id: string }
@@ -66,7 +71,7 @@ export async function POST(req: NextRequest) {
     .eq('school_id', schoolId)
     .is('vidya_grid_user_id', null)
     .eq('is_active', true)
-    .in('class', ['9', '10'])
+    .in('class', ELIGIBLE_CLASSES)
     .limit(MAX_PER_RUN);
   if (studErr) return NextResponse.json({ error: studErr.message }, { status: 500 });
 
@@ -90,7 +95,10 @@ export async function POST(req: NextRequest) {
       erp_student_id: s.id,
       school_id: vgSchoolId,
       student_name: studentName,
-      class_level: s.class === '10' ? '10' : '9',
+      // Pass through the real class value now that ELIGIBLE_CLASSES covers
+      // both K-12 grades and Anganwadi age bands - was previously forced to
+      // '9'/'10' when this route only supported those two.
+      class_level: s.class as VgClassLevel,
       parent_name: parentName,
       parent_contact: parentContact,
     });
