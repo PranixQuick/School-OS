@@ -95,7 +95,10 @@ export async function POST(req: NextRequest) {
       erp_student_id: s.id,
       school_id: vgSchoolId,
       student_name: studentName,
-      class_level: s.class === '10' ? '10' : '9',
+      // Pass through the real class value now that ELIGIBLE_CLASSES covers
+      // both K-12 grades and Anganwadi age bands - was previously forced to
+      // '9'/'10' when this route only supported those two.
+      class_level: s.class as VgClassLevel,
       parent_name: parentName,
       parent_contact: parentContact,
     });
