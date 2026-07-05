@@ -12,11 +12,17 @@
 //
 // NOTE: the single /api/enroll endpoint is rate-limited 30/hr/IP on the VG side.
 
+// Anganwadi pre-school age bands ('0-3', '3-6') added alongside the original
+// '9'|'10' K-12 grades - see app/api/admin/vidya-grid/sync/route.ts for the
+// matching eligibility-filter widening. VG's own enrollSchema (lib/validation.ts,
+// PranixQuick/VIDYA-GRID) must accept these same values or /api/enroll 400s.
+export type VgClassLevel = '9' | '10' | '0-3' | '3-6';
+
 export interface VgEnrollInput {
   erp_student_id: string;   // School OS students.id (UUID)
   school_id: string;        // VG school id = schools.vidya_grid_school_id
   student_name: string;
-  class_level: '9' | '10';
+  class_level: VgClassLevel;
   parent_name: string;
   parent_contact: string;
   board?: string;           // default SCERT-AP
