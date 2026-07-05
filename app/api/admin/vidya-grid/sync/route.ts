@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     .eq('school_id', schoolId)
     .is('vidya_grid_user_id', null)
     .eq('is_active', true)
-    .in('class', ['9', '10'])
+    .in('class', ELIGIBLE_CLASSES)
     .limit(MAX_PER_RUN);
   if (studErr) return NextResponse.json({ error: studErr.message }, { status: 500 });
 
