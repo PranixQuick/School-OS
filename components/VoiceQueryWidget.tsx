@@ -11,6 +11,7 @@ import LanguageSelector from './LanguageSelector';
 interface VoiceNLResp {
   intent: string;
   text_response: string;
+  audio_response_base64?: string;
 }
 
 export function VoiceQueryWidget() {
@@ -177,8 +178,17 @@ export function VoiceQueryWidget() {
   // Telugu voice output never being heard - EdProSys never called Aaria's
   // cloud speak endpoint as a fallback because this always reported true).
   async function hasLocalVoiceFor(langCode: string): Promise<boolean> {
-    const voices = await getVoicesAsync();
     const prefix = langCode.split('-')[0].toLowerCase();
+    
+    // Desktop Chrome/browsers do not support native Telugu TTS, but Android does.
+    if (prefix === 'te') {
+      const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+      if (!isAndroid) {
+        return false;
+      }
+    }
+
+    const voices = await getVoicesAsync();
     return voices.some(
       (v) => v.lang.toLowerCase() === langCode.toLowerCase() || v.lang.toLowerCase().startsWith(prefix)
     );
@@ -215,11 +225,19 @@ export function VoiceQueryWidget() {
         window.speechSynthesis.speak(utterance);
         setLastResult(speakText || 'No response details found.');
       } else if (speakText && !localVoiceAvailable) {
-        // Don't silently fail: tell the user why they aren't hearing audio.
-        // TODO(follow-up): fall back to Aaria's cloud /api/voice/speak endpoint
-        // here instead of just showing text - needs a small server route change,
-        // scoped separately from this fix.
-        setLastResult(`${speakText}\n\n(Voice playback isn't available in this language on this device yet - showing text only.)`);
+        // Fall back to playing cloud-synthesized audio if returned.
+        if (data.audio_response_base64) {
+          try {
+            const audio = new Audio(data.audio_response_base64);
+            await audio.play();
+            setLastResult(speakText);
+          } catch (audioErr: any) {
+            console.error('Failed to play cloud TTS audio:', audioErr);
+            setLastResult(`${speakText}\n\n(Voice playback failed: ${audioErr.message || audioErr})`);
+          }
+        } else {
+          setLastResult(`${speakText}\n\n(Voice playback isn't available in this language on this device yet - showing text only.)`);
+        }
       } else {
         setLastResult(speakText || 'No response details found.');
       }
