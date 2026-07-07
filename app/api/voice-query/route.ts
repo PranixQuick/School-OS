@@ -389,7 +389,7 @@ export async function POST(req: NextRequest) {
           })
         });
         if (res.ok) {
-          const data = await res.json() ;
+          const data = await res.json();
           transcript = data.text || '';
         }
       } catch (err) {
@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
         })
       });
       if (res.ok) {
-        const data = await res.json() ;
+        const data = await res.json();
         const aariaIntent = data.intent;
         console.log(`[POST] Aaria NLU resolved intent: ${aariaIntent}`);
         
@@ -1036,7 +1036,7 @@ export async function POST(req: NextRequest) {
         })
       });
       if (res.ok) {
-        const data = await res.json() ;
+        const data = await res.json();
         audio_response_base64 = data.audio_ref || null;
       }
     } catch (err) {
