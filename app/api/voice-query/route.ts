@@ -409,7 +409,7 @@ export async function POST(req: NextRequest) {
     try {
       const res = await fetch(`${AARIA_BASE_URL}/api/voice/understand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: transcript,
           product: 'EdProSys',
@@ -1032,7 +1032,7 @@ export async function POST(req: NextRequest) {
     try {
       const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: textResponse,
           lang: language_pref,
