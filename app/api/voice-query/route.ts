@@ -1030,7 +1030,7 @@ export async function POST(req: NextRequest) {
   if (!device_supports_tts) {
     ttsSource = 'cloud';
     try {
-      const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, { 
+      const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
