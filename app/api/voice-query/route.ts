@@ -1034,7 +1034,7 @@ export async function POST(req: NextRequest) {
       const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: textResponse,
           lang: language_pref,
           product: 'EdProSys',
