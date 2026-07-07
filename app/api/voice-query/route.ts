@@ -1025,6 +1025,7 @@ export async function POST(req: NextRequest) {
   // may be absent/null on cache hits or older engine paths. Additive only —
   // does not affect existing text/audio response fields.
   let visual_companion: Record<string, unknown> | null = null;
+  let _vcSpeakResClone: Response | null = null;
   let audio_response_base64: string | null = null;
 
   if (!device_supports_tts) {
