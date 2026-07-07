@@ -1032,7 +1032,7 @@ export async function POST(req: NextRequest) {
     ttsSource = 'cloud';
     try {
       const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
-        method: 'POST',
+        method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: textResponse,
