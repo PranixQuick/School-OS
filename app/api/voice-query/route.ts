@@ -378,7 +378,7 @@ export async function POST(req: NextRequest) {
     if (audio_base64) {
       sttSource = 'cloud';
       try {
-        const res =  await fetch(`${AARIA_BASE_URL}/api/voice/listen`, {
+        const res = await fetch(`${AARIA_BASE_URL}/api/voice/listen`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -407,7 +407,7 @@ export async function POST(req: NextRequest) {
     nluSource = 'cloud';
     console.log(`[POST] Fetching Aaria NLU fallback from ${AARIA_BASE_URL}...`);
     try {
-      const res =  await fetch(`${AARIA_BASE_URL}/api/voice/understand`, {
+      const res = await fetch(`${AARIA_BASE_URL}/api/voice/understand`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1031,7 +1031,7 @@ export async function POST(req: NextRequest) {
   if (!device_supports_tts) {
     ttsSource = 'cloud';
     try {
-      const res =  await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
+      const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
