@@ -384,7 +384,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             audio_base64,
             lang_hint: language_pref,
-            product : 'EdProSys',
+            product: 'EdProSys',
             quality_tier: 'standard'
           })
         });
@@ -412,7 +412,7 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: transcript,
-          product : 'EdProSys',
+          product: 'EdProSys',
           lang_hint: language_pref
         })
       });
@@ -1036,7 +1036,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           text: textResponse,
           lang: language_pref,
-          product : 'EdProSys',
+          product: 'EdProSys',
           quality_tier: 'standard'
         })
       });
