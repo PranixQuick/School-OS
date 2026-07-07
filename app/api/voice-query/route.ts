@@ -10,7 +10,7 @@ import { canDo } from '../../../lib/permissions';
 interface VoiceQueryRequest {
   transcript?: string;
   confidence?: number;
-  audio_base64?: string;
+  audio_base64 ?: string;
   language_pref?: string;
   device_supports_tts?: boolean;
 }
@@ -294,7 +294,7 @@ export async function POST(req: NextRequest) {
   const {
     transcript: initialTranscript,
     confidence,
-    audio_base64,
+    audio_base64 ,
     language_pref = 'en',
     device_supports_tts = true
   } = body;
@@ -375,14 +375,14 @@ export async function POST(req: NextRequest) {
   console.log(`[POST] STT step: transcript=${transcript}, confidence=${confidence}`);
 
   if (!transcript || (confidence !== undefined && confidence < 0.80)) {
-    if (audio_base64) {
+    if (audio_base64 ) {
       sttSource = 'cloud';
       try {
         const res = await fetch(`${AARIA_BASE_URL}/api/voice/listen`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            audio_base64,
+            audio_base64 ,
             lang_hint: language_pref,
             product: 'EdProSys',
             quality_tier: 'standard'
