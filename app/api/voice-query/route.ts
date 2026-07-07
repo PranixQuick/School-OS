@@ -1042,8 +1042,7 @@ export async function POST(req: NextRequest) {
       });
       if (res.ok) {
         const data = await res.json();
-        visual_companion = (ttsJson as any)?.visual_companion ?? null;
-      audio_response_base64 = data.audio_ref || null;
+        audio_response_base64 = data.audio_ref || null;
       }
     } catch (err) {
       console.error('Aaria Speak fallback failed:', err);
