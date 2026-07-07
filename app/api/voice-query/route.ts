@@ -385,7 +385,7 @@ export async function POST(req: NextRequest) {
             audio_base64,
             lang_hint: language_pref,
             product : 'EdProSys',
-            quality_tier : 'standard'
+            quality_tier: 'standard'
           })
         });
         if (res.ok) {
@@ -1037,7 +1037,7 @@ export async function POST(req: NextRequest) {
           text: textResponse,
           lang: language_pref,
           product : 'EdProSys',
-          quality_tier : 'standard'
+          quality_tier: 'standard'
         })
       });
       if (res.ok) {
