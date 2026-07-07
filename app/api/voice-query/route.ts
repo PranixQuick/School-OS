@@ -1020,11 +1020,6 @@ export async function POST(req: NextRequest) {
 
   // 5. TTS Processing (zero-burn first, then fallback to cloud)
   let ttsSource = 'device';
-  // Optional multi-modal companion metadata (avatar_state/expression/captions)
-  // returned by pranix-aaria's /api/voice/speak. Present on newer responses;
-  // may be absent/null on cache hits or older engine paths. Additive only —
-  // does not affect existing text/audio response fields.
-  let visual_companion: Record<string, unknown> | null = null;
   let audio_response_base64: string | null = null;
 
   if (!device_supports_tts) {
