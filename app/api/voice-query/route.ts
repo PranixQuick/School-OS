@@ -1030,21 +1030,6 @@ export async function POST(req: NextRequest) {
   if (!device_supports_tts) {
     ttsSource = 'cloud';
     try {
-      try {
-        const vcProbeRes = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text_response, lang: lang, product: 'School-OS', quality_tier: 'standard' }),
-          signal: AbortSignal.timeout(15_000),
-        });
-        if (vcProbeRes.ok) {
-          const vcProbeJson = await vcProbeRes.json();
-          visual_companion = (vcProbeJson as any)?.visual_companion ?? null;
-        }
-      } catch {
-        // Best-effort only: visual_companion stays null if Aaria is unreachable
-        // or this probe fails for any reason. Does not affect audio/text response.
-      }
       const res = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
