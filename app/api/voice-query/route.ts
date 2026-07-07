@@ -1054,7 +1054,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     intent,
     text_response: textResponse,
-    audio_response_base64,
+    audio_response_base64 ,
     stt_source: sttSource,
     nlu_source: nluSource,
     tts_source: ttsSource,
