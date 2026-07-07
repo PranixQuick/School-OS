@@ -1020,7 +1020,8 @@ export async function POST(req: NextRequest) {
 
   // 5. TTS Processing (zero-burn first, then fallback to cloud)
   let ttsSource = 'device';
-  let audio_response_base64: string | null = null;
+  let visual_companion: (speechJsonForVisualCompanionProbe as any)?.visual_companion ?? null,
+      audio_response_base64: string | null = null;
 
   if (!device_supports_tts) {
     ttsSource = 'cloud';
