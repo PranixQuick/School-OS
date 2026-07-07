@@ -1060,6 +1060,7 @@ export async function POST(req: NextRequest) {
     intent,
     text_response: textResponse,
     audio_response_base64,
+      visual_companion,
     stt_source: sttSource,
     nlu_source: nluSource,
     tts_source: ttsSource,
