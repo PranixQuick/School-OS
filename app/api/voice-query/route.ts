@@ -1044,6 +1044,38 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Best-effort visual-companion slice (additive, isolated from the RBAC/query
+  // logic above): ask Aaria's /api/voice/speak for expression + caption timing
+  // metadata to accompany the already-resolved textResponse. Mirrors the
+  // pattern merged in VIDYA-GRID PR #86. Failure here must never affect the
+  // primary response computed above.
+  let visual_companion: Record<string, unknown> | null = null;
+  try {
+    const vcController = new AbortController();
+    const vcTimeout = setTimeout(() => vcController.abort(), 15000);
+    try {
+      const vcRes = await fetch(`${AARIA_BASE_URL}/api/voice/speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: textResponse,
+          lang: language_pref,
+          product: 'EdProSys',
+          quality_tier: 'standard'
+        }),
+        signal: vcController.signal
+      });
+      if (vcRes.ok) {
+        const vcData = await vcRes.json().catch(() => null);
+        visual_companion = vcData?.visual_companion ?? null;
+      }
+    } finally {
+      clearTimeout(vcTimeout);
+    }
+  } catch (err) {
+    console.error('Aaria visual_companion fetch failed (non-fatal):', err);
+  }
+
   const latency_ms = Date.now() - startTime;
   let deviceStages = 0;
   if (sttSource === 'device') deviceStages++;
@@ -1055,6 +1087,7 @@ export async function POST(req: NextRequest) {
     intent,
     text_response: textResponse,
     audio_response_base64,
+    visual_companion,
     stt_source: sttSource,
     nlu_source: nluSource,
     tts_source: ttsSource,
