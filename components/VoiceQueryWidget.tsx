@@ -8,16 +8,28 @@ import { useLang } from '@/lib/useLang';
 
 import LanguageSelector from './LanguageSelector';
 
+// Maps Aaria's visual_companion.expression values (see pranix-aaria
+// src/visual_companion.py EXPRESSION_KEYWORDS) to a lightweight emoji cue.
+const EXPRESSION_EMOJI: Record<string, string> = {
+  excited: '🎉',
+  concerned: '⚠️',
+  curious: '🤔',
+  thinking: '💭',
+  friendly: '🙂'
+};
+
 interface VoiceNLResp {
   intent: string;
   text_response: string;
   audio_response_base64?: string;
+  visual_companion?: { avatar_state?: string; expression?: string; captions?: unknown[]; [key: string]: unknown } | null;
 }
 
 export function VoiceQueryWidget() {
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [visualCompanion, setVisualCompanion] = useState<VoiceNLResp['visual_companion']>(null);
   const { lang } = useLang();
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
@@ -197,6 +209,7 @@ export function VoiceQueryWidget() {
   async function executeVoiceQuery(voicePayload: { transcript?: string; confidence?: number; audio_base64?: string }) {
     setLoading(true);
     setLastResult(null);
+    setVisualCompanion(null);
     try {
       const speechLangCode = getSpeechLangCode(lang);
       const localVoiceAvailable = await hasLocalVoiceFor(speechLangCode);
@@ -216,6 +229,9 @@ export function VoiceQueryWidget() {
       }
       const data = await res.json() as VoiceNLResp;
       const speakText = data.text_response || '';
+      if (data.visual_companion) {
+        setVisualCompanion(data.visual_companion);
+      }
 
       // Device-native TTS - only attempt it when we confirmed a matching voice exists.
       if (speakText && localVoiceAvailable && typeof window !== 'undefined' && window.speechSynthesis) {
@@ -301,6 +317,11 @@ export function VoiceQueryWidget() {
       {lastResult && (
         <div style={{ marginTop: 10, background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#334155' }}>
           💡 {lastResult}
+          {visualCompanion?.expression && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#64748B' }}>
+              {EXPRESSION_EMOJI[String(visualCompanion.expression)] || '🙂'} Aaria: {String(visualCompanion.expression)}
+            </div>
+          )}
         </div>
       )}
     </div>
