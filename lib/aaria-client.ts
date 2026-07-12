@@ -15,7 +15,13 @@
 
 const AARIA_BASE_URL = process.env.AARIA_BASE_URL || "https://pranix-aaria.onrender.com";
 
-export const AARIA_PRODUCT = "School-OS";
+// Must match Aaria's ROUTING_CONFIG key for this product ("EdProSys"), NOT the
+// repo name "School-OS". Sending "School-OS" makes Aaria mask every resolved
+// intent to "unknown" (understand.py get_allowed_tools -> []). The live inline
+// calls in app/api/voice-query/route.ts already correctly send "EdProSys";
+// this constant is fixed so that when this wrapper is eventually wired in for
+// the visual-companion call it defaults to the same correct key.
+export const AARIA_PRODUCT = "EdProSys";
 
 export interface AariaUnderstandResponse {
   intent: string;
