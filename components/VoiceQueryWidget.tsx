@@ -229,6 +229,9 @@ export function VoiceQueryWidget() {
       }
       const data = await res.json() as VoiceNLResp;
       const speakText = data.text_response || '';
+      if (data.visual_companion) {
+        setVisualCompanion(data.visual_companion);
+      }
 
       // Device-native TTS - only attempt it when we confirmed a matching voice exists.
       if (speakText && localVoiceAvailable && typeof window !== 'undefined' && window.speechSynthesis) {
