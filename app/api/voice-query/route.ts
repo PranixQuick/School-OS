@@ -1021,11 +1021,6 @@ export async function POST(req: NextRequest) {
   // 5. TTS Processing (zero-burn first, then fallback to cloud)
   let ttsSource = 'device';
   let audio_response_base64: string | null = null;
-  // Aaria's /api/voice/speak already computes this (avatar_state/expression/captions —
-  // see pranix-aaria src/visual_companion.py + contracts/speak.py SpeakResponse) but it
-  // was being discarded here. Threading it through mirrors the pattern already shipped
-  // to VIDYA-GRID's AariaButton.tsx and QuietKeep's ask-aaria page (task #132).
-  let visual_companion: Record<string, unknown> | null = null;
 
   if (!device_supports_tts) {
     ttsSource = 'cloud';
@@ -1043,7 +1038,6 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         audio_response_base64 = data.audio_ref || null;
-        visual_companion = data.visual_companion || null;
       }
     } catch (err) {
       console.error('Aaria Speak fallback failed:', err);
