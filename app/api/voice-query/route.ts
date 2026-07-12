@@ -1049,7 +1049,7 @@ export async function POST(req: NextRequest) {
   // metadata to accompany the already-resolved textResponse. Mirrors the
   // pattern merged in VIDYA-GRID PR #86. Failure here must never affect the
   // primary response computed above.
-  let visual_companion: Record<string, unknown> | null = null; // MARKER_CHECK
+  let visual_companion: Record<string, unknown> | null = null;
   try {
     const vcController = new AbortController();
     const vcTimeout = setTimeout(() => vcController.abort(), 15000);
