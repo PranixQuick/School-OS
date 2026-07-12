@@ -209,6 +209,7 @@ export function VoiceQueryWidget() {
   async function executeVoiceQuery(voicePayload: { transcript?: string; confidence?: number; audio_base64?: string }) {
     setLoading(true);
     setLastResult(null);
+    setVisualCompanion(null);
     try {
       const speechLangCode = getSpeechLangCode(lang);
       const localVoiceAvailable = await hasLocalVoiceFor(speechLangCode);
