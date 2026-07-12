@@ -8,10 +8,21 @@ import { useLang } from '@/lib/useLang';
 
 import LanguageSelector from './LanguageSelector';
 
+// Maps Aaria's visual_companion.expression values (see pranix-aaria
+// src/visual_companion.py EXPRESSION_KEYWORDS) to a lightweight emoji cue.
+const EXPRESSION_EMOJI: Record<string, string> = {
+  excited: '🎉',
+  concerned: '⚠️',
+  curious: '🤔',
+  thinking: '💭',
+  friendly: '🙂'
+};
+
 interface VoiceNLResp {
   intent: string;
   text_response: string;
   audio_response_base64?: string;
+  visual_companion?: { avatar_state?: string; expression?: string; captions?: unknown[]; [key: string]: unknown } | null;
 }
 
 export function VoiceQueryWidget() {
