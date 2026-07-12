@@ -29,6 +29,7 @@ export function VoiceQueryWidget() {
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [visualCompanion, setVisualCompanion] = useState<VoiceNLResp['visual_companion']>(null);
   const { lang } = useLang();
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
