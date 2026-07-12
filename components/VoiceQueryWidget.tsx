@@ -317,6 +317,11 @@ export function VoiceQueryWidget() {
       {lastResult && (
         <div style={{ marginTop: 10, background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#334155' }}>
           💡 {lastResult}
+          {visualCompanion?.expression && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#64748B' }}>
+              {EXPRESSION_EMOJI[String(visualCompanion.expression)] || '🙂'} Aaria: {String(visualCompanion.expression)}
+            </div>
+          )}
         </div>
       )}
     </div>
