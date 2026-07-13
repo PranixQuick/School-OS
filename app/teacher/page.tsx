@@ -46,7 +46,7 @@ interface VGRiskFlag {
 }
 
 const LANG_SHORT: Partial<Record<Lang, string>> = {
-  en: 'EN', hi: 'हि', te: 'తె', ta: 'த', kn: 'ಕ', mr: 'म', ml: 'മ',
+  en: 'EN', hi: 'हि', te: 'తె', ta: 'త', kn: 'ಕ', mr: 'म', ml: 'മ',
 };
 const LANG_ORDER: Lang[] = ['te', 'en', 'hi', 'ta', 'kn', 'mr', 'ml'];
 
@@ -194,7 +194,7 @@ export default function TeacherPage() {
           </>
         )}
 
-        <VoiceQueryWidget />
+        <VoiceQueryWidget proactiveTrigger={true} />
 
         {/* Today's schedule */}
         <div style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>
