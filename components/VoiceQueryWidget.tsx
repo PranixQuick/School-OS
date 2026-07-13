@@ -25,7 +25,7 @@ interface VoiceNLResp {
   visual_companion?: { avatar_state?: string; expression?: string; captions?: unknown[]; [key: string]: unknown } | null;
 }
 
-export function VoiceQueryWidget() {
+export function VoiceQueryWidget({ proactiveTrigger = false }: { proactiveTrigger?: boolean }) {
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
@@ -124,6 +124,49 @@ export function VoiceQueryWidget() {
       setRecognition(rec);
     }
   }, [lang]);
+
+  useEffect(() => {
+    if (proactiveTrigger && recognition && !listening && !loading) {
+      const welcomeText = lang === 'te'
+        ? "హలో! నేను మీ వాయిస్ అసిస్టెంట్ ఆరియాని. మీ క్లాస్ అటెండెన్స్ చెక్ చేయడానికి 'చెక్ అటెండెన్స్' అని చెప్పండి."
+        : "Hello! I am Aaria, your voice assistant. Say 'check attendance' or 'show marks' to start.";
+      
+      const runGreeting = async () => {
+        const speechLangCode = getSpeechLangCode(lang);
+        const localVoiceAvailable = await hasLocalVoiceFor(speechLangCode);
+        
+        if (localVoiceAvailable && typeof window !== 'undefined' && window.speechSynthesis) {
+          const utterance = new SpeechSynthesisUtterance(welcomeText);
+          utterance.lang = speechLangCode;
+          utterance.onend = () => {
+            try {
+              recognition.lang = speechLangCode;
+              recognition.start();
+            } catch (err) {
+              console.warn('Proactive auto-listening failed:', err);
+            }
+          };
+          window.speechSynthesis.speak(utterance);
+        } else {
+          setLastResult(welcomeText);
+          setTimeout(() => {
+            try {
+              recognition.lang = speechLangCode;
+              recognition.start();
+            } catch (err) {
+              console.warn('Proactive auto-listening failed:', err);
+            }
+          }, 1500);
+        }
+      };
+
+      const greetingTimer = setTimeout(() => {
+        void runGreeting();
+      }, 1000);
+
+      return () => clearTimeout(greetingTimer);
+    }
+  }, [proactiveTrigger, recognition]);
 
   function toggleListening() {
     if (!recognition) {
