@@ -12,7 +12,7 @@ const PUBLIC = [
   '/api/auth/', '/api/parent/', '/api/student/', '/api/vendor/', '/api/schools/create',
   '/_next/', '/favicon', '/icons/', '/manifest',
   '/api/notifications/health', '/api/health',
-  '/robots.txt', '/sitemap.xml',
+  '/robots.txt', '/sitemap.xml', '/llms.txt',
 ];
 
 const SESSION_COOKIE = 'school_session';
