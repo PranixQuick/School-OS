@@ -26,6 +26,35 @@ export default function HomePage() {
   return (
     <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#fff', minHeight: '100vh' }}>
 
+      {/* Structured data — Organization + SoftwareApplication (AEO Phase 3) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'Pranix AI Labs',
+              url: 'https://www.pranixailabs.com',
+              logo: 'https://www.edprosys.com/brand/icon.svg',
+              address: { '@type': 'PostalAddress', addressLocality: 'Vijayawada', addressRegion: 'Andhra Pradesh', addressCountry: 'IN' },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'EdProSys (School-OS)',
+              url: 'https://www.edprosys.com',
+              applicationCategory: 'BusinessApplication',
+              operatingSystem: 'Web, Android',
+              description: 'AI-first school operating system for Indian K-12 schools: WhatsApp parent bot, AI report cards, attendance, fees, teacher evaluation and principal briefings.',
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Free to start' },
+              publisher: { '@type': 'Organization', name: 'Pranix AI Labs' },
+              inLanguage: ['en', 'te', 'hi', 'ta', 'kn', 'ml'],
+            },
+          ]),
+        }}
+      />
+
       {/* NAV */}
       <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
