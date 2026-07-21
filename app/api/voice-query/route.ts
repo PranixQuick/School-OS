@@ -1,22 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../lib/supabaseClient';
-import { getParentSession } from '../../../lib/parent-auth';
-import { verifySession } from '../../../lib/session';
-import { verifyStudentSession } from '../../../lib/student-auth';
-import { supabaseForUser } from '../../../lib/supabaseForUser';
-import { isTeacher, isAccountant } from '../../../lib/authz';
-import { canDo } from '../../../lib/permissions';
-
-interface VoiceQueryRequest {
-  transcript?: string;
-  confidence?: number;
-  audio_base64?: string;
-  language_pref?: string;
-  device_supports_tts?: boolean;
-}
-
-const AARIA_BASE_URL = 'https://pranix-aaria.onrender.com';
-
 function parseIntent(transcript: string, role: string): string | null {
   const text = transcript.toLowerCase().trim();
   
