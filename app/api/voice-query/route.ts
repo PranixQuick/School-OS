@@ -1,6 +1,4 @@
 function parseIntent(transcript: string, role: string): string | null {
-  const text = transcript.toLowerCase().trim();
-  
   if (role === 'parent') {
     // Parent Attendance synonyms
     const attWords = ['attendance', 'present', 'absent', 'report', 'status', 'హజరు', 'హాజరు', 'ప్రెజెంట్', 'ఆబ్సెంట్', 'అటెండెన్స్', 'उपस्थिति', 'हाजिरी', 'प्रेजेंट', 'एब्सेंट', 'வருகை', 'ಹಾಜರಾತಿ', 'उपस्थिती', 'ഹാജർ'];
