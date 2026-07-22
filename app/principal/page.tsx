@@ -106,7 +106,7 @@ export default function PrincipalPage() {
 
   // Operational alerts — institution and context aware
   const alerts: { icon: string; text: string; href: string; sev: 'red'|'amber'|'blue' }[] = [];
-  if (teachers.absent_today.length > 0) alerts.push({ icon: '🧑‍🏫', text: T('ov_palert_absent', lang).replace('{n}', String(teachers.absent_today.length)), href: '/admin/staff', sev: 'red' });
+  if ((teachers.absent_today ?? []).length > 0) alerts.push({ icon: '🧑‍🏫', text: T('ov_palert_absent', lang).replace('{n}', String((teachers.absent_today ?? []).length)), href: '/admin/staff', sev: 'red' });
   if ((extras?.open_complaints_count ?? 0) > 0) alerts.push({ icon: '📩', text: T('ov_palert_complaints', lang).replace('{n}', String(extras!.open_complaints_count)), href: '/admin/complaints', sev: 'red' });
   if ((extras?.sanitary_low_stock_count ?? 0) > 0) alerts.push({ icon: '🧼', text: T('ov_palert_sanitary', lang).replace('{n}', String(extras!.sanitary_low_stock_count)), href: '/admin/sanitary-inventory', sev: 'amber' });
   if ((extras?.pending_leave_count ?? 0) > 0) alerts.push({ icon: '📅', text: T('ov_palert_leave', lang).replace('{n}', String(extras!.pending_leave_count)), href: '/principal/leave-approvals', sev: 'amber' });
@@ -188,7 +188,7 @@ export default function PrincipalPage() {
           { label: T('ov_attendance', lang), value: att.today_marked ? `${Math.round(att.today_pct ?? 0)}%` : '—', sub: `${att.today_present}/${att.today_total}`, ...attSt, href: '/students' },
           { label: T('ov_fees_pending', lang), value: `₹${(fee.pending_amount/1000).toFixed(1)}K`, sub: `${fee.overdue_count} ${T('ov_overdue', lang)}`, ...feeSt, href: '/admin/fees' },
           { label: T('ov_student_risk', lang), value: risk.total, sub: `${risk.critical} ${T('ov_critical', lang)}`, bg: risk.critical > 0 ? '#FEE2E2' : '#FEF9C3', color: risk.critical > 0 ? '#B91C1C' : '#A16207', dot: risk.critical > 0 ? '#EF4444' : '#F59E0B', href: '/students' },
-          { label: T('ov_staff_today', lang), value: teachers.total_tracked > 0 ? `${teachers.present_today}/${teachers.total_tracked}` : 'N/A', sub: teachers.absent_today.length > 0 ? `${teachers.absent_today.length} ${T('ov_absent', lang)}` : T('ov_all_in', lang), bg: teachers.absent_today.length > 0 ? '#FEF9C3' : '#DCFCE7', color: teachers.absent_today.length > 0 ? '#A16207' : '#15803D', dot: teachers.absent_today.length > 0 ? '#F59E0B' : '#22C55E', href: '/admin/staff' },
+          { label: T('ov_staff_today', lang), value: teachers.total_tracked > 0 ? `${teachers.present_today}/${teachers.total_tracked}` : 'N/A', sub: (teachers.absent_today ?? []).length > 0 ? `${(teachers.absent_today ?? []).length} ${T('ov_absent', lang)}` : T('ov_all_in', lang), bg: (teachers.absent_today ?? []).length > 0 ? '#FEF9C3' : '#DCFCE7', color: (teachers.absent_today ?? []).length > 0 ? '#A16207' : '#15803D', dot: (teachers.absent_today ?? []).length > 0 ? '#F59E0B' : '#22C55E', href: '/admin/staff' },
         ].map(k => (
           <Link key={k.label} href={k.href} className="kpi-chip" style={{ borderLeft: `3px solid ${k.dot}` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{k.label}</div>
@@ -240,12 +240,12 @@ export default function PrincipalPage() {
       )}
 
       {/* UPCOMING EVENTS */}
-      {data.upcoming_events.length > 0 && (
+      {(data.upcoming_events ?? []).length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 13, overflow: 'hidden', marginBottom: 14 }}>
           <div style={{ padding: '11px 14px', borderBottom: '1px solid #F3F4F6' }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>📅 {T('ov_upcoming', lang)}</div>
           </div>
-          {data.upcoming_events.slice(0, 4).map((ev, i) => {
+          {(data.upcoming_events ?? []).slice(0, 4).map((ev, i) => {
             const d = new Date(ev.event_date);
             return (
               <div key={i} style={{ padding: '10px 14px', borderBottom: i < 3 ? '1px solid #F9FAFB' : 'none', display: 'flex', gap: 10, alignItems: 'center' }}>

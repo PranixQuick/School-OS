@@ -14,16 +14,27 @@ export async function GET(req: NextRequest) {
 
   const sid = session.schoolId;
 
-  const [leaveRes, complaintsRes, proofsRes, sanitaryRes] = await Promise.allSettled([
-    supabaseAdmin.from('teacher_leave_requests').select('id', { count: 'exact', head: true }).eq('school_id', sid).eq('status', 'pending'),
-    supabaseAdmin.from('parent_complaints').select('id', { count: 'exact', head: true }).eq('school_id', sid).in('status', ['open', 'pending']),
-    supabaseAdmin.from('classroom_proofs').select('id', { count: 'exact', head: true }).eq('school_id', sid).eq('eval_status', 'pending').gte('taken_at', new Date(Date.now() - 7*86400000).toISOString()),
-    supabaseAdmin.from('sanitary_inventory').select('id', { count: 'exact', head: true }).eq('school_id', sid).filter('stock_count', 'lte', 10),
-  ]);
+  // Resolve school ids (supporting both UUID and legacy_school_id)
+  const { data: inst } = await supabaseAdmin
+    .from('institutions')
+    .select('id, legacy_school_id, settings')
+    .or(`id.eq.${sid},legacy_school_id.eq.${sid}`)
+    .maybeSingle();
 
-  // Institution mode check for govt reporting
-  const { data: inst } = await supabaseAdmin.from('institutions').select('settings').eq('legacy_school_id', sid).single();
-  const isGovt = inst?.settings?.school_mode === 'govt_high_school' || inst?.settings?.school_mode === 'govt_primary';
+  const instId = inst?.id || sid;
+  const legacyId = inst?.legacy_school_id;
+  const settings = (inst?.settings ?? {}) as Record<string, unknown>;
+  const isGovt = settings.school_mode === 'govt_high_school' || settings.school_mode === 'govt_primary';
+
+  // Construct OR query for school_id
+  const schoolOrFilter = `school_id.eq.${instId}${legacyId ? `,school_id.eq.${legacyId}` : ''}`;
+
+  const [leaveRes, complaintsRes, proofsRes, sanitaryRes] = await Promise.allSettled([
+    supabaseAdmin.from('teacher_leave_requests').select('id', { count: 'exact', head: true }).or(schoolOrFilter).eq('status', 'pending'),
+    supabaseAdmin.from('parent_complaints').select('id', { count: 'exact', head: true }).or(schoolOrFilter).in('status', ['open', 'pending']),
+    supabaseAdmin.from('classroom_proofs').select('id', { count: 'exact', head: true }).or(schoolOrFilter).eq('eval_status', 'pending').gte('taken_at', new Date(Date.now() - 7*86400000).toISOString()),
+    supabaseAdmin.from('sanitary_inventory').select('id', { count: 'exact', head: true }).or(schoolOrFilter).filter('stock_count', 'lte', 10),
+  ]);
 
   return NextResponse.json({
     pending_leave_count:      leaveRes.status === 'fulfilled' ? (leaveRes.value.count ?? 0) : 0,

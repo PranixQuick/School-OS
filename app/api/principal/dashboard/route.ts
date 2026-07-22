@@ -21,24 +21,39 @@ export async function GET(req: NextRequest) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
     const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
+    // Resolve school ids (supporting both UUID and legacy_school_id)
+    const { data: inst } = await supabaseAdmin
+      .from('institutions')
+      .select('id, legacy_school_id, settings')
+      .or(`id.eq.${schoolId},legacy_school_id.eq.${schoolId}`)
+      .maybeSingle();
+
+    const instId = inst?.id || schoolId;
+    const legacyId = inst?.legacy_school_id;
+    const settings = (inst?.settings ?? {}) as Record<string, unknown>;
+    const schoolMode = (settings.school_mode as string) ?? null;
+
+    // Construct OR query for school_id
+    const schoolOrFilter = `school_id.eq.${instId}${legacyId ? `,school_id.eq.${legacyId}` : ''}`;
+
     const [studentsRes, attendanceTodayRes, attendanceMonthRes, feesRes, feesPaidMonthRes,
       leadsRes, admittedRes, upcomingEventsRes] = await Promise.all([
-      supabaseAdmin.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('is_active', true),
-      supabaseAdmin.from('attendance').select('student_id, status').eq('school_id', schoolId).eq('date', today),
-      supabaseAdmin.from('attendance').select('date, status').eq('school_id', schoolId).gte('date', thisMonthStart),
-      supabaseAdmin.from('fees').select('amount, status, student_id').eq('school_id', schoolId).in('status', ['pending', 'overdue']),
-      supabaseAdmin.from('fees').select('amount').eq('school_id', schoolId).eq('status', 'paid').gte('paid_date', thisMonthStart),
-      supabaseAdmin.from('inquiries').select('id, priority, status, score, parent_name, created_at').eq('school_id', schoolId).is('deleted_at', null).gte('created_at', thirtyDaysAgo).order('score', { ascending: false }).limit(20),
-      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'admitted').gte('created_at', thisMonthStart),
-      supabaseAdmin.from('events').select('title, event_date, is_holiday').eq('school_id', schoolId).gte('event_date', today).lte('event_date', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).order('event_date').limit(5),
+      supabaseAdmin.from('students').select('id', { count: 'exact', head: true }).or(schoolOrFilter).eq('is_active', true),
+      supabaseAdmin.from('attendance').select('student_id, status').or(schoolOrFilter).eq('date', today),
+      supabaseAdmin.from('attendance').select('date, status').or(schoolOrFilter).gte('date', thisMonthStart),
+      supabaseAdmin.from('fees').select('amount, status, student_id').or(schoolOrFilter).in('status', ['pending', 'overdue']),
+      supabaseAdmin.from('fees').select('amount').or(schoolOrFilter).eq('status', 'paid').gte('paid_date', thisMonthStart),
+      supabaseAdmin.from('inquiries').select('id, priority, status, score, parent_name, created_at').or(schoolOrFilter).is('deleted_at', null).gte('created_at', thirtyDaysAgo).order('score', { ascending: false }).limit(20),
+      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }).or(schoolOrFilter).eq('status', 'admitted').gte('created_at', thisMonthStart),
+      supabaseAdmin.from('events').select('title, event_date, is_holiday').or(schoolOrFilter).gte('event_date', today).lte('event_date', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).order('event_date').limit(5),
     ]);
 
     // Optional tables — graceful degradation
     const [riskRes, evalsRes, teacherAttRes, briefingRes] = await Promise.allSettled([
-      supabaseAdmin.from('student_risk_flags').select('risk_level, student_id').eq('school_id', schoolId).is('resolved_at', null).limit(20),
-      supabaseAdmin.from('recordings').select('coaching_score, staff_id, uploaded_at').eq('school_id', schoolId).eq('status', 'done').gte('uploaded_at', sevenDaysAgo).limit(20),
-      supabaseAdmin.from('teacher_attendance').select('staff_id, status').eq('school_id', schoolId).eq('date', today),
-      supabaseAdmin.from('principal_briefings').select('briefing_text, generated_at').eq('school_id', schoolId).eq('date', today).maybeSingle(),
+      supabaseAdmin.from('student_risk_flags').select('risk_level, student_id').or(schoolOrFilter).is('resolved_at', null).limit(20),
+      supabaseAdmin.from('recordings').select('coaching_score, staff_id, uploaded_at').or(schoolOrFilter).eq('status', 'done').gte('uploaded_at', sevenDaysAgo).limit(20),
+      supabaseAdmin.from('teacher_attendance').select('staff_id, status').or(schoolOrFilter).eq('date', today),
+      supabaseAdmin.from('principal_briefings').select('briefing_text, generated_at').or(schoolOrFilter).eq('date', today).maybeSingle(),
     ]);
 
     const totalStudents = studentsRes.count ?? 0;
@@ -101,6 +116,7 @@ export async function GET(req: NextRequest) {
       },
       upcoming_events: upcomingEventsRes.data ?? [],
       briefing,
+      school_mode: schoolMode,
     });
   } catch (err) {
     console.error('Principal dashboard error:', err);
