@@ -45,6 +45,21 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Force Android target/compile SDK 35 (Google Play requirement)
+        # Capacitor 6 defaults to targetSdk 34, but Google Play now requires
+        # new apps/releases to target API level 35 (Android 15). Patch the
+        # generated variables.gradle after sync so every build is compliant.
+        run: |
+          F=android/variables.gradle
+          if [ -f "$F" ]; then
+            sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 35/' "$F"
+            sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 35/' "$F"
+            echo "----- variables.gradle after SDK-35 patch -----"
+            cat "$F"
+          else
+            echo "WARNING: $F not found; Capacitor android platform may not be initialised."
+          fi
+
       - name: Set version from tag
         run: |
           TAG=${GITHUB_REF_NAME:-v1.0.0}
