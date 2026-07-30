@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
         organisation_id: organisationId,
         institution_type: instType,
         ownership_type: ownType,
+        affiliation_body: boardInfo.affiliation,
         is_demo: false,
         feature_flags: {
           fee_module_enabled: feeModuleEnabled,
