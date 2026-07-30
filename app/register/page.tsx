@@ -30,7 +30,7 @@ const OWNERSHIP_TYPES = [
 ];
 
 const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE', 'Other'];
-const HIGHER_ED_AFFILIATIONS = ['UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
+const HIGHER_ED_AFFILIATIONS = ['State Intermediate Board (TSBIE / BIEAP / PUC)', 'UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
 
 const GOVT_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi'];
 const HIGHER_ED_TYPES = ['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
