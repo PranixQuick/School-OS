@@ -58,7 +58,17 @@ export default function RegisterPage() {
   const [redirecting, setRedirecting] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
-    setForm(p => ({ ...p, [k]: v }));
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      // Keep board/affiliation in sync with the option list shown for the
+      // selected institution type — otherwise the select can DISPLAY the first
+      // option while stale state silently submits a different value.
+      if (k === 'institution_type') {
+        const options = HIGHER_ED_TYPES.includes(v) ? HIGHER_ED_AFFILIATIONS : SCHOOL_BOARDS;
+        if (!options.includes(next.board)) next.board = options[0];
+      }
+      return next;
+    });
   }
 
   const isGovtType = GOVT_TYPES.includes(form.institution_type);
