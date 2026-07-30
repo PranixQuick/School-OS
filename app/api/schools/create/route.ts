@@ -5,6 +5,36 @@ function makeSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// P0 fix: the registration form offers board/affiliation labels that the
+// schools.board CHECK constraint (CBSE|ICSE|IB|State|Cambridge) rejects —
+// e.g. 'State Board', 'IGCSE', 'Other', and every higher-ed affiliation
+// (UGC / AICTE / NMC / State University / Deemed University). Any such pick
+// previously made the schools insert fail, surfacing as a generic
+// "Failed to create school" 500. Clamp to a constraint-legal board value and
+// preserve the registrant's true affiliation on institutions.affiliation_body.
+const BOARD_VALUE_MAP: Record<string, string> = {
+  'CBSE': 'CBSE',
+  'ICSE': 'ICSE',
+  'IB': 'IB',
+  'Cambridge': 'Cambridge',
+  'IGCSE': 'Cambridge',
+  'State': 'State',
+  'State Board': 'State',
+  'State Intermediate Board (TSBIE / BIEAP / PUC)': 'State',
+  'State University': 'State',
+};
+
+function normalizeBoard(raw?: string): { board: string; affiliation: string | null } {
+  const label = (raw ?? '').trim();
+  if (!label) return { board: 'CBSE', affiliation: null };
+  const mapped = BOARD_VALUE_MAP[label];
+  if (mapped) return { board: mapped, affiliation: label === mapped ? null : label };
+  // Unknown labels / 'Other' / higher-ed affiliation bodies (UGC, AICTE, NMC,
+  // Deemed University, ...): store a legal placeholder board and keep the real
+  // label as the institution's affiliation body.
+  return { board: 'State', affiliation: label === 'Other' ? null : label };
+}
+
 // Map registration form institution_type values to DB enum values
 // Ensures values not yet in the enum get a safe fallback
 const INST_TYPE_MAP: Record<string, string> = {
