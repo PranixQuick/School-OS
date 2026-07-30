@@ -30,10 +30,10 @@ const OWNERSHIP_TYPES = [
 ];
 
 const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE', 'Other'];
-const HIGHER_ED_AFFILIATIONS = ['UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
+const HIGHER_ED_AFFILIATIONS = ['State Intermediate Board (TSBIE / BIEAP / PUC)', 'UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
 
 const GOVT_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi'];
-const HIGHER_ED_TYPES = ['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
+const HIGHER_ED_TYPES = ['junior_college', 'degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -58,7 +58,17 @@ export default function RegisterPage() {
   const [redirecting, setRedirecting] = useState(false);
 
   function set(k: keyof typeof form, v: string) {
-    setForm(p => ({ ...p, [k]: v }));
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      // Keep board/affiliation in sync with the option list shown for the
+      // selected institution type — otherwise the select can DISPLAY the first
+      // option while stale state silently submits a different value.
+      if (k === 'institution_type') {
+        const options = HIGHER_ED_TYPES.includes(v) ? HIGHER_ED_AFFILIATIONS : SCHOOL_BOARDS;
+        if (!options.includes(next.board)) next.board = options[0];
+      }
+      return next;
+    });
   }
 
   const isGovtType = GOVT_TYPES.includes(form.institution_type);

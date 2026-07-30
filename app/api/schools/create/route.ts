@@ -5,6 +5,36 @@ function makeSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// P0 fix: the registration form offers board/affiliation labels that the
+// schools.board CHECK constraint (CBSE|ICSE|IB|State|Cambridge) rejects —
+// e.g. 'State Board', 'IGCSE', 'Other', and every higher-ed affiliation
+// (UGC / AICTE / NMC / State University / Deemed University). Any such pick
+// previously made the schools insert fail, surfacing as a generic
+// "Failed to create school" 500. Clamp to a constraint-legal board value and
+// preserve the registrant's true affiliation on institutions.affiliation_body.
+const BOARD_VALUE_MAP: Record<string, string> = {
+  'CBSE': 'CBSE',
+  'ICSE': 'ICSE',
+  'IB': 'IB',
+  'Cambridge': 'Cambridge',
+  'IGCSE': 'Cambridge',
+  'State': 'State',
+  'State Board': 'State',
+  'State Intermediate Board (TSBIE / BIEAP / PUC)': 'State',
+  'State University': 'State',
+};
+
+function normalizeBoard(raw?: string): { board: string; affiliation: string | null } {
+  const label = (raw ?? '').trim();
+  if (!label) return { board: 'CBSE', affiliation: null };
+  const mapped = BOARD_VALUE_MAP[label];
+  if (mapped) return { board: mapped, affiliation: label === mapped ? null : label };
+  // Unknown labels / 'Other' / higher-ed affiliation bodies (UGC, AICTE, NMC,
+  // Deemed University, ...): store a legal placeholder board and keep the real
+  // label as the institution's affiliation body.
+  return { board: 'State', affiliation: label === 'Other' ? null : label };
+}
+
 // Map registration form institution_type values to DB enum values
 // Ensures values not yet in the enum get a safe fallback
 const INST_TYPE_MAP: Record<string, string> = {
@@ -68,6 +98,7 @@ export async function POST(req: NextRequest) {
 
     const instType = INST_TYPE_MAP[body.institution_type ?? 'school_k10'] ?? 'school_k10';
     const ownType = body.ownership_type ?? 'private';
+    const boardInfo = normalizeBoard(body.board);
 
     const GOVT_SCHOOL_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school'];
     const HIGHER_ED_TYPES = ['junior_college', 'degree_college', 'intermediate_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
@@ -109,6 +140,7 @@ export async function POST(req: NextRequest) {
         organisation_id: organisationId,
         institution_type: instType,
         ownership_type: ownType,
+        affiliation_body: boardInfo.affiliation,
         is_demo: false,
         feature_flags: {
           fee_module_enabled: feeModuleEnabled,
@@ -132,7 +164,7 @@ export async function POST(req: NextRequest) {
         name: school_name,
         slug: baseSlug,
         plan: 'free',
-        board: body.board ?? 'CBSE',
+        board: boardInfo.board,
         contact_email: admin_email,
         contact_phone: body.contact_phone ?? null,
         institution_id: institutionId,
