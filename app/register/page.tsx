@@ -33,7 +33,7 @@ const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Cambridge', 'IGCSE'
 const HIGHER_ED_AFFILIATIONS = ['State Intermediate Board (TSBIE / BIEAP / PUC)', 'UGC', 'AICTE', 'NMC', 'State University', 'Deemed University', 'Other'];
 
 const GOVT_TYPES = ['govt_school', 'govt_aided_school', 'welfare_school', 'anganwadi'];
-const HIGHER_ED_TYPES = ['degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
+const HIGHER_ED_TYPES = ['junior_college', 'degree_college', 'engineering', 'polytechnic', 'mba', 'medical', 'university'];
 
 export default function RegisterPage() {
   const router = useRouter();
