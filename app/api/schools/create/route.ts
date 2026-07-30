@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
         name: school_name,
         slug: baseSlug,
         plan: 'free',
-        board: body.board ?? 'CBSE',
+        board: boardInfo.board,
         contact_email: admin_email,
         contact_phone: body.contact_phone ?? null,
         institution_id: institutionId,
