@@ -80,6 +80,31 @@ export function VoiceQueryWidget({ proactiveTrigger = false }: { proactiveTrigge
     });
   };
 
+  // WebView / unsupported-browser fallback: the packaged Android app's WebView
+  // has NO SpeechRecognition (webkitSpeechRecognition is Chrome-browser-only),
+  // which left the speak button dead in the app. /api/voice-query already
+  // accepts audio_base64 with server-side ASR — so when SpeechRecognition is
+  // missing we capture raw audio with MediaRecorder and send that instead.
+  // Tap to start, tap again to stop (auto-stops after 8s as a safety net).
+  const recordOnlyToggle = async () => {
+    if (loading) return;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      setListening(false);
+      const audioBase64 = await stopRecording();
+      if (audioBase64) await executeVoiceQuery({ audio_base64: audioBase64 });
+      return;
+    }
+    setListening(true);
+    await startRecording();
+    setTimeout(async () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        setListening(false);
+        const audioBase64 = await stopRecording();
+        if (audioBase64) await executeVoiceQuery({ audio_base64: audioBase64 });
+      }
+    }, 8000);
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -170,7 +195,10 @@ export function VoiceQueryWidget({ proactiveTrigger = false }: { proactiveTrigge
 
   function toggleListening() {
     if (!recognition) {
-      alert('Speech recognition is not supported in this browser.');
+      // No SpeechRecognition (Android WebView / packaged app): use the raw
+      // audio-capture fallback instead of a dead-end alert.
+      void recordOnlyToggle();
+      return;
       return;
     }
     if (listening) {
