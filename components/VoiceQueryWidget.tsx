@@ -195,7 +195,10 @@ export function VoiceQueryWidget({ proactiveTrigger = false }: { proactiveTrigge
 
   function toggleListening() {
     if (!recognition) {
-      alert('Speech recognition is not supported in this browser.');
+      // No SpeechRecognition (Android WebView / packaged app): use the raw
+      // audio-capture fallback instead of a dead-end alert.
+      void recordOnlyToggle();
+      return;
       return;
     }
     if (listening) {
