@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { id, name, role, email, phone, subject, is_active, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, unknown>;
+  const { id, name, role, email, phone, subject, is_active, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name } = body as Record<string, unknown>;
   if (!id || typeof id !== 'string') return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const update: Record<string, unknown> = {};
