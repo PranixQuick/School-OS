@@ -21,7 +21,7 @@ interface StudentLite {
 interface ActivityEvent {
   id: string; action: string; at: string;
   student?: { name?: string | null; class?: string | null; section?: string | null } | null;
-  amount?: number | null; fee_type?: string | null; reason?: string | null; mode?: string | null; by_role?: string | null;
+  amount?: number | null; fee_type?: string | null; reason?: string | null; mode?: string | null; by_role?: string | null; by_name?: string | null;
 }
 
 const STATUS_COLOR: Record<string, string> = { paid: '#15803D', pending: '#A16207', overdue: '#B91C1C', waived: '#6D28D9', partial: '#0E7490', pending_verification: '#A16207' };
