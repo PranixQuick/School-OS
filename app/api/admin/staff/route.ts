@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from('staff')
-    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at, designation, joined_at, relieved_at, notes, employee_code, document_url')
+    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at, designation, joined_at, relieved_at, notes, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name')
     .eq('school_id', schoolId)
     .order('name', { ascending: true })
     .limit(limit);
