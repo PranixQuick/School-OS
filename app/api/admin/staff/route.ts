@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, string | undefined>;
+  const { name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name } = body as Record<string, string | undefined>;
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
   const VALID_ROLES = new Set(['teacher', 'principal', 'admin', 'counsellor', 'admin_staff', 'accountant', 'librarian']);
