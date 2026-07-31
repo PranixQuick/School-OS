@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from('staff')
-    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at, designation, joined_at, relieved_at, notes, employee_code, document_url')
+    .select('id, name, role, subject, phone, email, is_active, institution_id, created_at, designation, joined_at, relieved_at, notes, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name')
     .eq('school_id', schoolId)
     .order('name', { ascending: true })
     .limit(limit);
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, string | undefined>;
+  const { name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name } = body as Record<string, string | undefined>;
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
   const VALID_ROLES = new Set(['teacher', 'principal', 'admin', 'counsellor', 'admin_staff', 'accountant', 'librarian']);
@@ -78,9 +78,13 @@ export async function POST(req: NextRequest) {
       relieved_at: relieved_at || null,
       employee_code: employee_code?.trim() ?? null,
       document_url: document_url?.trim() ?? null,
+      bank_account_name: bank_account_name?.trim() || null,
+      bank_account_number: bank_account_number?.trim() || null,
+      bank_ifsc: bank_ifsc?.trim().toUpperCase() || null,
+      bank_name: bank_name?.trim() || null,
       is_active: true,
     })
-    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, is_active')
+    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name, is_active')
     .single();
 
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
@@ -124,7 +128,7 @@ export async function PATCH(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { id, name, role, email, phone, subject, is_active, designation, notes, joined_at, relieved_at, employee_code, document_url } = body as Record<string, unknown>;
+  const { id, name, role, email, phone, subject, is_active, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name } = body as Record<string, unknown>;
   if (!id || typeof id !== 'string') return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const update: Record<string, unknown> = {};
@@ -138,6 +142,10 @@ export async function PATCH(req: NextRequest) {
   if (typeof notes === 'string') update.notes = notes.trim() || null;
   if (typeof joined_at === 'string') update.joined_at = joined_at || null;
   if (typeof relieved_at === 'string') update.relieved_at = relieved_at || null;
+  if (typeof bank_account_name === 'string') update.bank_account_name = bank_account_name.trim() || null;
+  if (typeof bank_account_number === 'string') update.bank_account_number = bank_account_number.trim() || null;
+  if (typeof bank_ifsc === 'string') update.bank_ifsc = bank_ifsc.trim().toUpperCase() || null;
+  if (typeof bank_name === 'string') update.bank_name = bank_name.trim() || null;
   if (typeof employee_code === 'string') update.employee_code = employee_code.trim() || null;
   if (typeof document_url === 'string') update.document_url = document_url.trim() || null;
 
