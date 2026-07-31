@@ -76,8 +76,57 @@ export async function GET(req: NextRequest) {
     summary[f.status ?? 'pending'] = (summary[f.status ?? 'pending'] ?? 0) + 1;
   }
 
+  // "Last edited by" trail — resolved from audit_log (every fee amend/create writes
+  // a row), so the list can attribute each fee's last change to a person + time.
+  // Founder requirement: owner/principal/admin fee edits must be visible.
+  const feeIds = filtered.map((f) => f.id).filter(Boolean) as string[];
+  const lastEditByFee: Record<string, { uid: string | null; at: string | null }> = {};
+  const nameById: Record<string, { name: string | null; role: string | null }> = {};
+  if (feeIds.length > 0) {
+    const { data: auditRows } = await supabaseAdmin
+      .from('audit_log')
+      .select('resource_id, user_id, created_at')
+      .eq('school_id', schoolId)
+      .eq('resource', 'fees')
+      .in('resource_id', feeIds)
+      .order('created_at', { ascending: false });
+    const editorIds = new Set<string>();
+    for (const r of auditRows ?? []) {
+      const rid = r.resource_id as string;
+      if (rid && !lastEditByFee[rid]) {
+        lastEditByFee[rid] = { uid: (r.user_id as string) ?? null, at: (r.created_at as string) ?? null };
+        if (r.user_id) editorIds.add(r.user_id as string);
+      }
+    }
+    if (editorIds.size > 0) {
+      const { data: editors } = await supabaseAdmin
+        .from('school_users')
+        .select('auth_user_id, name, role_v2, role')
+        .eq('school_id', schoolId)
+        .in('auth_user_id', Array.from(editorIds));
+      for (const e of editors ?? []) {
+        if (e.auth_user_id) {
+          nameById[e.auth_user_id as string] = {
+            name: (e.name as string) ?? null,
+            role: ((e.role_v2 as string) ?? (e.role as string)) ?? null,
+          };
+        }
+      }
+    }
+  }
+  const enriched = filtered.map((f) => {
+    const le = lastEditByFee[f.id as string];
+    const ed = le?.uid ? nameById[le.uid] : undefined;
+    return {
+      ...f,
+      last_edited_by_name: ed?.name ?? null,
+      last_edited_by_role: ed?.role ?? null,
+      last_edited_at: le?.at ?? null,
+    };
+  });
+
   // viewer_role lets the UI gate owner-only controls (e.g. discounts) before the server does.
-  return NextResponse.json({ fees: filtered, summary, total: count ?? filtered.length, limit, offset, viewer_role: ctx.userRole });
+  return NextResponse.json({ fees: enriched, summary, total: count ?? filtered.length, limit, offset, viewer_role: ctx.userRole });
 }
 
 // ─── POST ───────────────────────────────────────────────────────────────────
