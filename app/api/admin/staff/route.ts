@@ -78,9 +78,13 @@ export async function POST(req: NextRequest) {
       relieved_at: relieved_at || null,
       employee_code: employee_code?.trim() ?? null,
       document_url: document_url?.trim() ?? null,
+      bank_account_name: bank_account_name?.trim() || null,
+      bank_account_number: bank_account_number?.trim() || null,
+      bank_ifsc: bank_ifsc?.trim().toUpperCase() || null,
+      bank_name: bank_name?.trim() || null,
       is_active: true,
     })
-    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, is_active')
+    .select('id, name, role, email, phone, subject, designation, notes, joined_at, relieved_at, employee_code, document_url, bank_account_name, bank_account_number, bank_ifsc, bank_name, is_active')
     .single();
 
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
