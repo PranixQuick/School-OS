@@ -142,6 +142,10 @@ export async function PATCH(req: NextRequest) {
   if (typeof notes === 'string') update.notes = notes.trim() || null;
   if (typeof joined_at === 'string') update.joined_at = joined_at || null;
   if (typeof relieved_at === 'string') update.relieved_at = relieved_at || null;
+  if (typeof bank_account_name === 'string') update.bank_account_name = bank_account_name.trim() || null;
+  if (typeof bank_account_number === 'string') update.bank_account_number = bank_account_number.trim() || null;
+  if (typeof bank_ifsc === 'string') update.bank_ifsc = bank_ifsc.trim().toUpperCase() || null;
+  if (typeof bank_name === 'string') update.bank_name = bank_name.trim() || null;
   if (typeof employee_code === 'string') update.employee_code = employee_code.trim() || null;
   if (typeof document_url === 'string') update.document_url = document_url.trim() || null;
 
