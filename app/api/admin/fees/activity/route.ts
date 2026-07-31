@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from('audit_log')
-    .select('id, action, op, resource_id, old_data, new_data, metadata, created_at')
+    .select('id, action, op, resource_id, old_data, new_data, metadata, created_at, user_id')
     .eq('school_id', schoolId)
     .eq('resource', 'fees')
     .in('action', ACTIONS)
