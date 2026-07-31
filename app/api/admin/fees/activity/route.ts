@@ -58,11 +58,33 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Resolve editor names so the feed shows WHO (not just which role) changed a fee.
+  const editorIds = Array.from(new Set((rows ?? []).map((r) => r.user_id).filter(Boolean))) as string[];
+  const editorById: Record<string, { name: string | null; role: string | null }> = {};
+  if (editorIds.length) {
+    const { data: eds } = await supabaseAdmin
+      .from('school_users')
+      .select('auth_user_id, name, role_v2, role')
+      .eq('school_id', schoolId)
+      .in('auth_user_id', editorIds);
+    for (const e of eds ?? []) {
+      if (e.auth_user_id) {
+        editorById[e.auth_user_id as string] = {
+          name: (e.name as string) ?? null,
+          role: ((e.role_v2 as string) ?? (e.role as string)) ?? null,
+        };
+      }
+    }
+  }
+
   const events = (rows ?? []).map((r) => {
     const meta = (r.metadata ?? {}) as Record<string, unknown>;
     const nd = (r.new_data ?? {}) as Record<string, unknown>;
     const od = (r.old_data ?? {}) as Record<string, unknown>;
     const stu = studentByFee[r.resource_id as string] ?? null;
+    const editor = r.user_id ? editorById[r.user_id as string] : undefined;
+    const roleStr = (editor?.role ?? (meta.by_role as string) ?? null) as string | null;
+    const nameStr = editor?.name ?? null;
     return {
       id: r.id,
       action: r.action as string,
@@ -72,7 +94,10 @@ export async function GET(req: NextRequest) {
       fee_type: (nd.fee_type ?? od.fee_type ?? null) as string | null,
       reason: (meta.reason ?? null) as string | null,
       mode: (meta.method ?? nd.payment_method ?? null) as string | null,
-      by_role: (meta.by_role ?? null) as string | null,
+      by_name: nameStr,
+      // The existing UI renders by_role as plain text — fold the name in so the
+      // feed shows WHO edited, with no change to the (large) render file.
+      by_role: nameStr ? `${nameStr} (${roleStr ?? 'staff'})` : roleStr,
     };
   });
 
