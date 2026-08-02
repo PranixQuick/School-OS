@@ -56,8 +56,8 @@ export default function HomePage() {
       />
 
       {/* NAV */}
-      <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flexShrink: 1 }}>
           <img
             src="/brand/icon.png"
             alt="EdProSys logo"
@@ -72,9 +72,9 @@ export default function HomePage() {
               flexShrink: 0,
             }}
           />
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 0 }}>EdProSys</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>EdProSys</span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
           <Link href="/login" style={{ padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', background: '#F3F4F6' }}>Sign In</Link>
           <Link href="/register" style={{ padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#fff', textDecoration: 'none', background: '#4F46E5' }}>Get Started Free →</Link>
         </div>
