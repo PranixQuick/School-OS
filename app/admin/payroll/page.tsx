@@ -27,7 +27,11 @@ interface Payslip {
 const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   draft: { bg: '#FEF9C3', color: '#92400E' },
+  processing: { bg: '#E0E7FF', color: '#3730A3' },
+  pending_review: { bg: '#FEF3C7', color: '#92400E' },
+  pending_owner: { bg: '#FFEDD5', color: '#9A3412' },
   approved: { bg: '#D1FAE5', color: '#065F46' },
+  submitted: { bg: '#CFFAFE', color: '#0E7490' },
   paid: { bg: '#DBEAFE', color: '#1D4ED8' },
   cancelled: { bg: '#F3F4F6', color: '#374151' },
 };
