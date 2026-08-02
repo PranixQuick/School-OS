@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     images: ['https://www.edprosys.com/api/og'],
   },
   icons: {
-    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }, { url: '/brand/icon.svg', type: 'image/svg+xml', sizes: 'any' }],
+    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }, { url: '/brand/icon.png', type: 'image/png', sizes: 'any' }],
     apple: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
   },
 };

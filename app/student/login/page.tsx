@@ -35,7 +35,7 @@ export default function StudentLoginPage() {
       <div style={{ background: '#fff', borderRadius: 16, padding: 36, width: '100%', maxWidth: 380, boxShadow: '0 4px 24px #0000000f' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-            <span style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#0EA5E9,#1E40AF)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700 }}>∞</span>
+            <img src="/brand/icon.png" alt="EdProSys" style={{ width: 26, height: 20, objectFit: 'contain', flexShrink: 0 }} />
             <span style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>EdPro<span style={{ color: '#0EA5E9' }}>Sys</span></span>
           </div>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🎓</div>

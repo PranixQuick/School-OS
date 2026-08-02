@@ -42,7 +42,7 @@ export default function ParentLoginPage() {
 
       {/* Brand strip at top */}
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 24 }}>
-        <span style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#0EA5E9,#1E40AF)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, flexShrink: 0 }}>∞</span>
+        <img src="/brand/icon.png" alt="EdProSys" style={{ width: 30, height: 24, objectFit: 'contain', flexShrink: 0 }} />
         <span style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>EdPro<span style={{ color: '#0EA5E9' }}>Sys</span></span>
       </Link>
 

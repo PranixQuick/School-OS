@@ -124,10 +124,8 @@ export default function LoginPage() {
         </div>
         {/* Logo row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Infinity icon (simplified brand representation) */}
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-            ∞
-          </div>
+          {/* Brand logo (unified purple AI design) */}
+          <img src="/brand/icon.png" alt="EdProSys" style={{ width: 44, height: 34, objectFit: 'contain', flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>EdPro<span style={{ color: '#7DD3FC' }}>Sys</span></div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>School Management Platform</div>
