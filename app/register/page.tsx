@@ -150,7 +150,7 @@ export default function RegisterPage() {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <img
-              src="/brand/icon.svg"
+              src="/brand/icon.png"
               alt="EdProSys"
               style={{ width: 48, height: 30, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
             />

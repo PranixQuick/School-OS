@@ -1,0 +1,44 @@
+{
+	"appId": "in.pranix.edprosys",
+	"appName": "EdProSys",
+	"webDir": "out",
+	"server": {
+		"url": "https://www.edprosys.com",
+		"cleartext": false,
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 2000,
+			"backgroundColor": "#1E1B4B",
+			"androidSplashResourceName": "splash",
+			"iosSpinnerStyle": "large",
+			"showSpinner": false
+		},
+		"StatusBar": {
+			"style": "Dark",
+			"backgroundColor": "#1E1B4B"
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		},
+		"Keyboard": {
+			"resize": "body",
+			"resizeOnFullScreen": true
+		}
+	},
+	"android": {
+		"allowMixedContent": false,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	},
+	"ios": {
+		"scheme": "EdProSys",
+		"contentInset": "automatic",
+		"allowsLinkPreview": true
+	}
+}

@@ -36,7 +36,7 @@ export default function HomePage() {
               '@type': 'Organization',
               name: 'Pranix AI Labs',
               url: 'https://www.pranixailabs.com',
-              logo: 'https://www.edprosys.com/brand/icon.svg',
+              logo: 'https://www.edprosys.com/brand/icon.png',
               address: { '@type': 'PostalAddress', addressLocality: 'Vijayawada', addressRegion: 'Andhra Pradesh', addressCountry: 'IN' },
             },
             {
@@ -59,7 +59,7 @@ export default function HomePage() {
       <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <img
-            src="/brand/icon.svg"
+            src="/brand/icon.png"
             alt="EdProSys logo"
             width={48}
             height={30}
@@ -175,7 +175,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img
-              src="/brand/icon.svg"
+              src="/brand/icon.png"
               alt="EdProSys"
               width={36}
               height={22}
