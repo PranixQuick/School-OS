@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Header from '../components/Header';
 
 export const metadata: Metadata = {
   title: 'EdProSys — School Management Platform for Indian Schools',
@@ -56,29 +57,7 @@ export default function HomePage() {
       />
 
       {/* NAV */}
-      <nav style={{ padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #F3F4F6', position: 'sticky', top: 0, background: '#fff', zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flexShrink: 1 }}>
-          <img
-            src="/brand/icon.png"
-            alt="EdProSys logo"
-            width={48}
-            height={30}
-            style={{
-              width: 48,
-              height: 30,
-              objectFit: 'contain',
-              objectPosition: 'center',
-              display: 'block',
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ fontWeight: 800, fontSize: 17, color: '#111827', letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>EdProSys</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-          <Link href="/login" style={{ padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', background: '#F3F4F6' }}>Sign In</Link>
-          <Link href="/register" style={{ padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#fff', textDecoration: 'none', background: '#4F46E5' }}>Get Started Free →</Link>
-        </div>
-      </nav>
+      <Header />
 
       {/* HERO */}
       <section style={{ textAlign: 'center', padding: '72px 24px 60px', background: 'linear-gradient(180deg, #EEF2FF 0%, #fff 100%)' }}>
