@@ -115,7 +115,7 @@ export default function PayrollPage() {
     setSaving(false);
   }
 
-  async function approveRun(runId: string, action: 'approve' | 'mark_paid' | 'cancel') {
+  async function approveRun(runId: string, action: 'submit_for_review' | 'review' | 'approve' | 'submit_to_bank' | 'mark_paid' | 'cancel') {
     setActionLoading(true);
     const res = await fetch(`/api/admin/payroll/runs/${runId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -123,7 +123,15 @@ export default function PayrollPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      showToast(action === 'mark_paid' ? T('payroll_marked_paid', lang as never) : action === 'approve' ? T('payroll_approved', lang as never) : T('payroll_cancelled', lang as never));
+      const MSG: Record<string, string> = {
+        submit_for_review: 'Sent for review',
+        review: 'Reviewed — sent to owner for approval',
+        approve: T('payroll_approved', lang as never),
+        submit_to_bank: 'Submitted to bank',
+        mark_paid: T('payroll_marked_paid', lang as never),
+        cancel: T('payroll_cancelled', lang as never),
+      };
+      showToast(MSG[action] ?? 'Done');
       setSelectedRun(d.run);
       setRuns(p => p.map(r => r.id === runId ? d.run : r));
     } else showToast(d.error ?? 'Action failed');
