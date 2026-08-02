@@ -68,7 +68,8 @@ const EnvSchema = z
   })
   .superRefine((data, ctx) => {
     // In production, WhatsApp must be Twilio (stub / unset is blocked).
-    if (data.NODE_ENV === 'production') {
+    const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+    if (data.NODE_ENV === 'production' && !isBuild) {
       if (!data.WHATSAPP_PROVIDER || data.WHATSAPP_PROVIDER === 'stub') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -105,6 +106,25 @@ const EnvSchema = z
 export type AppEnv = z.infer<typeof EnvSchema>;
 
 function loadEnv(): AppEnv {
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  if (isBuild) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://placeholder.supabase.co';
+    }
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'placeholder_anon_key_for_build_purposes_only';
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      process.env.SUPABASE_SERVICE_ROLE_KEY = 'placeholder_service_role_key_for_build_purposes_only';
+    }
+    if (!process.env.SESSION_SECRET) {
+      process.env.SESSION_SECRET = 'placeholder_session_secret_for_build_purposes_only_32_chars';
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      process.env.ANTHROPIC_API_KEY = 'sk-ant-placeholder-for-build';
+    }
+  }
+
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const details = parsed.error.issues

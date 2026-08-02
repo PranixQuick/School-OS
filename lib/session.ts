@@ -18,6 +18,7 @@ export interface SchoolSession {
   userEmail: string;
   userRole: string;
   userName: string;
+  hod_scope?: { school_id: string; department: string }[];
 }
 
 const ISSUER = 'school-os';
@@ -53,7 +54,8 @@ export async function issueSession(
   opts: IssueSessionOptions = {}
 ): Promise<string> {
   const expiry = opts.variant === 'legacy' ? LEGACY_EXPIRY : DEFAULT_EXPIRY;
-  return await new SignJWT({
+  
+  const claims: any = {
     schoolId: session.schoolId,
     schoolName: session.schoolName,
     schoolSlug: session.schoolSlug,
@@ -63,7 +65,21 @@ export async function issueSession(
     userRole: session.userRole,
     userName: session.userName,
     variant: opts.variant ?? 'default',
-  })
+  };
+
+  if (session.userRole === 'hod') {
+    let scope = session.hod_scope;
+    if (!scope) {
+      const { data } = await adminClient()
+        .from('staff_hod_scope')
+        .select('school_id, department')
+        .eq('staff_id', session.userId);
+      scope = data ?? [];
+    }
+    claims.hod_scope = scope;
+  }
+
+  return await new SignJWT(claims)
     .setProtectedHeader({ alg: ALG })
     .setIssuer(ISSUER)
     .setIssuedAt()
@@ -115,6 +131,7 @@ export async function verifySession(token: string | undefined | null): Promise<S
       userEmail: payload.userEmail,
       userRole: (payload.userRole as string) ?? '',
       userName: (payload.userName as string) ?? '',
+      hod_scope: (payload.hod_scope as any) ?? undefined,
     };
   } catch {
     return null;

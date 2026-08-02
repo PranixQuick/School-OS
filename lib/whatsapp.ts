@@ -10,8 +10,9 @@
 
 const __provider_raw = process.env.WHATSAPP_PROVIDER;
 const __node_env = process.env.NODE_ENV;
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
-if (__node_env === 'production' && (!__provider_raw || __provider_raw === 'stub')) {
+if (__node_env === 'production' && !isBuild && (!__provider_raw || __provider_raw === 'stub')) {
   throw new Error(
     `[lib/whatsapp] WHATSAPP_PROVIDER=${__provider_raw ?? '<unset>'} is not permitted in production. ` +
     `Set WHATSAPP_PROVIDER=twilio and configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM.`

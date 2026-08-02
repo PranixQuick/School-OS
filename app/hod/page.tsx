@@ -18,9 +18,9 @@ export default function HODPage() {
   useEffect(() => {
     async function load() {
       const [dR, sR, bR] = await Promise.all([
-        fetch('/api/admin/departments'),
-        fetch('/api/admin/staff'),
-        fetch('/api/admin/batches'),
+        fetch('/api/hod/departments'),
+        fetch('/api/hod/staff'),
+        fetch('/api/hod/batches'),
       ]);
       const [dD, sD, bD] = await Promise.all([dR.json(), sR.json(), bR.json()]);
       // HOD sees their own department — first active dept (in real flow, session has dept_id)
