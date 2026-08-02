@@ -152,7 +152,7 @@ export default function RegisterPage() {
             <img
               src="/brand/icon.png"
               alt="EdProSys"
-              style={{ width: 48, height: 30, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+              style={{ width: 48, height: 30, objectFit: 'contain' }}
             />
             <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.4px' }}>EdProSys</span>
           </Link>
