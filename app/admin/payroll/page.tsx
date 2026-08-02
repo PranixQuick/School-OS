@@ -27,7 +27,11 @@ interface Payslip {
 const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   draft: { bg: '#FEF9C3', color: '#92400E' },
+  processing: { bg: '#E0E7FF', color: '#3730A3' },
+  pending_review: { bg: '#FEF3C7', color: '#92400E' },
+  pending_owner: { bg: '#FFEDD5', color: '#9A3412' },
   approved: { bg: '#D1FAE5', color: '#065F46' },
+  submitted: { bg: '#CFFAFE', color: '#0E7490' },
   paid: { bg: '#DBEAFE', color: '#1D4ED8' },
   cancelled: { bg: '#F3F4F6', color: '#374151' },
 };
@@ -111,7 +115,7 @@ export default function PayrollPage() {
     setSaving(false);
   }
 
-  async function approveRun(runId: string, action: 'approve' | 'mark_paid' | 'cancel') {
+  async function approveRun(runId: string, action: 'submit_for_review' | 'review' | 'approve' | 'submit_to_bank' | 'mark_paid' | 'cancel') {
     setActionLoading(true);
     const res = await fetch(`/api/admin/payroll/runs/${runId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -119,7 +123,15 @@ export default function PayrollPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      showToast(action === 'mark_paid' ? T('payroll_marked_paid', lang as never) : action === 'approve' ? T('payroll_approved', lang as never) : T('payroll_cancelled', lang as never));
+      const MSG: Record<string, string> = {
+        submit_for_review: 'Sent for review',
+        review: 'Reviewed — sent to owner for approval',
+        approve: T('payroll_approved', lang as never),
+        submit_to_bank: 'Submitted to bank',
+        mark_paid: T('payroll_marked_paid', lang as never),
+        cancel: T('payroll_cancelled', lang as never),
+      };
+      showToast(MSG[action] ?? 'Done');
       setSelectedRun(d.run);
       setRuns(p => p.map(r => r.id === runId ? d.run : r));
     } else showToast(d.error ?? 'Action failed');
