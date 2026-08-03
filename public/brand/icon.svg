@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" fill="none" role="img" aria-label="EdProSys">
   <defs>
     <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0EA5E9"/>
-      <stop offset="100%" stop-color="#1E40AF"/>
+      <stop offset="0%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#581C87"/>
     </linearGradient>
     <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22D3EE"/>
-      <stop offset="100%" stop-color="#3B82F6"/>
+      <stop offset="0%" stop-color="#D8B4FE"/>
+      <stop offset="100%" stop-color="#9333EA"/>
     </linearGradient>
   </defs>
 
@@ -23,10 +23,10 @@
   <!-- Circuit ring in right lobe -->
   <circle cx="120" cy="50" r="16" stroke="url(#g1)" stroke-width="2" fill="none" opacity="0.55"/>
   <!-- Circuit connector dots -->
-  <circle cx="104" cy="50" r="2.5" fill="#0EA5E9"/>
-  <circle cx="136" cy="50" r="2.5" fill="#0EA5E9"/>
-  <circle cx="120" cy="34" r="2.5" fill="#3B82F6"/>
-  <circle cx="120" cy="66" r="2.5" fill="#3B82F6"/>
+  <circle cx="104" cy="50" r="2.5" fill="#A855F7"/>
+  <circle cx="136" cy="50" r="2.5" fill="#A855F7"/>
+  <circle cx="120" cy="34" r="2.5" fill="#9333EA"/>
+  <circle cx="120" cy="66" r="2.5" fill="#9333EA"/>
   <!-- P letterform inside circuit -->
   <path d="M113 42 L113 58 M113 42 L121 42 Q127 42 127 47 Q127 52 121 52 L113 52"
     stroke="url(#g2)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
@@ -34,7 +34,7 @@
   <!-- Pencil crossing the center of the infinity -->
   <g transform="translate(66,46) rotate(-18)">
     <rect x="0" y="0" width="28" height="5" rx="2.5" fill="url(#g1)" opacity="0.8"/>
-    <polygon points="28,0 28,5 33,2.5" fill="#22D3EE"/>
-    <rect x="0" y="0" width="5" height="5" rx="1.5" fill="#1E40AF"/>
+    <polygon points="28,0 28,5 33,2.5" fill="#D8B4FE"/>
+    <rect x="0" y="0" width="5" height="5" rx="1.5" fill="#581C87"/>
   </g>
 </svg>
