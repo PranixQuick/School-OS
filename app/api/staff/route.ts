@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSession } from '@/lib/auth';
+import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
-    const schoolId = session.schoolId;
+    let ctx;
+    try {
+      ctx = await requireAdminSession(req);
+    } catch (e) {
+      if (e instanceof AdminAuthError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
+    }
+    const schoolId = ctx.schoolId;
 
     // Fetch staff with invite status from school_users
     const { data: staffRows, error } = await supabaseAdmin
