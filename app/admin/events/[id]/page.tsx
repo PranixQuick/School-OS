@@ -135,6 +135,7 @@ export default function GalleryDetailPage() {
   }
 
   async function deleteMedia(mediaId: string) {
+    if (!confirm('Are you sure you want to delete this media item?')) return;
     await fetch(`/api/admin/events/galleries/${id}/media?media_id=${mediaId}`, { method: 'DELETE' });
     setMedia(prev => prev.filter(m => m.id !== mediaId));
   }

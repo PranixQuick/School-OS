@@ -1,8 +1,22 @@
 # School-OS QA Execution Log
 
-**Current Status**: Phase 2 Correctness Complete; Ready for Phase 3 Onboarding / Payments
+**Current Status**: All Phases Complete; Ready for Final Integration Verification
 
 ---
+
+## 2026-08-04 18:35 (UTC/IST) - Phase 1 Hardening Complete
+
+- **Action**: Created branch `fix/auth-and-security-hardening` and implemented the complete set of authentication and security fixes.
+- **Implemented Fixes**:
+  - Secured `parent/transport`, `principal/teacher-presence`, `principal/geofence/get`, `principal/geofence/define`, and `import/academic-years` by switching from client-sent headers to signed cookie session validation.
+  - Implemented session revocation (writes to `revoked_sessions` denylist) for Student, Parent, and Vendor sessions on logout.
+  - Secured `registrar/dashboard` by enforcing explicit `session.userRole` checks against allowed registrar/staff/admin roles.
+- **Verification & Tests**:
+  - Created `tests/unit/auth-revocation.test.ts` to test session revocation. All tests passed.
+  - Created `tests/unit/registrar-dashboard.test.ts` to test registrar dashboard role limits. All tests passed.
+  - Staged and committed changes, then pushed the branch `fix/auth-and-security-hardening` to the remote repository.
+- **Next Steps**: Merge the PR for Phase 1 and proceed with Phase 2 (Page and Module Correctness Bugs).
+
 
 ## 2026-08-04 18:49 (UTC/IST) - Phase 2 Correctness Complete
 
@@ -34,4 +48,17 @@
   - Staged and committed changes, then pushed the branch `fix/onboarding-and-vidyagrid` to the remote origin.
 
 
+## 2026-08-04 19:30 (UTC/IST) - Phase 5 Notifications & Webhook Security Complete
 
+- **Action**: Checked out branch `fix/notification-wiring-and-payments` from `main` and resolved notifications, payments webhook signature verification, and unit tests.
+- **Implemented Fixes**:
+  - **Billing Webhook Signature Verification**: Secured payments webhook signature verification inside `app/api/billing/webhook/route.ts` with timing-safe comparison (`crypto.timingSafeEqual`).
+  - **Late Check-in Alerts**: Configured geofence check-in route `app/api/teacher/geo-checkin/route.ts` to write alerts to database notifications table for the school principal when teachers arrive late.
+  - **Substitute Teacher Assignment Alerts**: Wired notifications in `app/api/principal/substitute/assign/route.ts` and mounted `SubstituteBanner` inside `app/teacher/page.tsx` for teachers to view passive alerts.
+  - **Parent Complaint & Online Fee WhatsApp Channel Routing**: Swapped notification routing channels from `email` to `whatsapp` inside parent complaints and fee routing endpoints.
+  - **Recipient Resolution**: Written routing logic inside `resolveRecipients` edge function cron-dispatcher in `supabase/functions/notifications-dispatcher/index.ts` to correctly map all 5 notification flows.
+- **Verification & Tests**:
+  - Created `tests/unit/notifications-dispatcher.test.ts` to verify the edge function recipient routing rules. All tests passed.
+  - Created `tests/unit/billing-webhook.test.ts` to verify timing-safe webhook verification. All tests passed.
+  - Isolated database client queries in `tests/unit/voice-query.test.ts` using Vitest mock client to run tests in local sandbox.
+  - Staged, committed, and pushed the branch `fix/notification-wiring-and-payments` to remote origin.
