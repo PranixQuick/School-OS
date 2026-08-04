@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 const PLAN_LIMITS: Record<string, {
   max_reports_per_month: number;
@@ -33,7 +33,10 @@ const PLAN_LIMITS: Record<string, {
 function verifyRazorpaySignature(body: string, signature: string, secret: string): boolean {
   try {
     const expected = createHmac('sha256', secret).update(body).digest('hex');
-    return expected === signature;
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const signatureBuf = Buffer.from(signature, 'hex');
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return timingSafeEqual(expectedBuf, signatureBuf);
   } catch {
     return false;
   }

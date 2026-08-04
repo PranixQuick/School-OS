@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
         : `A parent has filed a new complaint. Subject: ${subject.slice(0, 100)}. View in admin → Parent Complaints.`,
       module: 'complaints',
       reference_id: inserted.id,
-      channel: 'email',
+      channel: 'whatsapp',
       status: 'pending',
     });
     if (notifyErr) {

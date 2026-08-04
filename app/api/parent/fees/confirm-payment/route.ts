@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       message: `An online fee payment was received. Receipt: ${data.fee_receipt_number}. View in admin → Fees.`,
       module: 'fees',
       reference_id: body.fee_id,
-      channel: 'email',
+      channel: 'whatsapp',
       status: 'pending',
     });
     if (notifyErr) console.error('[confirm-payment] payment notification failed (non-fatal):', notifyErr);
