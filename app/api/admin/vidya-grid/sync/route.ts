@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   // School must be mapped to a VidyaGrid school
   const { data: school, error: schoolErr } = await supabaseAdmin
     .from('schools')
-    .select('id, vidya_grid_school_id')
+    .select('id, vidya_grid_school_id, plan, settings, institution_id')
     .eq('id', schoolId)
     .maybeSingle();
   if (schoolErr) return NextResponse.json({ error: schoolErr.message }, { status: 500 });
@@ -63,6 +63,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'school_not_mapped_to_vidya_grid' }, { status: 409 });
   }
   const vgSchoolId = school.vidya_grid_school_id as string;
+
+  // Fetch institution details if available to resolve the board
+  let institutionBoard: string | null = null;
+  if (school.institution_id) {
+    const { data: inst } = await supabaseAdmin
+      .from('institutions')
+      .select('board')
+      .eq('id', school.institution_id)
+      .maybeSingle();
+    if (inst?.board) {
+      institutionBoard = inst.board;
+    }
+  }
+
+  // Resolve board
+  const resolvedBoard = institutionBoard ||
+    (school.settings as Record<string, unknown>)?.['board'] as string | undefined ||
+    'SCERT-AP';
+
+  // Resolve language
+  const resolvedLanguage = (school.settings as Record<string, unknown>)?.['language'] as string | undefined || 'te';
+
+  // Map school plan to VG plan
+  const schoolPlan = school.plan || 'free';
+  const resolvedPlan: 'none' | 'free' | 'paid' =
+    schoolPlan === 'free' ? 'free' : (schoolPlan === 'starter' || schoolPlan === 'campus' || schoolPlan === 'premium' ? 'paid' : 'none');
 
   // Eligible unlinked students: class 9/10, active, not yet linked.
   const { data: students, error: studErr } = await supabaseAdmin
@@ -96,11 +122,13 @@ export async function POST(req: NextRequest) {
       school_id: vgSchoolId,
       student_name: studentName,
       // Pass through the real class value now that ELIGIBLE_CLASSES covers
-      // both K-12 grades and Anganwadi age bands - was previously forced to
-      // '9'/'10' when this route only supported those two.
+      // both K-12 grades and Anganwadi age bands
       class_level: s.class as VgClassLevel,
       parent_name: parentName,
       parent_contact: parentContact,
+      board: resolvedBoard,
+      language: resolvedLanguage as 'te' | 'en',
+      plan: resolvedPlan,
     });
 
     if (!r.ok || !r.student_id) {
@@ -141,7 +169,7 @@ export async function POST(req: NextRequest) {
     .eq('school_id', schoolId)
     .is('vidya_grid_user_id', null)
     .eq('is_active', true)
-    .in('class', ['9', '10']);
+    .in('class', ELIGIBLE_CLASSES);
 
   return NextResponse.json({
     processed: candidates.length,

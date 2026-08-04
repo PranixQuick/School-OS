@@ -79,10 +79,10 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { entry_class, total_seats, academic_year_id } = body as { entry_class?: string; total_seats?: number; academic_year_id?: string };
+  const { entry_class, total_seats, academic_year_id, rte_seats: custom_rte_seats } = body as { entry_class?: string; total_seats?: number; academic_year_id?: string; rte_seats?: number };
   if (!total_seats || !academic_year_id) return NextResponse.json({ error: 'total_seats and academic_year_id required' }, { status: 400 });
 
-  const rte_seats = Math.ceil(total_seats * 0.25);
+  const rte_seats = typeof custom_rte_seats === 'number' ? custom_rte_seats : Math.ceil(total_seats * 0.25);
 
   const { data, error } = await supabaseAdmin
     .from('rte_seat_config')
