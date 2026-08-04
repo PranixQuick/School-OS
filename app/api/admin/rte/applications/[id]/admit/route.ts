@@ -44,6 +44,10 @@ export async function PATCH(
     .eq('academic_year_id', app.academic_year_id)
     .maybeSingle();
 
+  if (config && (config.rte_seats_filled ?? 0) >= (config.rte_seats ?? 0)) {
+    return NextResponse.json({ error: 'Cannot admit: RTE seat capacity is already full' }, { status: 409 });
+  }
+
   const entryClass = config?.entry_class ?? 'Class 1';
   const yearLabel = app.academic_year_id ? app.academic_year_id.slice(0, 4) : new Date().getFullYear().toString();
   const admissionNumber = `RTE-${yearLabel}-${String(app.lottery_number).padStart(3,'0')}`;

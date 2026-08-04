@@ -25,8 +25,12 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const from = searchParams.get('from') ?? new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0,10);
-  const to = searchParams.get('to') ?? new Date().toISOString().slice(0,10);
+  const localToD = new Date();
+  const localTo = `${localToD.getFullYear()}-${String(localToD.getMonth() + 1).padStart(2, '0')}-${String(localToD.getDate()).padStart(2, '0')}`;
+  const localFromD = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const localFrom = `${localFromD.getFullYear()}-${String(localFromD.getMonth() + 1).padStart(2, '0')}-${String(localFromD.getDate()).padStart(2, '0')}`;
+  const from = searchParams.get('from') ?? localFrom;
+  const to = searchParams.get('to') ?? localTo;
 
   const { data, error } = await supabaseAdmin.rpc('meal_attendance_summary', {
     p_school_id: schoolId, p_from: from, p_to: to
