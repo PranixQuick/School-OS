@@ -12,7 +12,13 @@ interface StudentMeal { student_id: string; name: string; roll_number: string | 
 interface SummaryRow { date: string; meals_served: number; total_enrolled: number; coverage_pct: number; }
 type Tab = 'daily' | 'summary';
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const r = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${r}`;
+}
 
 export default function MealsPage() {
   const [enabled, setEnabled] = useState<boolean | null>(null);

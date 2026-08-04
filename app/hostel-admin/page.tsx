@@ -17,6 +17,22 @@ export default function HostelAdminPage() {
   const [allocForm, setAllocForm] = useState({ student_id: '', room_id: '', check_in_date: '', fee_amount: '' });
   const [allocError, setAllocError] = useState('');
   const [allocating, setAllocating] = useState(false);
+  const [brandingLogo, setBrandingLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/schools/branding')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.branding?.logo_url) {
+          setBrandingLogo(data.branding.logo_url);
+        } else {
+          setBrandingLogo('/brand/icon.png');
+        }
+      })
+      .catch(() => {
+        setBrandingLogo('/brand/icon.png');
+      });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,7 +67,22 @@ export default function HostelAdminPage() {
     <div style={{ minHeight: '100vh', background: '#F9FAFB', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {toast && <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#111827', color: '#fff', padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{toast}</div>}
       <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div><div style={{ fontSize: 18, fontWeight: 800 }}>🏠 Hostel</div><div style={{ fontSize: 12, color: '#6B7280' }}>Hostel Admin Portal</div></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {brandingLogo && (
+            <img
+              src={brandingLogo}
+              alt="logo"
+              style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6 }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/brand/icon.png';
+              }}
+            />
+          )}
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800 }}>🏠 Hostel</div>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>Hostel Admin Portal</div>
+          </div>
+        </div>
         <button onClick={() => { fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); }} style={{ padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: 7, background: '#fff', fontSize: 12, cursor: 'pointer' }}>Sign out</button>
       </div>
       <div style={{ maxWidth: 800, margin: '0 auto', padding: 20 }}>

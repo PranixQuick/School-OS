@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
   // Create late event if late and inside compound
   if (isLate && insidePolygon) {
-    await supabaseAdmin.from('teacher_late_events').insert({
+    const { data: lateEvent } = await supabaseAdmin.from('teacher_late_events').insert({
       school_id: session.schoolId,
       staff_id: staffId,
       scheduled_period_id: null, // no timetable period needed for daily late tracking
@@ -145,7 +145,29 @@ export async function POST(req: NextRequest) {
       first_present_at: pingAt,
       delta_minutes: deltaMinutes,
       strike_count: 1,
-    }).single();
+    }).select('id').single();
+
+    if (lateEvent) {
+      try {
+        const { data: staff } = await supabaseAdmin
+          .from('staff').select('name')
+          .eq('id', staffId).eq('school_id', session.schoolId).maybeSingle();
+        const teacherName = staff?.name ?? 'Teacher';
+
+        await supabaseAdmin.from('notifications').insert({
+          school_id: session.schoolId,
+          type: 'alert',
+          title: 'Teacher late check-in',
+          message: `${teacherName} arrived late (expected 09:00, delta: ${deltaMinutes} mins).`,
+          module: 'attendance',
+          reference_id: lateEvent.id,
+          channel: 'whatsapp',
+          status: 'pending',
+        });
+      } catch (notifErr) {
+        console.error('Geo check-in late notification failed:', notifErr);
+      }
+    }
   }
 
   // Build response

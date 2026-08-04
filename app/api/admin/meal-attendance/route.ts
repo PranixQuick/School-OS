@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const date = searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
+  const localD = new Date();
+  const localToday = `${localD.getFullYear()}-${String(localD.getMonth() + 1).padStart(2, '0')}-${String(localD.getDate()).padStart(2, '0')}`;
+  const date = searchParams.get('date') ?? localToday;
   const classFilter = searchParams.get('class');
   const section = searchParams.get('section');
 

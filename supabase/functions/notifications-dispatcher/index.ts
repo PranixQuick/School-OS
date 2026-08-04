@@ -142,14 +142,113 @@ async function resolveRecipients(supabase: SupabaseClient, row: NotificationRow)
     return (parents ?? []).filter(p => p.phone).map(p => ({ phone: p.phone, name: p.name }));
   }
 
-  if (row.type === 'fee_reminder' || row.type === 'leave_status' || row.type === 'attendance_alert') {
-    // For fee/leave/attendance: look up parent(s) via reference_id (fee.id or leave_request.id)
-    // reference_id should be the student_id or fee student_id
-    // Simple path: find parents for school (broadcaster pattern for now; specific hookup in PR #2)
+  // 1. Attendance alerts
+  if (module === 'attendance' || row.type === 'attendance_alert') {
     if (!row.reference_id) return [];
-    const { data: parents } = await supabase.from('parents').select('phone, name')
-      .eq('school_id', row.school_id).not('phone', 'is', null);
-    return (parents ?? []).filter(p => p.phone).map(p => ({ phone: p.phone, name: p.name }));
+    if (row.title.toLowerCase().includes('teacher')) {
+      // Principal alert (MEO/admin)
+      const { data, error } = await supabase
+        .from('staff').select('phone, name')
+        .eq('school_id', row.school_id).eq('is_active', true)
+        .in('role', ['principal', 'admin_staff']);
+      if (error) return [];
+      return (data ?? []).filter(r => r.phone).map(r => ({ phone: r.phone, name: r.name }));
+    } else {
+      // Parent alert
+      const { data: parent } = await supabase
+        .from('parents').select('phone, name')
+        .eq('id', row.reference_id).eq('school_id', row.school_id).maybeSingle();
+      if (!parent?.phone) return [];
+      return [{ phone: parent.phone, name: parent.name }];
+    }
+  }
+
+  // 2. Leave approvals / creation
+  if (module === 'leave' || row.type === 'leave_status') {
+    if (!row.reference_id) return [];
+    if (row.title.toLowerCase().includes('new leave')) {
+      // Teacher -> Principal
+      const { data, error } = await supabase
+        .from('staff').select('phone, name')
+        .eq('school_id', row.school_id).eq('is_active', true)
+        .in('role', ['principal', 'admin_staff']);
+      if (error) return [];
+      return (data ?? []).filter(r => r.phone).map(r => ({ phone: r.phone, name: r.name }));
+    } else {
+      // Principal -> Teacher
+      const { data: leaveReq } = await supabase
+        .from('leave_requests').select('staff_id')
+        .eq('id', row.reference_id).maybeSingle();
+      if (!leaveReq?.staff_id) return [];
+      const { data: staff } = await supabase
+        .from('staff').select('phone, name')
+        .eq('id', leaveReq.staff_id).eq('school_id', row.school_id).maybeSingle();
+      if (!staff?.phone) return [];
+      return [{ phone: staff.phone, name: staff.name }];
+    }
+  }
+
+  // 3. Fees (reminders, received notifications)
+  if (module === 'fees' || row.type === 'fee_reminder') {
+    if (!row.reference_id) return [];
+    if (row.title.toLowerCase().includes('payment received')) {
+      // Parent -> Admin/Accountant
+      const { data, error } = await supabase
+        .from('staff').select('phone, name')
+        .eq('school_id', row.school_id).eq('is_active', true)
+        .in('role', ['admin', 'accountant', 'principal']);
+      if (error) return [];
+      return (data ?? []).filter(r => r.phone).map(r => ({ phone: r.phone, name: r.name }));
+    } else {
+      // Accountant -> Parent
+      const { data: fee } = await supabase
+        .from('fees').select('student_id')
+        .eq('id', row.reference_id).eq('school_id', row.school_id).maybeSingle();
+      if (!fee?.student_id) return [];
+      const { data: parents } = await supabase
+        .from('parents').select('phone, name')
+        .eq('student_id', fee.student_id).eq('school_id', row.school_id).not('phone', 'is', null);
+      return (parents ?? []).filter(p => p.phone).map(p => ({ phone: p.phone, name: p.name }));
+    }
+  }
+
+  // 4. Complaints filing / resolution
+  if (module === 'complaints') {
+    if (!row.reference_id) return [];
+    if (row.title.toLowerCase().includes('new parent') || row.title.toLowerCase().includes('escalated')) {
+      // Parent -> Admin/Principal
+      const { data, error } = await supabase
+        .from('staff').select('phone, name')
+        .eq('school_id', row.school_id).eq('is_active', true)
+        .in('role', ['admin', 'principal', 'admin_staff']);
+      if (error) return [];
+      return (data ?? []).filter(r => r.phone).map(r => ({ phone: r.phone, name: r.name }));
+    } else {
+      // Admin -> Parent
+      const { data: comp } = await supabase
+        .from('parent_complaints').select('parent_phone')
+        .eq('id', row.reference_id).maybeSingle();
+      if (!comp) return [];
+      const { data: p } = await supabase
+        .from('parents').select('phone, name')
+        .eq('phone', comp.parent_phone).eq('school_id', row.school_id).maybeSingle();
+      if (!p?.phone) return [];
+      return [{ phone: p.phone, name: p.name }];
+    }
+  }
+
+  // 5. Substitute teacher assignment
+  if (module === 'substitute') {
+    if (!row.reference_id) return [];
+    const { data: assignment } = await supabase
+      .from('substitute_assignments').select('substitute_staff_id')
+      .eq('id', row.reference_id).maybeSingle();
+    if (!assignment?.substitute_staff_id) return [];
+    const { data: staff } = await supabase
+      .from('staff').select('phone, name')
+      .eq('id', assignment.substitute_staff_id).eq('school_id', row.school_id).maybeSingle();
+    if (!staff?.phone) return [];
+    return [{ phone: staff.phone, name: staff.name }];
   }
 
   if (row.type === 'broadcast' || row.module === 'announcement') {
