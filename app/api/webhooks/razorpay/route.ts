@@ -20,7 +20,7 @@
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
   const incomingSig = req.headers.get('x-razorpay-signature') ?? '';
 
   const expectedSig = createHmac('sha256', keySecret).update(rawBody).digest('hex');
-  if (expectedSig !== incomingSig) {
+  const expectedBuffer = Buffer.from(expectedSig, 'hex');
+  const incomingBuffer = Buffer.from(incomingSig, 'hex');
+
+  if (expectedBuffer.length !== incomingBuffer.length || !timingSafeEqual(expectedBuffer, incomingBuffer)) {
     console.warn('[webhook/razorpay] signature mismatch — ignoring event');
     return NextResponse.json({ ok: true }); // Still 200 — don't reveal verification failure
   }
@@ -143,7 +146,7 @@ export async function POST(req: NextRequest) {
   // Fetch fee
   const { data: fee, error: feeErr } = await supabaseAdmin
     .from('fees')
-    .select('id, status, school_id')
+    .select('id, status, school_id, amount, amount_paid_minor')
     .eq('id', feeId)
     .maybeSingle();
 
@@ -158,13 +161,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Mark paid — allocate a human receipt number (best-effort; fall back to gateway id).
+  const paymentAmountMinor = (event as {
+    payload?: { payment?: { entity?: {
+      amount?: number;
+    } } }
+  }).payload?.payment?.entity?.amount ?? 0;
+
+  const currentPaidMinor = fee.amount_paid_minor ?? 0;
+  const newPaidMinor = currentPaidMinor + paymentAmountMinor;
+  const totalAmountMinor = Math.round(Number(fee.amount) * 100);
+
+  const isFullyPaid = newPaidMinor >= totalAmountMinor;
+  const newStatus = isFullyPaid ? 'paid' : 'partial';
+
+  // Mark paid/partial — allocate a human receipt number (best-effort; fall back to gateway id).
   // Gateway payment id is always retained in payment_reference for reconciliation.
   const onlineReceipt = (await allocateReceiptNumber(fee.school_id)) ?? paymentId;
   const { error: updateErr } = await supabaseAdmin
     .from('fees')
     .update({
-      status: 'paid',
+      status: newStatus,
+      amount_paid_minor: newPaidMinor,
       payment_method: 'online',
       payment_reference: paymentId,
       fee_receipt_number: onlineReceipt,
@@ -177,7 +194,7 @@ export async function POST(req: NextRequest) {
   if (updateErr) {
     console.error('[webhook/razorpay] update failed:', feeId, updateErr.message);
   } else {
-    console.log('[webhook/razorpay] marked paid:', feeId, paymentId);
+    console.log('[webhook/razorpay] marked status:', newStatus, 'fee:', feeId, 'payment:', paymentId);
   }
 
   return NextResponse.json({ ok: true });
