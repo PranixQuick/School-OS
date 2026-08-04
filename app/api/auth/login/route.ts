@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   if (isCI) {
     const { data: schoolUser, error: userErr } = await supabaseAdmin
       .from('school_users')
-      .select('id, school_id, email, role, is_active, staff_id, schools(name, slug, plan)')
+      .select('id, school_id, email, role, is_active, staff_id, schools(name, slug, plan), staff:staff_id(designation)')
       .eq('email', email)
       .maybeSingle();
 
@@ -75,6 +75,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Account is inactive.' }, { status: 401 });
     }
 
+    const staffRow = Array.isArray(schoolUser.staff) ? schoolUser.staff[0] : schoolUser.staff;
+    let resolvedRole = schoolUser.role;
+    if (staffRow?.designation === 'School Accountant') {
+      resolvedRole = 'accountant';
+    }
+
     const schoolRow = Array.isArray(schoolUser.schools) ? schoolUser.schools[0] : schoolUser.schools;
     const schoolName = (schoolRow as { name?: string } | null)?.name ?? '';
     const schoolSlug = (schoolRow as { slug?: string } | null)?.slug ?? '';
@@ -82,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     const token = await issueSession({
       userId: schoolUser.id, schoolId: schoolUser.school_id,
-      userEmail: schoolUser.email, userRole: schoolUser.role,
+      userEmail: schoolUser.email, userRole: resolvedRole,
       schoolName, schoolSlug, plan, userName: email.split('@')[0],
     });
 
@@ -90,7 +96,7 @@ export async function POST(req: NextRequest) {
     const cookieOpts = sessionCookie(token, process.env.NODE_ENV === 'production');
     cookieStore.set(cookieOpts.name, cookieOpts.value, cookieOpts);
 
-    return NextResponse.json({ success: true, redirectTo: roleRedirect(schoolUser.role), role: schoolUser.role });
+    return NextResponse.json({ success: true, redirectTo: roleRedirect(resolvedRole), role: resolvedRole });
   }
 
   // Check if school_users row exists and has auth provisioned
@@ -141,7 +147,7 @@ export async function POST(req: NextRequest) {
 
   const { data: schoolUser, error: userErr } = await supabaseAdmin
     .from('school_users')
-    .select('id, school_id, email, role, is_active, staff_id, last_login, schools(name, slug, plan)')
+    .select('id, school_id, email, role, is_active, staff_id, last_login, schools(name, slug, plan), staff:staff_id(designation)')
     .eq('auth_user_id', authData.user.id)
     .maybeSingle();
 
@@ -161,6 +167,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account is inactive. Contact your school administrator.' }, { status: 401 });
   }
 
+  const staffRow = Array.isArray(schoolUser.staff) ? schoolUser.staff[0] : schoolUser.staff;
+  let resolvedRole = schoolUser.role;
+  if (staffRow?.designation === 'School Accountant') {
+    resolvedRole = 'accountant';
+  }
+
   const schoolRow = Array.isArray(schoolUser.schools) ? schoolUser.schools[0] : schoolUser.schools;
   const schoolName = (schoolRow as { name?: string } | null)?.name ?? '';
   const schoolSlug = (schoolRow as { slug?: string } | null)?.slug ?? '';
@@ -174,7 +186,7 @@ export async function POST(req: NextRequest) {
 
   const token = await issueSession({
     userId: schoolUser.id, schoolId: schoolUser.school_id,
-    userEmail: schoolUser.email, userRole: schoolUser.role,
+    userEmail: schoolUser.email, userRole: resolvedRole,
     schoolName, schoolSlug, plan, userName,
   });
 
@@ -192,10 +204,10 @@ export async function POST(req: NextRequest) {
 
   await logAuthEvent({
     eventType: 'login_success', email, ip,
-    metadata: { role: schoolUser.role, school_id: schoolUser.school_id, first_login: isFirstLogin },
+    metadata: { role: resolvedRole, school_id: schoolUser.school_id, first_login: isFirstLogin },
   });
 
-  return NextResponse.json({ success: true, redirectTo: roleRedirect(schoolUser.role), role: schoolUser.role });
+  return NextResponse.json({ success: true, redirectTo: roleRedirect(resolvedRole), role: resolvedRole });
 }
 
 // roleRedirect — maps role to correct dashboard route

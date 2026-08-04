@@ -421,6 +421,16 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  useEffect(() => {
+    if (role === 'accountant') {
+      const allowedPaths = ['/accountant', '/admin/fees', '/admin/fees/categories', '/billing', '/settings'];
+      const isAllowed = allowedPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
+      if (!isAllowed && pathname !== '/login') {
+        router.push('/accountant');
+      }
+    }
+  }, [role, pathname, router]);
+
   // P3: resolve nav-role considering institution context (e.g. admin at an
   // anganwadi institution gets the anganwadi_admin nav), then filter each
   // item's showFor predicate.

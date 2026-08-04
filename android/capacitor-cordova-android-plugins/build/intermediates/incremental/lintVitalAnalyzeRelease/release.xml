@@ -1,8 +1,8 @@
 <variant
     name="release"
     package="capacitor.cordova.android.plugins"
-    minSdkVersion="24"
-    targetSdkVersion="35"
+    minSdkVersion="22"
+    targetSdkVersion="34"
     mergedManifest="build\intermediates\merged_manifest\release\AndroidManifest.xml"
     proguardFiles="build\intermediates\default_proguard_files\global\proguard-android.txt-8.2.1"
     partialResultsDir="build\intermediates\lint_vital_partial_results\release\out"
