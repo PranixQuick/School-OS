@@ -1,64 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getParentSession } from '@/lib/parent-auth';
 
 // Parent fetches announcements relevant to their student.
-// Auth: phone+PIN per request.
-//
-// Body: { phone, pin, limit?: number (default 20, max 50) }
-//
-// Strict filter (PRE-FLIGHT-E):
-//   - announcement.target_audience must CONTAIN 'parent'
-//   - AND (target_classes is empty OR student's class.id is IN target_classes)
-//
-// Implementation note: Postgres array operators work natively, but we do the
-// "target_audience contains 'parent'" filter via .contains(), and the class
-// match is done in JS after fetching school-wide candidates (typically small N).
-//
-// Order by scheduled_at DESC, default limit 20 (max 50).
+// Auth: session cookie
+export const runtime = 'nodejs';
 
-interface AnnRequest {
-  phone?: string;
-  pin?: string;
-  limit?: number;
-}
-
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const body = await req.json() as AnnRequest;
+    const session = await getParentSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!body.phone || !body.pin) {
-      return NextResponse.json({ error: 'phone and pin required' }, { status: 400 });
-    }
-    const limit = Math.min(Math.max(body.limit ?? 20, 1), 50);
-
-    // Re-auth parent (multi-tenant guard).
-    const { data: parents, error: pErr } = await supabaseAdmin
-      .from('parents')
-      .select('id, school_id, student_id')
-      .eq('phone', body.phone)
-      .eq('access_pin', body.pin);
-
-    if (pErr) {
-      console.error('Parent lookup error:', pErr);
-      return NextResponse.json({ error: 'Failed to verify credentials' }, { status: 500 });
-    }
-    if (!parents || parents.length === 0) {
-      return NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 });
-    }
-    if (parents.length > 1) {
-      return NextResponse.json({
-        error: 'Multiple accounts match this phone. Please contact your school admin.',
-      }, { status: 409 });
-    }
-    const parent = parents[0];
+    const { schoolId, studentId } = session;
+    const { searchParams } = new URL(req.url);
+    const limitParam = searchParams.get('limit');
+    const limit = Math.min(Math.max(limitParam ? parseInt(limitParam, 10) : 20, 1), 50);
 
     // Resolve the student's class_id (text+section -> uuid via classes lookup).
     // Same pattern as login route.
     const { data: student, error: sErr } = await supabaseAdmin
       .from('students')
       .select('class, section')
-      .eq('id', parent.student_id)
-      .eq('school_id', parent.school_id)
+      .eq('id', studentId)
+      .eq('school_id', schoolId)
       .single();
 
     if (sErr || !student) {
@@ -71,7 +37,7 @@ export async function POST(req: NextRequest) {
       const { data: classRow } = await supabaseAdmin
         .from('classes')
         .select('id')
-        .eq('school_id', parent.school_id)
+        .eq('school_id', schoolId)
         .eq('grade_level', student.class)
         .eq('section', student.section)
         .maybeSingle();
@@ -79,11 +45,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch announcements where target_audience contains 'parent' AND school matches.
-    // Postgres array contains: .contains('target_audience', ['parent']).
     const { data: announcements, error: aErr } = await supabaseAdmin
       .from('announcements')
       .select('id, title, message, target_classes, target_audience, scheduled_at, sent_at, created_at')
-      .eq('school_id', parent.school_id)
+      .eq('school_id', schoolId)
       .contains('target_audience', ['parent'])
       .order('scheduled_at', { ascending: false })
       .limit(limit);
@@ -94,17 +59,11 @@ export async function POST(req: NextRequest) {
     }
 
     // JS-side class filter:
-    //   - target_classes is null OR empty array -> school-wide, applies to all
-    //   - target_classes contains studentClassId -> applies
-    //   - else: doesn't apply
-    //
-    // Edge case: if studentClassId is null (classes table doesn't have a row for
-    // this student's grade/section), only show school-wide announcements.
     const filtered = (announcements ?? []).filter(a => {
       const targets = a.target_classes;
       const isSchoolWide = !Array.isArray(targets) || targets.length === 0;
       if (isSchoolWide) return true;
-      if (studentClassId === null) return false;  // class-targeted, but no class.id resolved
+      if (studentClassId === null) return false;
       return targets.includes(studentClassId);
     });
 
@@ -116,7 +75,9 @@ export async function POST(req: NextRequest) {
       announcements: filtered.map(a => ({
         id: a.id,
         title: a.title,
+        subject: a.title, // Add for compatibility with parent notice page interface
         message: a.message,
+        created_at: a.created_at,
         scheduled_at: a.scheduled_at,
         sent_at: a.sent_at,
         is_school_wide: !Array.isArray(a.target_classes) || a.target_classes.length === 0,

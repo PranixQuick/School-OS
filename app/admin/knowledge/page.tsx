@@ -84,6 +84,7 @@ export default function KnowledgePage() {
   }
 
   async function deleteChunk(id: string) {
+    if (!confirm('Are you sure you want to delete this knowledge chunk?')) return;
     await fetch(`/api/admin/knowledge/${id}`, { method: 'DELETE' });
     setChunks(prev => prev.filter(c => c.id !== id));
   }

@@ -110,6 +110,7 @@ export default function TransportPage() {
   }
 
   async function deleteStop(routeId: string, stopId: string) {
+    if (!confirm('Are you sure you want to delete this stop?')) return;
     await fetch(`/api/admin/transport/routes/${routeId}/stops?stop_id=${stopId}`, { method: 'DELETE' });
     void loadStops(routeId);
   }
@@ -125,6 +126,7 @@ export default function TransportPage() {
   }
 
   async function removeAssignment(id: string) {
+    if (!confirm('Are you sure you want to remove this student assignment?')) return;
     await fetch(`/api/admin/transport/students/${id}`, { method: 'DELETE' });
     void loadAssignments();
   }

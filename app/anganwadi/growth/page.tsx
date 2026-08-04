@@ -58,7 +58,7 @@ export default function AnganwadiGrowthPage() {
         setSelected('');
         setTimeout(() => setSaved(false), 3000);
         // Refresh recent records
-        const r2 = await fetch('/api/anganwadi/growth/recent');
+        const r2 = await fetch('/api/anganwadi/growth');
         if (r2.ok) { const d = await r2.json() as { records?: typeof recent }; setRecent(d.records ?? []); }
       } else {
         const d = await res.json() as { error?: string };
@@ -69,7 +69,7 @@ export default function AnganwadiGrowthPage() {
   }
 
   useEffect(() => {
-    fetch('/api/anganwadi/growth/recent')
+    fetch('/api/anganwadi/growth')
       .then(r => r.ok ? r.json() : null)
       .then((d: { records?: typeof recent } | null) => { if (d?.records) setRecent(d.records); })
       .catch(() => {/* ignore */});
