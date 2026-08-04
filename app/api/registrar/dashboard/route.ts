@@ -7,6 +7,11 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ALLOWED_ROLES = ['registrar', 'admin', 'admin_staff', 'principal', 'owner', 'super_admin'];
+  if (!ALLOWED_ROLES.includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient privileges' }, { status: 403 });
+  }
   const sid = session.schoolId;
   const today = new Date().toISOString().split('T')[0];
   const year = new Date().getFullYear();
