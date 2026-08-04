@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-auth';
 
 // Principal fetches the currently active geofence for their school.
-// Auth: session cookie (middleware sets x-school-id header).
+// Auth: session cookie (principal role).
 // Returns the most recent geofence with active_to IS NULL AND active_from <= NOW().
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    let principalCtx;
+    try {
+      principalCtx = await requirePrincipalSession(req);
+    } catch (e) {
+      if (e instanceof PrincipalAuthError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
+    }
+    const { schoolId } = principalCtx;
+
 
     const { data: geofence, error: gErr } = await supabaseAdmin
       .from('school_geofences')

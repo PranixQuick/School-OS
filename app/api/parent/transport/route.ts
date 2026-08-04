@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { getParentSession } from '@/lib/parent-auth';
 
 // K6: Parent portal transport API — returns bus location + status for student's route
-// Auth: phone + PIN header (same as other parent API routes)
+// Auth: session cookie
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  // Re-use parent auth header pattern: x-parent-id + x-school-id set by parent session
-  const parentId = req.headers.get('x-parent-id');
-  const schoolId = req.headers.get('x-school-id');
-  const studentId = req.headers.get('x-student-id');
-
-  if (!parentId || !schoolId) {
+  const session = await getParentSession(req);
+  if (!session) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
+  const { parentId, schoolId } = session;
+
 
   // Find student's transport route via transport_assignments or route_stops
   // MVP: find any active route for this school that has a recent location

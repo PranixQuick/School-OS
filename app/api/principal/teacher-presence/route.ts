@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-auth';
 
 // Principal fetches today's teacher presence summary.
-// Auth: session cookie (middleware sets x-school-id header).
+// Auth: session cookie (principal role).
 //
 // Computes 4 buckets per teacher:
 //   - scheduled_today: teacher has a timetable row for today (IST day-of-week)
@@ -33,7 +33,17 @@ function todayInIST(): { dateStr: string; tomorrowStr: string; dow: number } {
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    let principalCtx;
+    try {
+      principalCtx = await requirePrincipalSession(req);
+    } catch (e) {
+      if (e instanceof PrincipalAuthError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
+    }
+    const { schoolId } = principalCtx;
+
     const { searchParams } = new URL(req.url);
     // Allow override via ?date=YYYY-MM-DD (admin/QA usage). Default = today IST.
     const dateOverride = searchParams.get('date');

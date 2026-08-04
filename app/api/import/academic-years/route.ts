@@ -10,13 +10,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId, getUserRole, MissingSchoolIdError } from '@/lib/getSchoolId';
+import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { logActivity, logError } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
 
 const ALLOWED_ROLES = ['owner', 'principal', 'admin', 'admin_staff', 'super_admin'];
 const MAX_ROWS = 200;
@@ -71,14 +72,21 @@ async function readRows(req: NextRequest): Promise<{ rows: RawRow[]; mode: 'skip
   return { rows, mode: body?.mode === 'error' ? 'error' : 'skip' };
 }
 
-function requireRole(req: NextRequest): { schoolId: string } | { error: string; status: number } {
-  let schoolId: string;
-  try { schoolId = getSchoolId(req); }
-  catch (e) { if (e instanceof MissingSchoolIdError) return { error: 'Not authenticated', status: 401 }; throw e; }
-  const role = getUserRole(req);
-  if (!ALLOWED_ROLES.includes(role)) return { error: `Role '${role || 'unknown'}' is not permitted to import academic years`, status: 403 };
-  return { schoolId };
+async function requireRole(req: NextRequest): Promise<{ schoolId: string } | { error: string; status: number }> {
+  try {
+    const ctx = await requireAdminSession(req);
+    if (!ALLOWED_ROLES.includes(ctx.userRole)) {
+      return { error: `Role '${ctx.userRole || 'unknown'}' is not permitted to import academic years`, status: 403 };
+    }
+    return { schoolId: ctx.schoolId };
+  } catch (e) {
+    if (e instanceof AdminAuthError) {
+      return { error: e.message, status: e.status };
+    }
+    throw e;
+  }
 }
+
 
 type ValidRow = { label: string; start_date: string; end_date: string; is_current: boolean; term_structure: unknown };
 type RowError = { row: number; label?: string; reason: string };
@@ -109,7 +117,7 @@ function validateRow(raw: RawRow, index: number): { ok: true; value: ValidRow } 
 }
 
 export async function POST(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {
@@ -177,7 +185,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {

@@ -127,3 +127,33 @@ export function parentSessionCookieOptions() {
     path: '/',
   };
 }
+
+export async function revokeParentSession(
+  token?: string,
+  opts?: { reason?: string; ip?: string }
+): Promise<void> {
+  if (!token) return;
+  try {
+    const { payload } = await jwtVerify(token, secret(), {
+      issuer: ISSUER,
+      algorithms: [ALG],
+    });
+    const pId = (payload as Record<string, unknown>).parentId as string | undefined;
+    if (pId && payload.iat) {
+      await adminClient()
+        .from('revoked_sessions')
+        .upsert(
+          {
+            user_id: pId,
+            issued_at: payload.iat,
+            reason: opts?.reason ?? 'logout',
+            ip: opts?.ip ?? null,
+          },
+          { onConflict: 'user_id,issued_at', ignoreDuplicates: true }
+        );
+    }
+  } catch {
+    // Fail silently — logout must always succeed from the user's perspective
+  }
+}
+

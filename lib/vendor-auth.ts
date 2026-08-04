@@ -110,6 +110,22 @@ export async function verifyVendorSession(token: string | undefined | null): Pro
   try {
     const { payload } = await jwtVerify(token, secretKey(), { issuer: ISSUER, algorithms: [ALG] });
     if (typeof payload.vendorId !== 'string') return null;
+
+    // Check revocation denylist
+    if (payload.sub && payload.iat) {
+      try {
+        const { data } = await supabaseAdmin
+          .from('revoked_sessions')
+          .select('id')
+          .eq('user_id', payload.sub)
+          .eq('issued_at', payload.iat)
+          .maybeSingle();
+        if (data) return null; // token revoked
+      } catch {
+        // Fail-open
+      }
+    }
+
     return {
       vendorId: payload.vendorId,
       schoolId: (payload.schoolId as string) ?? null,
@@ -135,3 +151,32 @@ export function vendorAuthResponse(e: unknown): NextResponse {
   }
   throw e;
 }
+
+export async function revokeVendorSession(
+  token?: string,
+  opts?: { reason?: string; ip?: string }
+): Promise<void> {
+  if (!token) return;
+  try {
+    const { payload } = await jwtVerify(token, secretKey(), {
+      issuer: ISSUER,
+      algorithms: [ALG],
+    });
+    if (payload.sub && payload.iat) {
+      await supabaseAdmin
+        .from('revoked_sessions')
+        .upsert(
+          {
+            user_id: payload.sub,
+            issued_at: payload.iat,
+            reason: opts?.reason ?? 'logout',
+            ip: opts?.ip ?? null,
+          },
+          { onConflict: 'user_id,issued_at', ignoreDuplicates: true }
+        );
+    }
+  } catch {
+    // Fail silently — logout must always succeed from the user's perspective
+  }
+}
+

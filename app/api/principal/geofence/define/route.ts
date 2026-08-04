@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-auth';
 
 // Principal defines a new geofence for their school.
-// Auth: session cookie (middleware sets x-school-id header from session).
+// Auth: session cookie (principal role).
 // Effect: deactivates any current active geofence (sets active_to = NOW()), then
 // inserts the new polygon with active_from = NOW(), active_to = NULL.
 //
-// school_id is sourced from getSchoolId(req) — the session-derived header — never
+// school_id is sourced from requirePrincipalSession(req) — the session-derived ID — never
 // from the request body, to prevent cross-tenant injection.
+
 
 interface DefineRequest {
   polygon_geojson: unknown;
@@ -49,8 +50,18 @@ function validatePolygon(input: unknown): { ok: true } | { ok: false; reason: st
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    let principalCtx;
+    try {
+      principalCtx = await requirePrincipalSession(req);
+    } catch (e) {
+      if (e instanceof PrincipalAuthError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
+    }
+    const { schoolId } = principalCtx;
     const { polygon_geojson, radius_meters_fallback } = await req.json() as DefineRequest;
+
 
     const validation = validatePolygon(polygon_geojson);
     if (!validation.ok) {
