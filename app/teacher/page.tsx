@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 import { VoiceQueryWidget } from '@/components/VoiceQueryWidget';
+import SubstituteBanner from '@/components/teacher/SubstituteBanner';
 
 interface ScheduleItem  { time: string; class: string; subject: string; period: number; }
 interface HomeworkItem  { id: string; title: string; class: string; due: string; submissions: number; total: number; }
@@ -194,6 +195,8 @@ export default function TeacherPage() {
           </>
         )}
 
+        <SubstituteBanner />
+        <div style={{ height: 12 }} />
         <VoiceQueryWidget proactiveTrigger={true} />
 
         {/* Today's schedule */}
