@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest) {
   catch (e) { if (e instanceof AdminAuthError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
   const { schoolId } = ctx;
 
-  let body: { id: string; label?: string; capacity?: number; department_id?: string | null; archived?: boolean };
+  let body: { id: string; label?: string; entry_year?: number; capacity?: number; group_code?: string | null; department_id?: string | null; archived?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
@@ -81,7 +81,9 @@ export async function PATCH(req: NextRequest) {
 
   const update: Record<string, unknown> = {};
   if (body.label) update.label = body.label.trim();
+  if (body.entry_year !== undefined) update.entry_year = body.entry_year;
   if (body.capacity !== undefined) update.capacity = body.capacity;
+  if (body.group_code !== undefined) update.group_code = body.group_code;
   if (body.department_id !== undefined) update.department_id = body.department_id;
 
   const { data, error } = await supabaseAdmin.from('batches').update(update)
