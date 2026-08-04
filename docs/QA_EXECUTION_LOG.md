@@ -1,20 +1,19 @@
 # School-OS QA Execution Log
 
-**Current Status**: Planning & Research Phase
+**Current Status**: Phase 1 Hardening Complete; Ready for Phase 2 Page/Module Correctness
 
 ---
 
-## 2026-08-04 18:27 (UTC/IST) - Initialization & Initial Audit
+## 2026-08-04 18:35 (UTC/IST) - Phase 1 Hardening Complete
 
-- **Action**: Read the Master Test Matrix SOT (`docs/QA_SOT_MASTER_TEST_MATRIX_2026-08-04.md`) and investigated target files.
-- **Findings**:
-  - Found that the principal endpoints (`teacher-presence`, `geofence/get`, `geofence/define`) and parent endpoint (`parent/transport`) rely entirely on client-sent headers and are not session-guarded, posing a high DPDP/tenant-leak risk.
-  - Student, Vendor, and Parent logout endpoints only clear browser cookies without revoking the token server-side (denylist `revoked_sessions` is only written for staff logouts).
-  - The `registrar/dashboard` endpoint lacks user role verification.
-  - The admin page tries to save settings to `/api/admin/institution-config` using `PATCH` but the endpoint only exports `GET`.
-  - Confirmation dialogs are missing for destructive delete buttons on events, knowledge-base chunks, and transport stops/assignments.
-  - Parent announcements API requires a POST body containing phone and PIN, which the parent notices front-end page cannot send since it's a GET request with no stored credentials.
-  - Anganwadi growth records page calls a non-existent `/api/anganwadi/growth/recent` endpoint instead of `/api/anganwadi/growth`.
-  - The teacher AI evaluation page calls `/api/teacher-eval` which has no route file directly in its folder.
-- **Plan Created**: Created `implementation_plan.md` outlining the proposed security fixes (Phase 1) and correctness fixes (Phase 2).
-- **Next Steps**: Awaiting user feedback on `implementation_plan.md` to begin execution.
+- **Action**: Created branch `fix/auth-and-security-hardening` and implemented the complete set of authentication and security fixes.
+- **Implemented Fixes**:
+  - Secured `parent/transport`, `principal/teacher-presence`, `principal/geofence/get`, `principal/geofence/define`, and `import/academic-years` by switching from client-sent headers to signed cookie session validation.
+  - Implemented session revocation (writes to `revoked_sessions` denylist) for Student, Parent, and Vendor sessions on logout.
+  - Secured `registrar/dashboard` by enforcing explicit `session.userRole` checks against allowed registrar/staff/admin roles.
+- **Verification & Tests**:
+  - Created `tests/unit/auth-revocation.test.ts` to test session revocation. All tests passed.
+  - Created `tests/unit/registrar-dashboard.test.ts` to test registrar dashboard role limits. All tests passed.
+  - Staged and committed changes, then pushed the branch `fix/auth-and-security-hardening` to the remote repository.
+- **Next Steps**: Merge the PR for Phase 1 and proceed with Phase 2 (Page and Module Correctness Bugs).
+
