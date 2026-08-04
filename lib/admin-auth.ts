@@ -44,20 +44,35 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
     throw new AdminAuthError('Viewer role is read-only', 403);
   }
 
-  // Accountant: scoped to fee-domain routes only. Deny every other admin route.
-  if (userRole === 'accountant' && !canAccountantAccess(req.nextUrl.pathname)) {
-    throw new AdminAuthError('Accountant role is limited to fee management', 403);
-  }
-
   const { data: schoolUser, error } = await supabaseAdmin
     .from('school_users')
-    .select('id, staff_id, is_active')
+    .select('id, staff_id, is_active, staff:staff_id(designation)')
     .eq('school_id', schoolId)
     .eq('email', userEmail)
     .maybeSingle();
 
   if (error || !schoolUser) throw new AdminAuthError('Admin account not found', 403);
   if (schoolUser.is_active === false) throw new AdminAuthError('Admin account is inactive', 403);
+
+  // Resolve designation
+  let designation: string | null = null;
+  if (schoolUser.staff) {
+    const raw = schoolUser.staff as unknown;
+    if (Array.isArray(raw)) {
+      designation = (raw[0] as { designation?: string } | undefined)?.designation ?? null;
+    } else {
+      designation = (raw as { designation?: string } | null)?.designation ?? null;
+    }
+  }
+
+  const isAccountant =
+    userRole === 'accountant' ||
+    (userRole === 'admin' && designation === 'School Accountant');
+
+  // Accountant: scoped to fee-domain routes only. Deny every other admin route.
+  if (isAccountant && !canAccountantAccess(req.nextUrl.pathname)) {
+    throw new AdminAuthError('Accountant role is limited to fee management', 403);
+  }
 
   return {
     schoolId,
