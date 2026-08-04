@@ -43,7 +43,7 @@ async function run() {
       width: 400,
       height: 313,
       fit: 'contain',
-      background: { r: 255, g: 255, b: 255, alpha: 1 }
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
     .toFile(webIconPath);
   console.log(`[OK] Generated public/brand/icon.png: ${fs.statSync(webIconPath).size} bytes`);
