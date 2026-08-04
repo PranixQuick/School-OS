@@ -2,7 +2,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const src = 'C:\\Users\\ADMIN\\OneDrive\\Desktop\\Pranix-Release\\EdProSys\\icon-assets\\master-1024.png';
+const src = 'C:\\Users\\ADMIN\\OneDrive\\Desktop\\Pranix-Release\\EdProSys\\icon-assets\\master-final-1024.png';
 const androidRes = 'C:\\Users\\ADMIN\\School-OS\\android\\app\\src\\main\\res';
 
 const densities = {
@@ -55,11 +55,31 @@ async function run() {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // A. ic_launcher.png (legacy square launcher)
+    // A. ic_launcher.png (legacy square launcher with solid purple background instead of white corners)
     const legacyPath = path.join(dir, 'ic_launcher.png');
-    await sharp(src)
+    const legacyMaskBuffer = await generateRoundMask(config.size);
+    const roundLogoBuffer = await sharp(src)
       .resize(config.size, config.size)
-      .toFile(legacyPath);
+      .composite([{
+        input: legacyMaskBuffer,
+        blend: 'dest-in'
+      }])
+      .toBuffer();
+
+    await sharp({
+      create: {
+        width: config.size,
+        height: config.size,
+        channels: 4,
+        background: { r: 34, g: 14, b: 39, alpha: 1 } // #220E27 matching master-final-1024 circle background
+      }
+    })
+    .composite([{
+      input: roundLogoBuffer,
+      top: 0,
+      left: 0
+    }])
+    .toFile(legacyPath);
     console.log(`[OK] Generated legacy launcher for ${name} (${config.size}x${config.size})`);
 
     // B. ic_launcher_round.png (legacy round launcher)
