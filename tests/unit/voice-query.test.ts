@@ -4,6 +4,113 @@ import { POST } from '../../app/api/voice-query/route';
 import { issueSession } from '../../lib/session';
 import { signParentSession } from '../../lib/parent-auth';
 
+const mockSupabaseClient = {
+  from: vi.fn().mockImplementation((table: string) => {
+    return {
+      select: vi.fn().mockImplementation((fields: string) => {
+        const builder = {
+          table,
+          filters: {} as Record<string, any>,
+          isSingle: false,
+          eq: vi.fn().mockImplementation((col: string, val: any) => {
+            builder.filters[col] = val;
+            return builder;
+          }),
+          in: vi.fn().mockImplementation((col: string, val: any) => {
+            builder.filters[col] = val;
+            return builder;
+          }),
+          order: vi.fn().mockImplementation((col: string, opts: any) => {
+            return builder;
+          }),
+          maybeSingle: vi.fn().mockImplementation(() => {
+            builder.isSingle = true;
+            return builder;
+          }),
+          then: vi.fn().mockImplementation((onfulfilled: any) => {
+            let data: any = null;
+            let error: any = null;
+
+            if (table === 'parent_students') {
+              data = [{ student_id: '00000000-0000-0000-0000-000000000020' }];
+            } else if (table === 'students') {
+              if (builder.filters.id) {
+                const idVal = builder.filters.id;
+                if (Array.isArray(idVal)) {
+                  data = idVal.map(id => ({
+                    id,
+                    name: id === '00000000-0000-0000-0000-000000000020' ? 'Arjun Reddy' : 'Other Student',
+                    class: '5',
+                    section: 'A'
+                  }));
+                } else {
+                  data = [{
+                    id: idVal,
+                    name: idVal === '00000000-0000-0000-0000-000000000020' ? 'Arjun Reddy' : 'Other Student',
+                    class: '5',
+                    section: 'A'
+                  }];
+                }
+              } else if (builder.filters.class || builder.filters.section) {
+                data = [
+                  { id: '00000000-0000-0000-0000-000000000020', name: 'Arjun Reddy', class: '5', section: 'A' }
+                ];
+              } else {
+                data = [
+                  { id: '00000000-0000-0000-0000-000000000020', name: 'Arjun Reddy', class: '5', section: 'A' },
+                  { id: '00000000-0000-0000-0000-000000000021', name: 'Vikas Reddy', class: '5', section: 'B' }
+                ];
+              }
+            } else if (table === 'attendance') {
+              data = Array.from({ length: 25 }, (_, i) => ({
+                date: `2026-08-${String(i + 1).padStart(2, '0')}`,
+                status: i < 21 ? 'present' : 'absent'
+              }));
+            } else if (table === 'test_scores') {
+              data = [
+                { marks_obtained: 73, tests: { title: 'Exam 1', max_marks: 100, subject: 'Chemistry' } },
+                { marks_obtained: 65, tests: { title: 'Exam 2', max_marks: 100, subject: 'Physics' } }
+              ];
+            } else if (table === 'fee_installments') {
+              data = []; // Test 10 expects empty installments
+            } else if (table === 'school_users') {
+              data = {
+                staff_id: '268d6f30-d964-4b37-adde-688a9d984cba',
+                institution_id: '00000000-0000-0000-0000-000000000001'
+              };
+            } else if (table === 'staff_class_assignments') {
+              data = [{ class: '5', section: 'A' }];
+            } else if (table === 'fees') {
+              data = [{ amount: 212000 }];
+            } else if (table === 'schools') {
+              const schoolData = {
+                id: '00000000-0000-0000-0000-000000000001',
+                name: 'Demo Institution',
+                slug: 'demo',
+                institution_id: '00000000-0000-0000-0000-000000000001',
+                is_active: true
+              };
+              data = builder.isSingle ? schoolData : [schoolData];
+            }
+            return Promise.resolve(onfulfilled({ data, error }));
+          })
+        };
+        return builder;
+      })
+    };
+  })
+};
+
+vi.mock('../../lib/supabaseForUser', () => {
+  return {
+    supabaseForUser: vi.fn().mockImplementation((_schoolId: string) => {
+      return mockSupabaseClient;
+    })
+  };
+});
+
+
+
 describe('EdProSys read-only voice query endpoint tests', () => {
   it('1. Parent positive query - Suresh Reddy queries Arjun Reddy marks (Zero-Burn)', async () => {
     const parentToken = await signParentSession({
