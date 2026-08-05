@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { canAccountantAccess } from '@/lib/authz';
+import { canAccountantAccess, canHostelAdminAccess } from '@/lib/authz';
 
 export class AdminAuthError extends Error {
   status: number;
@@ -26,7 +26,7 @@ export interface AdminContext {
 // accountant: fee-domain routes only — enforced via canAccountantAccess() below.
 const ALLOWED_ROLES = new Set([
   'owner', 'principal', 'admin_staff', 'admin',
-  'accountant', 'viewer', 'counsellor',
+  'accountant', 'viewer', 'counsellor', 'hostel_admin',
 ]);
 
 export async function requireAdminSession(req: NextRequest): Promise<AdminContext> {
@@ -72,6 +72,12 @@ export async function requireAdminSession(req: NextRequest): Promise<AdminContex
   // Accountant: scoped to fee-domain routes only. Deny every other admin route.
   if (isAccountant && !canAccountantAccess(req.nextUrl.pathname)) {
     throw new AdminAuthError('Accountant role is limited to fee management', 403);
+  }
+
+  const isHostelAdmin = userRole === 'hostel_admin';
+  // Hostel Admin: scoped to hostel-domain routes only. Deny every other admin route.
+  if (isHostelAdmin && !canHostelAdminAccess(req.nextUrl.pathname)) {
+    throw new AdminAuthError('Hostel Admin role is limited to hostel management', 403);
   }
 
   return {

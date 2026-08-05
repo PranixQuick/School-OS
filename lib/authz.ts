@@ -93,3 +93,18 @@ export function canAccountantAccess(pathname: string): boolean {
     (p) => pathname === p || pathname.startsWith(p + '/'),
   );
 }
+
+// ── HOSTEL ADMIN SCOPING ───────────────────────────────────────────────
+export const HOSTEL_ADMIN_ROUTE_ALLOWLIST: string[] = [
+  '/api/admin/hostel',
+  '/api/admin/schools/branding',
+  '/api/dashboard/summary',
+  '/api/auth/me',
+];
+
+export function canHostelAdminAccess(pathname: string): boolean {
+  return HOSTEL_ADMIN_ROUTE_ALLOWLIST.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  );
+}
+

@@ -34,4 +34,11 @@ test.describe('Permission boundaries — admin endpoint denial (EXEC-02 / Phase 
       expect([401, 403], `${f.name} got ${res.status()} on /api/admin/staff (expected denial)`).toContain(res.status());
     });
   }
+
+  test('hostel_admin is permitted GET /api/admin/hostel (200)', async ({ page }) => {
+    await loginAsHostelAdmin(page);
+    const res = await page.request.get('/api/admin/hostel');
+    expect(res.status()).toBe(200);
+  });
 });
+
