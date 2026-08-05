@@ -44,6 +44,8 @@ STK-004 (Teacher) -> WF-031 (Attendance) -> API-022 (Submit Attendance)
 * **Wave 4 — Dashboard Discovery:** Documented in [DASHBOARD_MAP.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/DASHBOARD_MAP.md)
 * **Wave 5 — Permission Discovery:** Documented in [PERMISSION_MAP.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/PERMISSION_MAP.md)
 * **Wave 6 — Workflow Discovery:** Documented in [WORKFLOW_MAP.md](file:///c:/Users/ADMIN/School-OS/docs/07_Workflows/WORKFLOW_MAP.md)
+* **Wave 7 — Relationship Matrix:** Documented in [RELATIONSHIP_MATRIX.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/RELATIONSHIP_MATRIX.md)
+
 
 
 
