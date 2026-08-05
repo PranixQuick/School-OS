@@ -17,4 +17,22 @@ STK-004 (Teacher) -> WF-031 (Attendance) -> API-022 (Submit Attendance)
 ```
 
 ### Real Traceability Chains
-No entries yet — populated starting Wave 1.
+* STK-001 (Owner)
+* STK-002 (Principal)
+* STK-003 (Admin Staff)
+* STK-004 (Teacher)
+* STK-005 (Head of Department)
+* STK-006 (Accountant)
+* STK-007 (Counsellor)
+* STK-008 (Student)
+* STK-009 (Parent)
+* STK-010 (Vendor)
+* STK-011 (Mandal Education Officer)
+* STK-012 (District Education Officer)
+* STK-013 (Registrar)
+* STK-014 (Librarian)
+* STK-015 (Hostel Admin)
+* STK-016 (Anganwadi Worker)
+* STK-017 (Super Admin)
+* STK-018 (Viewer)
+
