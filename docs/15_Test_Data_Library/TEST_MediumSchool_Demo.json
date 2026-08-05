@@ -1,0 +1,1349 @@
+{
+  "school_id": "TEST_MediumSchool_Demo",
+  "school_name": "TEST Medium School Demo",
+  "tenant_type": "Medium School",
+  "teachers": [
+    {
+      "id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "name": "Neha Deshmukh",
+      "role": "teacher",
+      "phone": "+919391780653",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "name": "Rahul Singh",
+      "role": "teacher",
+      "phone": "+919146902529",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "name": "Vikram Nair",
+      "role": "teacher",
+      "phone": "+919672241236",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "name": "Amit Joshi",
+      "role": "teacher",
+      "phone": "+919319907911",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "name": "Sanjay Singh",
+      "role": "teacher",
+      "phone": "+919190402588",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    }
+  ],
+  "parents": [
+    {
+      "id": "0b8fcd04-43ad-469b-948e-5c1e2cb9b1cf",
+      "name": "Pooja Singh",
+      "email": "pooja.singh@example.com",
+      "phone": "+919667997281",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "1cdab229-c8b5-4d55-9245-37548dd4fed2",
+      "name": "Sanjay Mehta",
+      "email": "sanjay.mehta@example.com",
+      "phone": "+919137546367",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "a84eb565-01ea-43bc-b8e8-fa5c4851825e",
+      "name": "Siddharth Patel",
+      "email": "siddharth.patel@example.com",
+      "phone": "+919865701364",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "f326ab74-4c62-4ca9-a8ad-22437b4db40e",
+      "name": "Meera Mishra",
+      "email": "meera.mishra@example.com",
+      "phone": "+919299397984",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "c43c9450-7394-40b0-b096-62fc9d3d73c9",
+      "name": "Priya Singh",
+      "email": "priya.singh@example.com",
+      "phone": "+919526236597",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "d8b35248-8cb3-4361-a613-1f49f8a2e9b7",
+      "name": "Rohan Rao",
+      "email": "rohan.rao@example.com",
+      "phone": "+919274115398",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "0ec3fd36-2765-4fb1-be07-c71072386870",
+      "name": "Deepak Mishra",
+      "email": "deepak.mishra@example.com",
+      "phone": "+919454806805",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "4c705e25-8883-4895-a385-19333ebae4bd",
+      "name": "Varun Das",
+      "email": "varun.das@example.com",
+      "phone": "+919583481190",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "86876d12-b6b8-4c39-89d0-fe98f06efc36",
+      "name": "Anjali Bhatt",
+      "email": "anjali.bhatt@example.com",
+      "phone": "+919668981862",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    },
+    {
+      "id": "3d75e860-5c28-4a51-b4ad-54c0295ea2e7",
+      "name": "Pooja Sen",
+      "email": "pooja.sen@example.com",
+      "phone": "+919829791009",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true
+    }
+  ],
+  "students": [
+    {
+      "id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "admission_number": "ADM-MEDI-1001",
+      "name": "Aditya Singh",
+      "class": "Grade 7",
+      "section": "B",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "6d0ba2fe-c561-4adc-9145-3178fde7bfb6",
+      "parent_id": "0b8fcd04-43ad-469b-948e-5c1e2cb9b1cf"
+    },
+    {
+      "id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "admission_number": "ADM-MEDI-1002",
+      "name": "Varun Mehta",
+      "class": "Grade 10",
+      "section": "B",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "365b199d-b03d-4a22-8dda-a74ced6ade92",
+      "parent_id": "1cdab229-c8b5-4d55-9245-37548dd4fed2"
+    },
+    {
+      "id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "admission_number": "ADM-MEDI-1003",
+      "name": "Priya Patel",
+      "class": "Grade 3",
+      "section": "C",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "a4cf430d-0986-40d2-a83c-a54d9b437fb6",
+      "parent_id": "a84eb565-01ea-43bc-b8e8-fa5c4851825e"
+    },
+    {
+      "id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "admission_number": "ADM-MEDI-1004",
+      "name": "Neha Mishra",
+      "class": "Grade 8",
+      "section": "A",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "eb1b66a2-ba77-4024-a05e-88c30cca148c",
+      "parent_id": "f326ab74-4c62-4ca9-a8ad-22437b4db40e"
+    },
+    {
+      "id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "admission_number": "ADM-MEDI-1005",
+      "name": "Sneha Singh",
+      "class": "Grade 3",
+      "section": "A",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "1335c560-294a-4871-bde7-6a267edbd9da",
+      "parent_id": "c43c9450-7394-40b0-b096-62fc9d3d73c9"
+    },
+    {
+      "id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "admission_number": "ADM-MEDI-1006",
+      "name": "Meera Rao",
+      "class": "Grade 5",
+      "section": "A",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "28e9c405-c0dd-456d-9eb7-3bd982516d30",
+      "parent_id": "d8b35248-8cb3-4361-a613-1f49f8a2e9b7"
+    },
+    {
+      "id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "admission_number": "ADM-MEDI-1007",
+      "name": "Siddharth Mishra",
+      "class": "Grade 1",
+      "section": "A",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "3c71b0b0-cdc2-4309-a747-1ba22089475e",
+      "parent_id": "0ec3fd36-2765-4fb1-be07-c71072386870"
+    },
+    {
+      "id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "admission_number": "ADM-MEDI-1008",
+      "name": "Kiran Das",
+      "class": "Grade 4",
+      "section": "C",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "2303ed87-ad77-4662-ba02-4f732a5cf5ad",
+      "parent_id": "4c705e25-8883-4895-a385-19333ebae4bd"
+    },
+    {
+      "id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "admission_number": "ADM-MEDI-1009",
+      "name": "Sneha Bhatt",
+      "class": "Grade 2",
+      "section": "C",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "d85e6bde-2742-4e50-9e2a-f6e38b604e2f",
+      "parent_id": "86876d12-b6b8-4c39-89d0-fe98f06efc36"
+    },
+    {
+      "id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "admission_number": "ADM-MEDI-1010",
+      "name": "Neha Sen",
+      "class": "Grade 3",
+      "section": "C",
+      "school_id": "TEST_MediumSchool_Demo",
+      "is_active": true,
+      "academic_year_id": "9d9050af-f6b8-4228-8265-b5c6f7823a34",
+      "parent_id": "3d75e860-5c28-4a51-b4ad-54c0295ea2e7"
+    }
+  ],
+  "fees": [
+    {
+      "id": "e7bed8f1-3c7d-4972-86f4-850a16458d4a",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "f6807b41-c8c4-42cb-ace1-8ce86458d737",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "67cc98a3-660f-41a1-a929-c9bf6ec6d8f0",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a8b9b4a3-2a30-48b5-a19a-0ca973639fda",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a32e2c00-dc1b-4e33-bd73-7f377b959a63",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4f58713f-4b1a-4953-9bbd-bf902cfa3253",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "493001d1-b7a4-45e9-a1ef-2be6c7125a34",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8bdad1af-fc81-4add-92d9-04b021fcbadb",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "58bcd3f9-e82e-4416-aa07-5faa851eb64b",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "951266fb-7e0b-431d-9fcc-a5f6fa3067af",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MediumSchool_Demo"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "05354444-2192-42b5-90d2-93acf6110bb5",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4a297353-3909-4893-bd56-0e27e2d336b8",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "91673308-d656-467d-b2a3-2fa55092bac7",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "473df02d-8ab2-410a-a6f3-bc0269eb75e5",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e8919865-1221-4662-93f2-d441bdef873d",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "829211c0-f82e-4c51-a00c-dc7583e96fe6",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "93d0b4fe-9509-4a8c-9d6d-b0d18cd263de",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "df1969a5-312f-4c85-b776-10d82ebf5194",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c2792a1b-b63e-4bcf-a8bf-fbe89885e5c8",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e85dc338-665a-4f4b-8cbc-5bf1580ac40f",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "91f9d98e-b3d5-4d66-b7b0-dbf7f721285f",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "date": "2026-08-04",
+      "status": "late",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "f954551f-a3c3-4663-9e2b-072ba8f18b7e",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "3f0297ed-e1de-4cea-80d5-259d2794cbea",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "9d093942-b32a-45e6-95fc-78b5ce23f780",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "66697619-2fa5-4376-ab81-c1a9f55589dd",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "682f3deb-d7ea-4097-9458-f704d6fac251",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "d7f0aba9-2807-4e65-be94-65dab8c14051",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "74272807-6a84-49b8-bca7-c8a5f75c66d4",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "dd664551-a1c7-4aa3-8ebc-3af876b77767",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "ee059af0-fb5c-458a-a659-17e87a69026a",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "date": "2026-08-04",
+      "status": "late",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "efb45ac4-1d00-421d-bf25-ac7a735b961b",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8bcab83b-774a-4aa5-84ff-6259c87444bf",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8c99072a-0d01-4d28-bac8-193bc4db8f69",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "93aecb86-b645-430f-a50a-cae01bfc1811",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "08ff4f69-6142-4f2f-9bae-5d1997226071",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a19699c8-17fb-42d0-b022-e7639274e504",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "ff231155-fc2f-49d3-a15b-e78f4f671bc7",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "6bc69154-a721-49f6-be16-c88263093c97",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4be28f39-609c-488f-8baa-ecebce7fe22c",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c3f6b0ef-22c1-4f67-95ad-3372ce03c113",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "date": "2026-08-05",
+      "status": "absent",
+      "school_id": "TEST_MediumSchool_Demo"
+    }
+  ],
+  "exams": [
+    {
+      "id": "58e99c4b-e821-4fbb-9eeb-19cee3a8ee0d",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "subject": "Mathematics",
+      "marks_obtained": 94,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4fa42025-dcd2-4de6-81a8-48b5314a6d5a",
+      "student_id": "c02d83b1-3897-4fe0-a1a3-6651ee362593",
+      "subject": "Science",
+      "marks_obtained": 71,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "36ebf076-7002-4a66-a8f3-44a8013f80c3",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "subject": "Mathematics",
+      "marks_obtained": 60,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5139ec42-825d-495d-8350-447c3c2b722a",
+      "student_id": "489513c0-347d-485f-847c-a5bd342a2c94",
+      "subject": "Science",
+      "marks_obtained": 60,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5448ba50-233d-42bd-84dd-03d9b86f676f",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "subject": "Mathematics",
+      "marks_obtained": 74,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "b6e3215c-7871-4d68-86f7-046cf9d7a0d0",
+      "student_id": "19ce0f27-1af8-4f18-bb2a-0f0d8cf2213b",
+      "subject": "Science",
+      "marks_obtained": 64,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "943f20e8-8270-4642-89d4-c050fddc8ba6",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "subject": "Mathematics",
+      "marks_obtained": 64,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "3d4112ce-cb96-4351-b6cf-9d3914cb21c8",
+      "student_id": "e19f7772-bbf7-4523-8576-0459205cf086",
+      "subject": "Science",
+      "marks_obtained": 54,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "951fbedf-8710-403f-bde8-e9ae1db436cf",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "subject": "Mathematics",
+      "marks_obtained": 60,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8435123e-5af2-4658-9c8a-1a5143d7b46c",
+      "student_id": "68fc4867-9e02-4aca-bc4b-0e2fca43ce1c",
+      "subject": "Science",
+      "marks_obtained": 63,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "fb45a980-6768-4fac-8478-cfeec3817c72",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "subject": "Mathematics",
+      "marks_obtained": 99,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "72418a84-54b5-48ef-b994-7c896a37a77b",
+      "student_id": "dd4ef7be-ccaa-42f6-894f-a702277db0d7",
+      "subject": "Science",
+      "marks_obtained": 82,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "79e25d3b-294b-43c0-901d-a88119a94496",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "subject": "Mathematics",
+      "marks_obtained": 62,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "683c8bf7-4763-41c5-845b-c8936282693b",
+      "student_id": "fd19e93b-2618-469b-b69d-94839c59f678",
+      "subject": "Science",
+      "marks_obtained": 74,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "713e1754-2c5b-40ff-9b63-ef0e0202fc1c",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "subject": "Mathematics",
+      "marks_obtained": 86,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "14740450-e3da-474f-89e4-23a95dfe0e97",
+      "student_id": "f0102bb6-57b8-4167-8c3c-c1394676ff14",
+      "subject": "Science",
+      "marks_obtained": 92,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "f8b4e723-1f82-44a0-9a88-0cb518a79292",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "subject": "Mathematics",
+      "marks_obtained": 89,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8cd996b8-5eeb-4cc5-85a8-155bf632b704",
+      "student_id": "bbf2a716-8f4e-4d37-81e2-369eda7b739b",
+      "subject": "Science",
+      "marks_obtained": 59,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5934411c-7ca0-4f75-9662-d8165a616bf8",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "subject": "Mathematics",
+      "marks_obtained": 53,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "cb5bdb76-d940-4ed8-98c1-ff12e70b9782",
+      "student_id": "5686c60c-908c-4706-97ce-42a11c0944a7",
+      "subject": "Science",
+      "marks_obtained": 94,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MediumSchool_Demo"
+    }
+  ],
+  "timetable": [
+    {
+      "id": "dd49c8a5-9b2e-4780-9454-2cfceb689541",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c85c53ae-a1df-4945-bbb7-cdb9e6efadfe",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "cc68120f-c6af-4139-82aa-ac0ec9f713bd",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "8273a299-a339-44c1-b1ef-890ac6f6d223",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a2e0668a-e5c6-40f2-94ce-be6b20c37ace",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a108fca8-a13e-42cf-b0b6-7d936dad58bc",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "ee2bc9f1-306c-4261-a160-737d5fae98fc",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c9747ce9-a9bc-4305-9f1b-545c9373af68",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "d8da8286-8cc2-4184-8f0e-992f94ea1ac5",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "cf86a9c9-b1f5-45e7-bdea-7036fba55484",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4ab58c49-4122-4878-b056-9f082ba9ad93",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4d6a44de-2613-4bfa-bb06-67436cddf2e4",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "1c0427f4-c083-419c-bef2-d739cca1cde1",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c29e5a96-f4f0-4dae-a980-181e2c3a30b8",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "3b61f027-7ed3-4d76-94dd-8d2cc85ebcb4",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "08140884-c74f-4c1e-93d1-f6baaa739214",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c5a5101f-9e23-4267-86b2-4bb959409c82",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "c7d1108a-95c1-4c98-96d8-b23f2b7a9557",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "0afe0d5f-0227-481f-b368-9277d3b1f31b",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "fcd93fba-63c8-43a8-8aa1-748ed26b6bb6",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "7f401d37-94a9-4acf-8c53-5a0400d82998",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "89e33382-e577-4e94-affd-27047b256dd9",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "774c7bad-c0c7-4ead-bde3-e50c646df338",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "f8738168-b64b-4397-a1af-fac417c35d6e",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "ad36533e-483b-4652-a7e1-dbce7a3f0290",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5098905f-5489-4008-a472-affbb0ba098b",
+      "class": "Grade 5",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e452e558-e2c4-4c89-9d33-468ad10892ee",
+      "class": "Grade 5",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e485de33-6aaf-4e82-baf0-8c6f1e28b731",
+      "class": "Grade 5",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "7f21e241-8e78-4721-b3c3-f929a652c4f6",
+      "class": "Grade 5",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "6569a822-117b-4c05-960d-c74537c2624c",
+      "class": "Grade 5",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5f381782-d950-4bd8-b186-8d3d3b676fd8",
+      "class": "Grade 1",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "d1701c5e-18c7-4484-b33f-2749e69ceb88",
+      "class": "Grade 1",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a0c6b7fb-c302-4713-bf7e-f1060b7be82d",
+      "class": "Grade 1",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5975a0ca-1753-4546-9f91-c02ae836c4c8",
+      "class": "Grade 1",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "f13d5a70-f248-47ff-a08d-6c64e11d0333",
+      "class": "Grade 1",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "55144802-da9c-4492-a1c1-0a6102a01bf6",
+      "class": "Grade 4",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a5543902-0916-42ce-baab-7a36f01749f2",
+      "class": "Grade 4",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "5df29379-db24-42e4-be20-e056428424f9",
+      "class": "Grade 4",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "163853b1-1dd0-41a7-b94a-1907a45a4eee",
+      "class": "Grade 4",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "035f5040-321b-4028-b8a3-bde28ce8aa11",
+      "class": "Grade 4",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "065e1d5b-4d23-4cad-aa22-090feb7c9358",
+      "class": "Grade 2",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "d24bc779-79e7-4a7d-83df-85ce95e97f19",
+      "class": "Grade 2",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "1cd2da0e-d67e-4014-a728-ea64930ad8f2",
+      "class": "Grade 2",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e95d92ed-361b-4622-bb9e-0e01c1e7af44",
+      "class": "Grade 2",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "a3743d64-e9a9-439c-9c0c-c08986735b51",
+      "class": "Grade 2",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "61b0bb87-0e92-45d8-85e2-bf2aa43b9f09",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4005dcb6-e080-4ad0-8a61-61a277e9addf",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "91066db7-51f0-44b6-858d-e7965d5d69bf",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "4c0bdeb0-fee7-48e2-a080-1a5ea4089a55",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "35d61bb3-eb09-48bb-81aa-09cfe7be680d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "fef4371a-fb15-4dc8-82ea-615742a645fa",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "da041f4e-ee45-4c1a-ab7d-927d7fe63490",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "e275a264-4bd1-4521-b8d5-74e28771b567",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    },
+    {
+      "id": "65b0531e-67ff-4491-bc4b-deab92cd0b84",
+      "class": "Grade 3",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ae996d6d-db14-4dca-bf82-aa2b6ca537e2",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MediumSchool_Demo"
+    }
+  ]
+}

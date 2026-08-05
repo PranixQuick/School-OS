@@ -1,0 +1,1615 @@
+{
+  "school_id": "TEST_MultiCampus_Demo",
+  "school_name": "TEST Multi-Campus Demo",
+  "tenant_type": "Multi-Campus",
+  "teachers": [
+    {
+      "id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "name": "Vikram Das",
+      "role": "teacher",
+      "phone": "+919133369326",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "name": "Rajesh Iyer",
+      "role": "teacher",
+      "phone": "+919485691274",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "name": "Pooja Iyer",
+      "role": "teacher",
+      "phone": "+919877632023",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "name": "Kiran Mishra",
+      "role": "teacher",
+      "phone": "+919787000955",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "name": "Anjali Gupta",
+      "role": "teacher",
+      "phone": "+919128049512",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "name": "Amit Nair",
+      "role": "teacher",
+      "phone": "+919939312609",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    }
+  ],
+  "parents": [
+    {
+      "id": "bffbae3d-efb2-417a-8e7f-3ab74f216366",
+      "name": "Siddharth Bhatt",
+      "email": "siddharth.bhatt@example.com",
+      "phone": "+919440563818",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "c2064a01-0542-4ea0-8bc3-b3b92cdb3acc",
+      "name": "Siddharth Mehta",
+      "email": "siddharth.mehta@example.com",
+      "phone": "+919121368980",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "96eb6b70-e807-4b58-a147-2dbd0d1573e2",
+      "name": "Sneha Choudhury",
+      "email": "sneha.choudhury@example.com",
+      "phone": "+919890506497",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "17de44ed-f5d0-4a5d-ae8d-bb26da04206a",
+      "name": "Vikram Reddy",
+      "email": "vikram.reddy@example.com",
+      "phone": "+919774720066",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "90417d0b-2818-4bb9-9673-058e647b7532",
+      "name": "Neha Bhatt",
+      "email": "neha.bhatt@example.com",
+      "phone": "+919308713779",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "9ffc86bb-d9a2-4f2f-846a-3aa07ec4f9cd",
+      "name": "Anjali Rao",
+      "email": "anjali.rao@example.com",
+      "phone": "+919326032421",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "657e4bf3-2b48-47ca-b4a9-85c5e44c4bf0",
+      "name": "Aditya Patel",
+      "email": "aditya.patel@example.com",
+      "phone": "+919744058428",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "0f1ce66e-5a07-4928-b895-d5af9c3a0907",
+      "name": "Varun Das",
+      "email": "varun.das@example.com",
+      "phone": "+919265572335",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "972edf57-6462-461e-815e-c3e01cddec9c",
+      "name": "Rahul Trivedi",
+      "email": "rahul.trivedi@example.com",
+      "phone": "+919972119179",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "d0697404-3d41-4099-8387-b99d7187e4e3",
+      "name": "Rahul Bhatt",
+      "email": "rahul.bhatt@example.com",
+      "phone": "+919363384544",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "b382a8e1-9023-4c6a-964d-060bcccde8e9",
+      "name": "Varun Das",
+      "email": "varun.das@example.com",
+      "phone": "+919915888782",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    },
+    {
+      "id": "d9a17b2a-e05f-4091-a663-350a83f49742",
+      "name": "Kavita Deshmukh",
+      "email": "kavita.deshmukh@example.com",
+      "phone": "+919715080371",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true
+    }
+  ],
+  "students": [
+    {
+      "id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "admission_number": "ADM-MULT-1001",
+      "name": "Neha Bhatt",
+      "class": "Grade 10",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "c02c2a37-5d91-45d5-90d7-301574806f05",
+      "parent_id": "bffbae3d-efb2-417a-8e7f-3ab74f216366"
+    },
+    {
+      "id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "admission_number": "ADM-MULT-1002",
+      "name": "Sneha Mehta",
+      "class": "Grade 1",
+      "section": "C",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "429f9cdd-a81a-466e-ac1a-2dd2f8ba2b12",
+      "parent_id": "c2064a01-0542-4ea0-8bc3-b3b92cdb3acc"
+    },
+    {
+      "id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "admission_number": "ADM-MULT-1003",
+      "name": "Deepak Choudhury",
+      "class": "Grade 7",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "8cefe9f7-52fd-4451-b54f-6c3412fd41e8",
+      "parent_id": "96eb6b70-e807-4b58-a147-2dbd0d1573e2"
+    },
+    {
+      "id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "admission_number": "ADM-MULT-1004",
+      "name": "Rahul Reddy",
+      "class": "Grade 5",
+      "section": "C",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "04df4c8a-d571-4300-b1da-13abf4fb2c91",
+      "parent_id": "17de44ed-f5d0-4a5d-ae8d-bb26da04206a"
+    },
+    {
+      "id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "admission_number": "ADM-MULT-1005",
+      "name": "Aarti Bhatt",
+      "class": "Grade 3",
+      "section": "A",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "0c0a85fb-3d0e-4206-bf1c-2949a14a0686",
+      "parent_id": "90417d0b-2818-4bb9-9673-058e647b7532"
+    },
+    {
+      "id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "admission_number": "ADM-MULT-1006",
+      "name": "Priya Rao",
+      "class": "Grade 10",
+      "section": "A",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "7107d1bb-235a-448c-a5c3-011b20bbebde",
+      "parent_id": "9ffc86bb-d9a2-4f2f-846a-3aa07ec4f9cd"
+    },
+    {
+      "id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "admission_number": "ADM-MULT-1007",
+      "name": "Vikram Patel",
+      "class": "Grade 6",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "500b77e7-54fd-44a6-bfeb-12a2edf0f927",
+      "parent_id": "657e4bf3-2b48-47ca-b4a9-85c5e44c4bf0"
+    },
+    {
+      "id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "admission_number": "ADM-MULT-1008",
+      "name": "Deepak Das",
+      "class": "Grade 8",
+      "section": "C",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "98ead98a-1557-49ab-8fe9-a7da4819f398",
+      "parent_id": "0f1ce66e-5a07-4928-b895-d5af9c3a0907"
+    },
+    {
+      "id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "admission_number": "ADM-MULT-1009",
+      "name": "Siddharth Trivedi",
+      "class": "Grade 8",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "3c1304e0-18f2-4042-87f7-ffa29ac779fc",
+      "parent_id": "972edf57-6462-461e-815e-c3e01cddec9c"
+    },
+    {
+      "id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "admission_number": "ADM-MULT-1010",
+      "name": "Rajesh Bhatt",
+      "class": "Grade 8",
+      "section": "A",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "77c8be74-9861-4fc3-93fd-7089ed616f09",
+      "parent_id": "d0697404-3d41-4099-8387-b99d7187e4e3"
+    },
+    {
+      "id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "admission_number": "ADM-MULT-1011",
+      "name": "Aarti Das",
+      "class": "Grade 1",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "655869b3-bd21-437e-9f00-faefe8a847cb",
+      "parent_id": "b382a8e1-9023-4c6a-964d-060bcccde8e9"
+    },
+    {
+      "id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "admission_number": "ADM-MULT-1012",
+      "name": "Pooja Deshmukh",
+      "class": "Grade 6",
+      "section": "B",
+      "school_id": "TEST_MultiCampus_Demo",
+      "is_active": true,
+      "academic_year_id": "9f5ebd85-ce41-44c9-87bd-4a553611ce04",
+      "parent_id": "d9a17b2a-e05f-4091-a663-350a83f49742"
+    }
+  ],
+  "fees": [
+    {
+      "id": "bdcfd8cb-06f0-43e3-b465-a338b61316f5",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "62c54c28-9909-466b-b543-cc6b7bf56674",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "855f8d2f-cbe4-41da-bf4d-32a5ae2bd679",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "863da0f4-0227-4ae1-885c-5b0931db509e",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "dbbe2402-de80-477d-93b1-5d7ea6498a93",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "524182c4-185a-4386-9ae4-c687de775b84",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f2c496b5-9329-4bcf-a587-4e353fa446fe",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ed930f81-c0b5-4d3a-81de-7bfcb9fe8d20",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "924804e7-ee7c-4a75-bda0-4db90a762855",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f9f78b3e-d734-4a04-8b5e-83a8224afd0d",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "c3e82ff4-471d-41dd-9c9d-0b4a848a6cb5",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "61ef52c4-7f19-484e-b29b-683731b67667",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_MultiCampus_Demo"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "f9056fc1-866a-4fc9-bcfc-a392ca770754",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "9eb65cbe-b8fb-40ab-832e-25d952295e5a",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "de7b039e-7b6e-46e6-8cf8-ec3945b3c452",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e6468e02-ae35-4e20-9f66-e7b025baf03d",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "68bfdc8b-311a-4df2-b6ed-057b15a2af7e",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e5c9a13c-26b7-4185-ab1b-78a1792996a5",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "04b3cdca-963a-4f52-a019-7a2be53ad81a",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "d8ce8ecf-1ebb-4839-8216-cb13c2df21f4",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "9bf914c9-98ff-4ea1-aef3-66bdf8a37c5b",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "16b6b6fb-056a-4664-9cb3-be400702a95d",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "2637d3ea-86b5-4735-a3c7-1a336323fab4",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "00a01e51-f453-4579-a266-d16acef3a124",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "9203361f-c970-4c53-b688-b259b9b4a778",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "3ea2b7d6-4439-4ef9-ad9a-cc901a172652",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "fc3daee5-c9d0-4bbd-8aed-f0a9c8ce6731",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a62858df-8521-41b7-8420-591265243292",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "303ebbf5-538b-4945-9a74-cee0e4663775",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "756beb8e-33a4-47a2-9f14-8b5a973f396e",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f57085c4-0b54-4b07-b6bc-3ba86bd8afb1",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "526df5fc-9e33-4b6d-bc24-c806ac6676fe",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ef87ff41-2f0e-45cc-b5ea-2f23b2ae0dda",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "848076af-386b-4ce4-9b25-09a382a47a27",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "b2ce1d3e-cb72-406f-b776-fd577e904c1a",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ef3c08b0-5613-455c-b7f6-ec5b753acdfc",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4aabb876-95bb-4c24-ab26-0337702c36c7",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a18c32d2-1984-4434-93e5-deed25dd24c8",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7660aee6-e489-463f-8619-4cc31f9588ad",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "31231566-77a7-49df-bc66-514076d66a31",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f9dd6b0c-2e65-4652-aeaa-0b782437db43",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "b840d5be-c6d0-4044-a097-742d60988677",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "60d803ff-c9e6-4f99-894f-b9842b10dba6",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7680529a-fc61-422e-b3b1-61f3acd1e847",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4a22cce3-2107-425a-a9b4-c8c4702d8cb1",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e8c018b5-dab4-4f94-bb0d-bf5ef7140904",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "01f87efb-4a67-486f-8dc5-0d42b66cf0c8",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "53eca0bd-1767-46ef-8572-fdd895110a66",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_MultiCampus_Demo"
+    }
+  ],
+  "exams": [
+    {
+      "id": "c6941bb2-08c1-492b-96d3-6265d7370973",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "subject": "Mathematics",
+      "marks_obtained": 69,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "b241fadc-923e-4867-81d3-57789fddf050",
+      "student_id": "59f50153-058b-4b63-bef5-63a11399f36c",
+      "subject": "Science",
+      "marks_obtained": 70,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a77ebd14-d7d0-420f-a2a8-457f27b4cdf8",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "subject": "Mathematics",
+      "marks_obtained": 94,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "db73437d-6864-448a-ba00-de7c8f774443",
+      "student_id": "5266b5a4-f8cc-49a9-94f6-45e9db395217",
+      "subject": "Science",
+      "marks_obtained": 83,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ff940edb-8aaf-470f-b8cb-7f12253ad8f8",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "subject": "Mathematics",
+      "marks_obtained": 70,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "da4ca25b-45d9-4284-a189-f2cc11631d56",
+      "student_id": "3e62ffa1-1ff8-4611-8f02-dffc345687d8",
+      "subject": "Science",
+      "marks_obtained": 75,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "fdc72a86-1542-4161-9efc-84b4d6ce6cae",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "subject": "Mathematics",
+      "marks_obtained": 75,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "38bebf36-3375-4fae-9fd1-147e6853c4dd",
+      "student_id": "b1618517-13fb-4165-b58c-91e54cf13244",
+      "subject": "Science",
+      "marks_obtained": 80,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "87cb7fe2-308e-4218-8fe3-788324978240",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "subject": "Mathematics",
+      "marks_obtained": 97,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e4da5fa8-f611-4ae3-ae23-2bb9bfd574f6",
+      "student_id": "d84a08c4-a4ef-4041-b843-8a97da92b147",
+      "subject": "Science",
+      "marks_obtained": 79,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a644a4bf-8b47-414e-b345-e9db8eb4230b",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "subject": "Mathematics",
+      "marks_obtained": 91,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7651dd3d-3b55-4971-bd97-652e02acc7da",
+      "student_id": "2e736fec-09f0-43f4-96e4-b726f8a666fc",
+      "subject": "Science",
+      "marks_obtained": 96,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "2ef91e76-5a80-44be-861e-128ae7a4ad01",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "subject": "Mathematics",
+      "marks_obtained": 89,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "efdb57a2-7dd3-4653-87fb-decf0c2457cf",
+      "student_id": "bd4fcdbe-aa6b-436c-992c-e0cfc41f281f",
+      "subject": "Science",
+      "marks_obtained": 70,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "1c7e40f2-802c-4427-8f7f-fc41b22ba8aa",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "subject": "Mathematics",
+      "marks_obtained": 99,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4d2c75d8-8194-4304-9333-20a8053d5e5c",
+      "student_id": "61f5b67d-8503-4020-8fa3-2b93012502ff",
+      "subject": "Science",
+      "marks_obtained": 51,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "392baef6-f432-4eef-936c-5f730045ff05",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "subject": "Mathematics",
+      "marks_obtained": 69,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "34d83db0-21b9-477b-af87-ead1aeca5555",
+      "student_id": "1cc5dff0-1712-49b3-905c-5636b0dd0c24",
+      "subject": "Science",
+      "marks_obtained": 91,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "6d931271-a944-4c7d-bcce-045f1c80c7bd",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "subject": "Mathematics",
+      "marks_obtained": 91,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "af75ea09-88a5-47f6-9214-3fa6a9ebd64d",
+      "student_id": "9b1813ac-0000-4ae1-8c8a-5af1e451bde5",
+      "subject": "Science",
+      "marks_obtained": 92,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "100410e9-c395-4f3e-8e6f-a4d6479099bd",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "subject": "Mathematics",
+      "marks_obtained": 72,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "8c1e5453-5547-420a-bbf2-3d95706f58e3",
+      "student_id": "9c1db395-08b5-45df-a24a-6c343af42583",
+      "subject": "Science",
+      "marks_obtained": 62,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "9a9065b0-86f2-41cb-8c0d-5614d7472413",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "subject": "Mathematics",
+      "marks_obtained": 77,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "53531fa0-94ae-4329-ad9b-0c415d91b9eb",
+      "student_id": "72d87123-a308-416e-9dda-3d84c1d2a7f2",
+      "subject": "Science",
+      "marks_obtained": 66,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_MultiCampus_Demo"
+    }
+  ],
+  "timetable": [
+    {
+      "id": "ec6914a4-114f-45b9-b4ce-192fc86dfadc",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "6490521f-b5c4-4928-a4ae-54ef1553705c",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e392369d-69ef-4358-99ff-754281acb3ea",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7ac41076-b77d-4df4-a2b9-20c0cb552d0d",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "055759b9-ee2e-4393-83ef-4ec88eb9de6e",
+      "class": "Grade 10",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "eed58ca7-8d85-4325-b56d-1324dfb36eee",
+      "class": "Grade 1",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "b880c928-dd86-42b9-bf3d-55c3a2b85213",
+      "class": "Grade 1",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "faa8df9f-8ae8-4f9f-b6a4-f7ebd00ccd31",
+      "class": "Grade 1",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "08dc9d67-71a1-4731-95f7-cbc41d633024",
+      "class": "Grade 1",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "aa3e6bdf-bfc0-4f96-8b16-e1a4206e33c7",
+      "class": "Grade 1",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "3900e105-9d7e-4103-a173-dfdc936a4518",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "5ba43c20-7ee2-476e-8aec-b09efdf37663",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "875a917b-504c-4041-8d50-687a763cf00a",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f86fb0bd-94c2-423e-b266-b890b006d555",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "43d143ce-7a5e-426a-9025-18ce36ed567d",
+      "class": "Grade 7",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "901f8570-fae2-4c49-ab92-b910e36615d7",
+      "class": "Grade 5",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "44b2eae6-b0fd-4b18-816c-3e151104d16f",
+      "class": "Grade 5",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "b5c76d62-28d3-4c1e-b747-81c173f0a514",
+      "class": "Grade 5",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "f3ed2a0a-42d0-4c6c-92d4-f224a70b557c",
+      "class": "Grade 5",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "5898541c-2f42-4b88-8384-7e85904ad681",
+      "class": "Grade 5",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "64ea84f2-98de-443a-abc5-2de5ab62103b",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4686aa98-b9b4-4967-84ea-96cb8e8996ef",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7529242a-fb8f-4a28-a310-8b8ead380a69",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "83cfef97-5e36-4f26-a199-8216e181d793",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a15f7e0c-c48d-43c6-b5b0-d512174a34c3",
+      "class": "Grade 3",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "88b71029-8418-4aad-8bf4-e323910525a3",
+      "class": "Grade 10",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e5bf7b82-3f3b-4d13-9c1e-e3d661d44e07",
+      "class": "Grade 10",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "310d20fe-0af9-42f2-9fa0-55bdd6bd0bbd",
+      "class": "Grade 10",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ce366767-fe59-470e-aa4c-da6f4042f6f3",
+      "class": "Grade 10",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a67356bb-8fc3-4d11-be52-2120418ee648",
+      "class": "Grade 10",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "5e79c1fe-a963-4604-a575-3b4287a99109",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e58c6457-da74-482d-9424-fc4548fdf8e2",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "82d9dd34-ca13-4433-b34c-b0be1dd28e60",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "c1680125-c612-4d2b-be01-0a95a61cb2e7",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "5f64a1b4-a198-4a24-8d63-2e4154f99eb6",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "8763f455-a8e0-49e8-81c2-1925b89ef794",
+      "class": "Grade 8",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ca9230ef-5f67-48bb-a11d-8db5acc33b35",
+      "class": "Grade 8",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "53e6df23-be60-4ff8-8c89-b4f8936f9847",
+      "class": "Grade 8",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "71762577-b9a9-4a86-b3c4-e2d5993b634d",
+      "class": "Grade 8",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "84502d5e-cd63-4cb0-b5d4-71265aa9d560",
+      "class": "Grade 8",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "54de9c61-e859-458d-9c13-9429d9403d32",
+      "class": "Grade 8",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "15d32740-0ff4-4f37-8289-114bcca34537",
+      "class": "Grade 8",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "fe14ae3d-3b05-4595-b486-05e63a808e88",
+      "class": "Grade 8",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e855d7e7-37e4-43de-ad3c-062fcfa1b30b",
+      "class": "Grade 8",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "ff9b9030-a664-4cbd-8ab1-dd6670b4138a",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "67dfefbe-ad6a-4b4b-9038-abc33a5548e5",
+      "class": "Grade 8",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "5802b5f3-36e8-411c-aba4-b76fc2501046",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4f984573-d818-4f5c-a643-e41cfd6f56ea",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "387da84b-017c-47fc-8d69-216737c2d854",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "7c44d78a-c151-4643-9892-e7a6fb9302a8",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "adbe5f71-5d40-4197-957a-29bf3b905b29",
+      "class": "Grade 8",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "a335bbc2-3122-4ef9-a69e-4e81531b7431",
+      "class": "Grade 1",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e4591fac-4417-4154-a3bc-fd983a1e3b8f",
+      "class": "Grade 1",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "dcf7441b-11c4-4cbc-beb5-fd08a46aa7fd",
+      "class": "Grade 1",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "4079710f-d333-4937-9a29-c6526139e774",
+      "class": "Grade 1",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "ba75477a-2a18-469b-8f1d-98ec7dfabc41",
+      "class": "Grade 1",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "06361314-2b37-4905-9ebe-7ebc21732fdf",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "504b9743-81cb-4ec0-ab34-70914e12a39f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "e58c7a74-c669-4153-8904-9b9810016ce7",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "04ed11d9-248c-4345-901a-ebe4cfee4c41",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "caae1233-d9f5-4785-9ff7-77c15bf76d58",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "3e19b0df-548b-4047-a51d-62ea0b819648",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "423999d9-4e11-4ec3-be2a-6a5ab7aff91b",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "605a1b57-7ef7-43a9-9e0f-54a0184bc4eb",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    },
+    {
+      "id": "d3cdb060-fde6-4280-b30f-e9f5ccc4690e",
+      "class": "Grade 6",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Science",
+      "teacher_id": "fe894ad3-b418-4497-92c0-b4d07f3b35d0",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_MultiCampus_Demo"
+    }
+  ]
+}

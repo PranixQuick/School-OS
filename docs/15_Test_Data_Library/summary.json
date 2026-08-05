@@ -1,0 +1,152 @@
+[
+  {
+    "name": "TEST Small School Demo",
+    "school_id": "TEST_SmallSchool_Demo",
+    "tenant_type": "Small School",
+    "filePath": "docs/15_Test_Data_Library/TEST_SmallSchool_Demo.json",
+    "recordCounts": {
+      "teachers": 3,
+      "parents": 5,
+      "students": 5,
+      "fees": 5,
+      "attendance": 15,
+      "exams": 10,
+      "timetable": 25
+    }
+  },
+  {
+    "name": "TEST Medium School Demo",
+    "school_id": "TEST_MediumSchool_Demo",
+    "tenant_type": "Medium School",
+    "filePath": "docs/15_Test_Data_Library/TEST_MediumSchool_Demo.json",
+    "recordCounts": {
+      "teachers": 5,
+      "parents": 10,
+      "students": 10,
+      "fees": 10,
+      "attendance": 30,
+      "exams": 20,
+      "timetable": 50
+    }
+  },
+  {
+    "name": "TEST Large School Demo",
+    "school_id": "TEST_LargeSchool_Demo",
+    "tenant_type": "Large School",
+    "filePath": "docs/15_Test_Data_Library/TEST_LargeSchool_Demo.json",
+    "recordCounts": {
+      "teachers": 10,
+      "parents": 20,
+      "students": 20,
+      "fees": 20,
+      "attendance": 60,
+      "exams": 40,
+      "timetable": 100
+    }
+  },
+  {
+    "name": "TEST Intermediate College Demo",
+    "school_id": "TEST_IntermediateCollege_Demo",
+    "tenant_type": "Intermediate College",
+    "filePath": "docs/15_Test_Data_Library/TEST_IntermediateCollege_Demo.json",
+    "recordCounts": {
+      "teachers": 6,
+      "parents": 12,
+      "students": 12,
+      "fees": 12,
+      "attendance": 36,
+      "exams": 36,
+      "timetable": 60
+    }
+  },
+  {
+    "name": "TEST Engineering College Demo",
+    "school_id": "TEST_EngineeringCollege_Demo",
+    "tenant_type": "Engineering College",
+    "filePath": "docs/15_Test_Data_Library/TEST_EngineeringCollege_Demo.json",
+    "recordCounts": {
+      "teachers": 8,
+      "parents": 15,
+      "students": 15,
+      "fees": 15,
+      "attendance": 45,
+      "exams": 45,
+      "timetable": 75
+    }
+  },
+  {
+    "name": "TEST Trust Demo",
+    "school_id": "TEST_Trust_Demo",
+    "tenant_type": "Trust",
+    "filePath": "docs/15_Test_Data_Library/TEST_Trust_Demo.json",
+    "recordCounts": {
+      "teachers": 5,
+      "parents": 10,
+      "students": 10,
+      "fees": 10,
+      "attendance": 30,
+      "exams": 20,
+      "timetable": 50
+    }
+  },
+  {
+    "name": "TEST Multi-Campus Demo",
+    "school_id": "TEST_MultiCampus_Demo",
+    "tenant_type": "Multi-Campus",
+    "filePath": "docs/15_Test_Data_Library/TEST_MultiCampus_Demo.json",
+    "recordCounts": {
+      "teachers": 6,
+      "parents": 12,
+      "students": 12,
+      "fees": 12,
+      "attendance": 36,
+      "exams": 24,
+      "timetable": 60
+    }
+  },
+  {
+    "name": "TEST Government School Demo",
+    "school_id": "TEST_GovernmentSchool_Demo",
+    "tenant_type": "Government School",
+    "filePath": "docs/15_Test_Data_Library/TEST_GovernmentSchool_Demo.json",
+    "recordCounts": {
+      "teachers": 4,
+      "parents": 8,
+      "students": 8,
+      "fees": 8,
+      "attendance": 24,
+      "exams": 16,
+      "timetable": 40
+    }
+  },
+  {
+    "name": "TEST Private School Demo",
+    "school_id": "TEST_PrivateSchool_Demo",
+    "tenant_type": "Private School",
+    "filePath": "docs/15_Test_Data_Library/TEST_PrivateSchool_Demo.json",
+    "recordCounts": {
+      "teachers": 5,
+      "parents": 10,
+      "students": 10,
+      "fees": 10,
+      "attendance": 30,
+      "exams": 20,
+      "timetable": 50
+    }
+  },
+  {
+    "name": "TEST Residential Campus Demo",
+    "school_id": "TEST_ResidentialCampus_Demo",
+    "tenant_type": "Residential Campus",
+    "filePath": "docs/15_Test_Data_Library/TEST_ResidentialCampus_Demo.json",
+    "recordCounts": {
+      "teachers": 6,
+      "parents": 12,
+      "students": 12,
+      "fees": 12,
+      "attendance": 36,
+      "exams": 24,
+      "timetable": 60
+    }
+  }
+]

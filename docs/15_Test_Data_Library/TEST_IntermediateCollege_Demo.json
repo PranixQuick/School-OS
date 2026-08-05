@@ -1,0 +1,1735 @@
+{
+  "school_id": "TEST_IntermediateCollege_Demo",
+  "school_name": "TEST Intermediate College Demo",
+  "tenant_type": "Intermediate College",
+  "teachers": [
+    {
+      "id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "name": "Sanjay Verma",
+      "role": "teacher",
+      "phone": "+919986682998",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "name": "Priya Trivedi",
+      "role": "teacher",
+      "phone": "+919529762478",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "name": "Varun Sharma",
+      "role": "teacher",
+      "phone": "+919875857623",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "name": "Sanjay Sharma",
+      "role": "teacher",
+      "phone": "+919705480012",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "name": "Varun Mehta",
+      "role": "teacher",
+      "phone": "+919622255609",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "name": "Pooja Choudhury",
+      "role": "teacher",
+      "phone": "+919245278793",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    }
+  ],
+  "parents": [
+    {
+      "id": "f73a3dcd-6542-4a2d-8ae0-4849f560e4e7",
+      "name": "Siddharth Sen",
+      "email": "siddharth.sen@example.com",
+      "phone": "+919532728703",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "9ee78185-531e-4341-9a76-ec2dfea9709f",
+      "name": "Varun Kumar",
+      "email": "varun.kumar@example.com",
+      "phone": "+919565716146",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "e0549243-3842-48bc-b618-5066f044c138",
+      "name": "Sneha Nair",
+      "email": "sneha.nair@example.com",
+      "phone": "+919129317909",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "4b304f8e-87b4-4bf0-b398-106551ea2c74",
+      "name": "Vikram Iyer",
+      "email": "vikram.iyer@example.com",
+      "phone": "+919661960169",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "6de54d19-d7b8-439f-9701-c7cd2bc88df4",
+      "name": "Siddharth Patel",
+      "email": "siddharth.patel@example.com",
+      "phone": "+919753486263",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "55ed8cf0-efbd-4325-9a43-1df8cfdd24a8",
+      "name": "Pooja Joshi",
+      "email": "pooja.joshi@example.com",
+      "phone": "+919442536127",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "49dc9fda-ca34-4c81-a459-7e28d2902165",
+      "name": "Sneha Choudhury",
+      "email": "sneha.choudhury@example.com",
+      "phone": "+919507940360",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "8701186f-fbc6-4e93-80dd-88ee3469c80c",
+      "name": "Divya Pillai",
+      "email": "divya.pillai@example.com",
+      "phone": "+919122444779",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "64d3ca64-4101-4f4f-813f-208cfb222f38",
+      "name": "Rajesh Sharma",
+      "email": "rajesh.sharma@example.com",
+      "phone": "+919944508819",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "2ae4ac9d-6bc9-49e8-a452-ded9e53e2634",
+      "name": "Aarti Pillai",
+      "email": "aarti.pillai@example.com",
+      "phone": "+919373718997",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "1ecfb916-e51d-453d-a253-b7fe2d9f73d9",
+      "name": "Aditya Trivedi",
+      "email": "aditya.trivedi@example.com",
+      "phone": "+919311349120",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    },
+    {
+      "id": "aa7fc002-ea0c-4587-bd33-86570059ca1b",
+      "name": "Neha Reddy",
+      "email": "neha.reddy@example.com",
+      "phone": "+919260578054",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true
+    }
+  ],
+  "students": [
+    {
+      "id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "admission_number": "ADM-INTE-1001",
+      "name": "Priya Sen",
+      "class": "Year 4",
+      "section": "C",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "64a09ecf-0266-40f3-9a1a-04a5702c592e",
+      "parent_id": "f73a3dcd-6542-4a2d-8ae0-4849f560e4e7"
+    },
+    {
+      "id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "admission_number": "ADM-INTE-1002",
+      "name": "Rohan Kumar",
+      "class": "Year 3",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "f4cc6c01-3139-4045-ac6a-9f5a894722bd",
+      "parent_id": "9ee78185-531e-4341-9a76-ec2dfea9709f"
+    },
+    {
+      "id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "admission_number": "ADM-INTE-1003",
+      "name": "Siddharth Nair",
+      "class": "Year 3",
+      "section": "B",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "e703a768-9a63-4569-a577-d6e50974ff64",
+      "parent_id": "e0549243-3842-48bc-b618-5066f044c138"
+    },
+    {
+      "id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "admission_number": "ADM-INTE-1004",
+      "name": "Amit Iyer",
+      "class": "Year 4",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "3c7e9a35-e81b-4b8f-836d-6deabdb35f42",
+      "parent_id": "4b304f8e-87b4-4bf0-b398-106551ea2c74"
+    },
+    {
+      "id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "admission_number": "ADM-INTE-1005",
+      "name": "Divya Patel",
+      "class": "Year 1",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "8085d66a-7331-44e5-96b1-925379606dca",
+      "parent_id": "6de54d19-d7b8-439f-9701-c7cd2bc88df4"
+    },
+    {
+      "id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "admission_number": "ADM-INTE-1006",
+      "name": "Sneha Joshi",
+      "class": "Year 4",
+      "section": "C",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "c12d602b-d1c9-462f-87e6-9f89e06853a5",
+      "parent_id": "55ed8cf0-efbd-4325-9a43-1df8cfdd24a8"
+    },
+    {
+      "id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "admission_number": "ADM-INTE-1007",
+      "name": "Rajesh Choudhury",
+      "class": "Year 4",
+      "section": "B",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "c114bdf1-affb-4263-bb2a-cdb875993771",
+      "parent_id": "49dc9fda-ca34-4c81-a459-7e28d2902165"
+    },
+    {
+      "id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "admission_number": "ADM-INTE-1008",
+      "name": "Sanjay Pillai",
+      "class": "Year 1",
+      "section": "B",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "4ea113b2-2597-4ebf-8f56-a93dc9d2e67d",
+      "parent_id": "8701186f-fbc6-4e93-80dd-88ee3469c80c"
+    },
+    {
+      "id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "admission_number": "ADM-INTE-1009",
+      "name": "Anjali Sharma",
+      "class": "Year 1",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "1f578068-ab8b-4855-9987-c07331c3534f",
+      "parent_id": "64d3ca64-4101-4f4f-813f-208cfb222f38"
+    },
+    {
+      "id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "admission_number": "ADM-INTE-1010",
+      "name": "Anjali Pillai",
+      "class": "Year 2",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "729a83e7-2409-4668-b1d3-7c3ac2859114",
+      "parent_id": "2ae4ac9d-6bc9-49e8-a452-ded9e53e2634"
+    },
+    {
+      "id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "admission_number": "ADM-INTE-1011",
+      "name": "Neha Trivedi",
+      "class": "Year 3",
+      "section": "A",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "913761da-cf69-4fc4-91fd-8ae596916a49",
+      "parent_id": "1ecfb916-e51d-453d-a253-b7fe2d9f73d9"
+    },
+    {
+      "id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "admission_number": "ADM-INTE-1012",
+      "name": "Aditya Reddy",
+      "class": "Year 3",
+      "section": "B",
+      "school_id": "TEST_IntermediateCollege_Demo",
+      "is_active": true,
+      "academic_year_id": "c3dfef00-e3cb-4bfc-a0a0-19168808e628",
+      "parent_id": "aa7fc002-ea0c-4587-bd33-86570059ca1b"
+    }
+  ],
+  "fees": [
+    {
+      "id": "cfc3dd39-07a2-4b58-ba36-fbe279550964",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "e0fc6433-a6ae-4f66-b35c-bdbdc831d44a",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "ec154e47-7e2f-41a1-8be0-7738a9e33f3a",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "amount": 15000,
+      "status": "pending",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "cc4a5349-2469-4bb8-b8c5-092ae7d7d5f9",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "03c5f61e-dbe3-4608-8fc9-b96f1746d38f",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "226c0a32-4474-42fb-9c53-63d29e3fb772",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "2d0bbaae-9292-489b-a5dd-741187e270b9",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b0d57e13-81b2-4706-82d3-e25fc040920e",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "221bf294-5195-4171-b304-4a28c540903c",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "423131e9-76c3-4395-b336-ca599976bc9b",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "amount": 15000,
+      "status": "overdue",
+      "due_date": "2026-10-15",
+      "paid_date": null,
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "497ce1ab-9fb7-4d56-b510-19807045baf4",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3cf712b6-a1e8-43b3-bcb9-25073fded287",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "amount": 15000,
+      "status": "paid",
+      "due_date": "2026-10-15",
+      "paid_date": "2026-10-05",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "3600be45-3944-4498-ab9e-421d4300c1f3",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "date": "2026-08-03",
+      "status": "late",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c0a59bb6-4baa-4c73-8f55-019f4a89848e",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "9d3b72ce-891e-42f2-831a-b7015184e3a5",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "4dd8326e-e23c-4fa6-8f7c-17f15aefda09",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3e63cb16-c8d4-4154-bb33-498808d11032",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b3f23868-c1e9-4014-ba6a-39a3105d25d5",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "992ac2ff-c416-4f20-889b-6e718f9b69d2",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "a922ca88-bd12-44f0-9d7c-d6fa456cac7c",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "d2e06f76-0731-43c1-93a0-ee0a767480d6",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "26db9e83-003a-448b-a049-83b0a631d139",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f46d2d09-c485-48b3-b3d4-3d2b557a9c2d",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3161ef70-ba51-406c-8878-1b4d62e24d87",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "59ac7048-1711-4e7c-a38b-cde23818dcd7",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "225712b7-f3e7-4d1f-a877-7b896d802042",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "1c7a0c67-fa5b-4ab8-9e65-2a5ace2db7f5",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c8ab3ec2-48d2-4495-a6c6-a952a807578f",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "edafab57-ca52-41bc-adaa-16ecaf69051d",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "6ed7e3e6-7c53-4942-8c4e-068869223a04",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c340196f-7ad7-45e9-b343-c702f1047593",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "date": "2026-08-03",
+      "status": "absent",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "414c7a0c-91f4-41e5-ad25-b8b71efb276c",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3957fe4d-b66d-4b0f-b354-7005f5dd7b16",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b93b0e23-6556-420b-b099-736199d7ffdd",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "date": "2026-08-03",
+      "status": "absent",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "5d64d882-7433-4ab2-8424-1f302f4fd74b",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "8858fb84-f179-4447-b5d0-b6d6805b7205",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "e0c3e9f9-2555-4c4e-a83d-ac6105aceae9",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "edd890e0-22cd-4679-8af2-f37ff839e1ae",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "d90a1be2-2abb-41c5-b73e-c0725e86e03b",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "39188cf6-cc1d-4d53-8066-028d0f12b29a",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "398551e9-7126-4048-851a-520b5c77d632",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b2274614-c4db-4d45-bd29-298460922b31",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "date": "2026-08-05",
+      "status": "absent",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "912e9544-5ec4-4efc-b0c0-4d5990ee08d3",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "date": "2026-08-03",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c62a568f-c385-404d-854a-2094ad76fd14",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "a6baec51-9fd1-44a0-9ffc-3f70ef72e709",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "283e546a-1643-4068-ba50-2d22f99aa399",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "date": "2026-08-03",
+      "status": "absent",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "520146d5-578d-4125-93d5-c12d02ba9699",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "date": "2026-08-04",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0fbcc2e4-b975-43b4-b45a-3b964c87cc61",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "date": "2026-08-05",
+      "status": "present",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    }
+  ],
+  "exams": [
+    {
+      "id": "78126db4-5831-45a0-9e22-e361165b4411",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "subject": "Physics",
+      "marks_obtained": 58,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "87658f98-7b7d-4abe-b533-78ab72ce0d04",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "subject": "Chemistry",
+      "marks_obtained": 65,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0fa14b42-637a-4057-8668-502d3e98815e",
+      "student_id": "a8f23997-fc89-4d7c-9ba1-34cbb76f58d0",
+      "subject": "Mathematics",
+      "marks_obtained": 92,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "524a875c-2529-4e36-8f28-276d15dd4c75",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "subject": "Physics",
+      "marks_obtained": 55,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f43dd8e7-9fb8-4aba-b01f-c4e37d6ff668",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "subject": "Chemistry",
+      "marks_obtained": 72,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3027a005-f7a4-4985-9da7-27c3882313f4",
+      "student_id": "ba19a400-26a8-4906-aaa7-409ff8b3cfc7",
+      "subject": "Mathematics",
+      "marks_obtained": 78,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "d5dc9e32-f759-4432-8010-6123fbe818b5",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "subject": "Physics",
+      "marks_obtained": 86,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "5abff173-488d-43b3-9798-d2a2f5c37208",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "subject": "Chemistry",
+      "marks_obtained": 57,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "2682d1f5-6f04-49bf-b8ed-ff658c511941",
+      "student_id": "9f7af084-d937-44d5-9713-5fc053b4892a",
+      "subject": "Mathematics",
+      "marks_obtained": 70,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0deafb85-8886-4864-a6b0-510830e3645b",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "subject": "Physics",
+      "marks_obtained": 88,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "1ee16e61-443e-419b-82cd-571e423ab319",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "subject": "Chemistry",
+      "marks_obtained": 82,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "abb917ca-8e6d-4753-9165-6670a9ffd220",
+      "student_id": "15391616-d153-4b19-a0c2-06a70a529b0d",
+      "subject": "Mathematics",
+      "marks_obtained": 98,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f9f5a030-ae07-4cdf-871b-fa09e897a323",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "subject": "Physics",
+      "marks_obtained": 51,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "1d280808-93de-498b-a15e-968ed15f0529",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "subject": "Chemistry",
+      "marks_obtained": 74,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "4c85d3e3-6c2c-4d68-b4bf-cf5e36c05235",
+      "student_id": "d5e1b348-a21d-4616-a01e-a989701c3f18",
+      "subject": "Mathematics",
+      "marks_obtained": 97,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "9867b4ff-e85d-4ee9-b7c9-8db553468e2f",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "subject": "Physics",
+      "marks_obtained": 79,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "2fead6b6-0a99-4e92-aab4-5dba9c7d07d8",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "subject": "Chemistry",
+      "marks_obtained": 69,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "536f3b53-abfb-48d7-b2f7-71b3d2f6b88a",
+      "student_id": "a2bd9e52-1e65-4f1b-823f-f588d8194a98",
+      "subject": "Mathematics",
+      "marks_obtained": 64,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "fe74131a-faf7-4104-be1c-a2f2e9fa1609",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "subject": "Physics",
+      "marks_obtained": 52,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "7f940fe1-b9f0-4698-ab5b-f187a574c393",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "subject": "Chemistry",
+      "marks_obtained": 66,
+      "max_marks": 100,
+      "grade": "B2",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f1f838be-c8e5-42a0-b1e0-2fa404dd4903",
+      "student_id": "17e59b42-d120-4c57-9586-895aba93cfb1",
+      "subject": "Mathematics",
+      "marks_obtained": 80,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "6d89103f-bf0b-4161-8e43-a1c15f6707db",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "subject": "Physics",
+      "marks_obtained": 97,
+      "max_marks": 100,
+      "grade": "A1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "727c0fb2-18c6-404d-967d-72df2b29c3eb",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "subject": "Chemistry",
+      "marks_obtained": 56,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0c378157-2c26-4d66-b294-c4752252f373",
+      "student_id": "e7960a89-7253-4fa0-8435-3de84db96e3e",
+      "subject": "Mathematics",
+      "marks_obtained": 71,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3efff81c-fd11-44f7-aefa-64c4f21b6ff1",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "subject": "Physics",
+      "marks_obtained": 60,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0b3a73ad-4b58-4762-81dd-1bedb61385a4",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "subject": "Chemistry",
+      "marks_obtained": 78,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "88fba003-3c9e-41d1-bb46-4d4f22202841",
+      "student_id": "0f416a8a-553e-43a7-8785-61ebfbcb703d",
+      "subject": "Mathematics",
+      "marks_obtained": 82,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "bff134f0-84d2-418f-b7d2-22b7cc2516d9",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "subject": "Physics",
+      "marks_obtained": 78,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "19d70934-c69c-4af8-a0ce-cd1e0403adaf",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "subject": "Chemistry",
+      "marks_obtained": 86,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0b1cfe4f-43f6-4a39-82cb-1f18881bfe82",
+      "student_id": "c0f394d5-48ee-48fb-8c61-85067f1b2f08",
+      "subject": "Mathematics",
+      "marks_obtained": 80,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "4658d916-e78d-4055-916d-30a0c7ff52e5",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "subject": "Physics",
+      "marks_obtained": 75,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "beab1228-8ccf-4d48-a325-20f3fcacc4bc",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "subject": "Chemistry",
+      "marks_obtained": 90,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f75ea3c5-effd-4f93-b43e-8d79c607a83a",
+      "student_id": "d842b201-d989-4e4c-989f-9d4f7f984b87",
+      "subject": "Mathematics",
+      "marks_obtained": 80,
+      "max_marks": 100,
+      "grade": "B1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b4f09d74-00b1-48a1-9856-c37f7c33be47",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "subject": "Physics",
+      "marks_obtained": 57,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "78cb6fb8-4ea2-4a54-a317-9aafac6a56d9",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "subject": "Chemistry",
+      "marks_obtained": 84,
+      "max_marks": 100,
+      "grade": "A2",
+      "term": "FA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "b8faf846-cefc-4bb2-a64c-3266bb480cfb",
+      "student_id": "6cb27eca-8a7e-4a93-8ac1-e013b991d163",
+      "subject": "Mathematics",
+      "marks_obtained": 56,
+      "max_marks": 100,
+      "grade": "C1",
+      "term": "SA1",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    }
+  ],
+  "timetable": [
+    {
+      "id": "c9eaa8e5-12ff-40a7-a34d-55855bdd5240",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3af14a94-a5f4-453d-a7e5-7718ce79b3d8",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "dee97d28-6efe-446f-a98f-cdaddb7f094f",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "4dd15fec-6cf4-4918-a6f7-5ee3c37c6812",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "298b7ba6-6903-4788-8679-35572ac721e9",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "1fec81dc-d374-4dd2-9b20-9b8a44cccdbe",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "be9e7e31-b44e-48fa-9f71-d0a267e84c0b",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "858a372d-573b-43dd-82ac-c7d3a8f4554e",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "fbebbccf-7f02-4e92-9ec9-ad69dc7af90e",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "3706ded8-cc63-4e4f-a5a2-6901ec121233",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "69210450-1c52-4b5a-b812-4fd504d5a8a7",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "03df5f24-8091-47e3-a52e-39a39f7d706d",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "42ecbc52-38cc-4dcd-ac79-398052a1ad6e",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c95edc01-6a5b-4ce3-8e11-484fa263feda",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c431926f-49bf-48b7-a8c8-cc46f560135a",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "34c655c4-7914-4219-a7d1-d9b0770a5185",
+      "class": "Year 4",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "5fb94993-ff73-4f13-aeb1-94a62ef6fa1d",
+      "class": "Year 4",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "852e5587-5998-4c16-aea7-6e141568ef1c",
+      "class": "Year 4",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "08175d57-9d17-43b7-968c-448992e239dd",
+      "class": "Year 4",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "ba71fd1e-e7ff-44c9-9201-e07173467db6",
+      "class": "Year 4",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "cf9bf814-5ff9-4bcb-834a-cca79f0a48c9",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c3e82c62-5fde-419d-8a85-e031c450935b",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "1149c5e5-c892-4441-b1f0-d3b9613ce42f",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c1ce3af6-7b78-48c3-bab0-15b6b0e7ceeb",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "34f1cf56-55e4-44d4-98b9-688c63fd9940",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "443a056a-8881-49a7-9241-b5cd2e15ba2e",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "e1e54a00-0b0d-4171-9805-d9984312cccb",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "edfc33c4-ec35-4866-9553-0a4195c1274b",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "4a6e8baf-e6d8-45cd-8b51-08525cf7d4c7",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "dfe549a3-e87a-4b20-86e6-7ccb55aefee1",
+      "class": "Year 4",
+      "section": "C",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "22354d49-fd85-4064-9912-6a4ba275705a",
+      "class": "Year 4",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "667e8de9-959b-4401-99b4-1f3334de5d84",
+      "class": "Year 4",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "7067722d-a9cf-49cf-90bb-92418235c131",
+      "class": "Year 4",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "6939ae36-5752-4fa5-a81a-9cff5a2f9713",
+      "class": "Year 4",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "49fea5f0-2bd6-4bb3-b575-8dd5aae9f4fc",
+      "class": "Year 4",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "2b66fb79-d9dd-4f95-b026-e1917d12006f",
+      "class": "Year 1",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "e96509b2-b77c-41d1-81c3-8b04e526a8c8",
+      "class": "Year 1",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "58c66a3f-3935-49c6-8bc6-2c5713f87dd6",
+      "class": "Year 1",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "271039da-31cd-418a-bd09-07ae313419d2",
+      "class": "Year 1",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "c3421f98-6d70-4c7a-9252-7d41a2a720de",
+      "class": "Year 1",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "730eff77-1b4b-4880-ada2-e11d9482783c",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "28ede8e3-e438-4b65-91c7-6539878592d0",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "8deb8929-300a-473b-9648-9fe28e121e16",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f562cacb-1fca-41d6-ad77-6b84ac7c237c",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "d368916c-e652-4c6b-a6a8-ffd71bacdf3e",
+      "class": "Year 1",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "420f2a0b-25be-413d-bbae-1064f803e675",
+      "class": "Year 2",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "551a94db-ceb7-4d88-8d28-8d2e9ab4202b",
+      "class": "Year 2",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "330e3eb7-5104-4fb3-b5a6-20288f9a4800",
+      "class": "Year 2",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "9c5b603a-e852-4c99-ab28-ec92799aefe7",
+      "class": "Year 2",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "c92ee72a-a07a-41b7-95ae-6bce14fed346",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "60531d39-50f3-477d-bd3c-7a3ecc18a839",
+      "class": "Year 2",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "13ca61cf-7fee-4634-ae4f-4ad334020652",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "80dd4f75-fe6c-4431-9ff9-08124dbd9d8d",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "5aec7b89-f7e1-4528-94d1-65dd5bc0acf5",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "02aedda9-3fa8-417c-874a-831c24862d74",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "4402719b-07af-4be1-a5ff-6904021af41d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "2e4f77c2-3c66-4613-8c60-2d4c37c3b8ef",
+      "class": "Year 3",
+      "section": "A",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "756d5ebf-9e72-460c-b519-f0a1759a9692",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Monday",
+      "period_name": "Period 1",
+      "subject": "Chemistry",
+      "teacher_id": "617e48a5-95f3-4472-a44a-bf300c8099ed",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "0107feec-ef38-4dee-b8f9-bada12c48c62",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Tuesday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "7e3dd036-3b68-4edc-8368-f60517fcfd54",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Wednesday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "e732d04a-0ee2-4307-9191-38c9d3c54d8f",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "aab31ec9-c5a0-49e1-b91b-d9ea61d67a91",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Thursday",
+      "period_name": "Period 1",
+      "subject": "Mathematics",
+      "teacher_id": "424f335b-ee4a-430f-bb28-5bff289c5d2d",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    },
+    {
+      "id": "f8ed2db4-c005-47cd-8107-ed90b4f53dc8",
+      "class": "Year 3",
+      "section": "B",
+      "day_of_week": "Friday",
+      "period_name": "Period 1",
+      "subject": "Physics",
+      "teacher_id": "e3c1023c-a36d-4c3a-a711-ff657f4f41ea",
+      "start_time": "09:00",
+      "end_time": "09:50",
+      "school_id": "TEST_IntermediateCollege_Demo"
+    }
+  ]
+}
