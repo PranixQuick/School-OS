@@ -45,6 +45,7 @@ const INST_TYPE_MAP: Record<string, string> = {
   welfare_school: 'welfare_school',
   anganwadi: 'anganwadi',
   junior_college: 'junior_college',
+  intermediate_college: 'intermediate_college',
   degree_college: 'degree_college',
   engineering: 'engineering',
   polytechnic: 'polytechnic',
@@ -54,6 +55,7 @@ const INST_TYPE_MAP: Record<string, string> = {
   coaching: 'coaching',
   vocational: 'vocational',
 };
+
 
 export async function POST(req: NextRequest) {
   let schoolId: string | null = null;
