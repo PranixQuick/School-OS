@@ -26,6 +26,23 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [userName, setUserName] = useState('');
   const [schoolName, setSchoolName] = useState('');
 
+  const [brandingLogo, setBrandingLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/schools/branding')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.branding?.logo_url) {
+          setBrandingLogo(data.branding.logo_url);
+        } else {
+          setBrandingLogo('/brand/icon.png');
+        }
+      })
+      .catch(() => {
+        setBrandingLogo('/brand/icon.png');
+      });
+  }, []);
+
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
       if (d) {
@@ -111,7 +128,16 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <div className="t-shell">
         <header className="t-header">
           <div className="t-header-left">
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14 }}>T</div>
+            {brandingLogo && (
+              <img
+                src={brandingLogo}
+                alt="logo"
+                style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/brand/icon.png';
+                }}
+              />
+            )}
             <div>
               <div className="t-school-name">{schoolName || 'EdProSys'}</div>
             </div>

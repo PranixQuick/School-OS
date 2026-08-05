@@ -33,6 +33,24 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   const isLoginPage = pathname === '/student/login';
   const showBack = !HOME_ROUTES.has(pathname);
 
+  const [brandingLogo, setBrandingLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    fetch('/api/admin/schools/branding')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.branding?.logo_url) {
+          setBrandingLogo(data.branding.logo_url);
+        } else {
+          setBrandingLogo('/brand/icon.png');
+        }
+      })
+      .catch(() => {
+        setBrandingLogo('/brand/icon.png');
+      });
+  }, [isLoginPage]);
+
   useEffect(() => {
     if (isLoginPage) return;
     void fetch('/api/student/profile')
@@ -76,7 +94,16 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
               ←
             </button>
           )}
-          <span style={{ fontSize: 22 }}>🎓</span>
+          {brandingLogo && (
+            <img
+              src={brandingLogo}
+              alt="logo"
+              style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/brand/icon.png';
+              }}
+            />
+          )}
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{studentName || '…'}</div>
             <div style={{ fontSize: 10, color: '#6B7280' }}>{studentClass}</div>
