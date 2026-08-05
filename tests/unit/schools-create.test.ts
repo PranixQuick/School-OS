@@ -43,13 +43,14 @@ describe('POST /api/schools/create', () => {
     const mockAuthUser = { user: { id: 'auth-user-123' } };
 
     const fromSpy = vi.spyOn(mockSupabaseClient, 'from');
+    const insertSpy = vi.fn().mockReturnThis();
     
     // We mock sequential calls to different tables
     fromSpy.mockImplementation((table: string) => {
       const q: any = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
+        insert: insertSpy,
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         single: vi.fn(),
       };
@@ -61,7 +62,6 @@ describe('POST /api/schools/create', () => {
       } else if (table === 'schools') {
         q.single = vi.fn().mockResolvedValue({ data: mockSchool, error: null });
       } else if (table === 'school_users') {
-        // mock return code for school_users insert
         q.then = vi.fn((resolve) => resolve({ data: {}, error: null }));
       } else if (table === 'owner_profiles') {
         q.then = vi.fn((resolve) => resolve({ data: {}, error: null }));
@@ -93,12 +93,16 @@ describe('POST /api/schools/create', () => {
     const resData = await res.json();
     expect(resData.success).toBe(true);
 
-    // Verify institution insert was called with intermediate_college
-    expect(fromSpy).toHaveBeenCalledWith('institutions');
-    
-    // Let's verify that the institutions insert payload contains intermediate_college and higher ed flags:
-    // For intermediate_college, isHigherEd = true. Since ownership_type = private, feeModuleEnabled = true.
-    const instQuery = fromSpy.mock.results.find((r, i) => fromSpy.mock.calls[i][0] === 'institutions');
-    expect(instQuery).toBeDefined();
+    // Verify institutions insert arguments:
+    // For intermediate_college, isHigherEd = true. Since ownership_type = private, feeModuleEnabled = true, scholarshipEnabled = false.
+    expect(insertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        institution_type: 'intermediate_college',
+        feature_flags: expect.objectContaining({
+          fee_module_enabled: true,
+          scholarship_tracking_enabled: false,
+        }),
+      })
+    );
   });
 });
