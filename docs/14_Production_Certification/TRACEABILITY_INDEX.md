@@ -48,6 +48,8 @@ STK-004 (Teacher) -> WF-031 (Attendance) -> API-022 (Submit Attendance)
 * **Wave 8 — Module Certification:** Documented in [MODULE_CERTIFICATION_REPORT.md](file:///c:/Users/ADMIN/School-OS/docs/08_Module_Certification/MODULE_CERTIFICATION_REPORT.md)
 * **Wave 9 — Intermediate College Certification:** Documented in [INTERMEDIATE_COLLEGE_CERTIFICATION.md](file:///c:/Users/ADMIN/School-OS/docs/08_Module_Certification/INTERMEDIATE_COLLEGE_CERTIFICATION.md)
 * **Wave 10 — Real Device Certification:** Documented in [REAL_DEVICE_CERTIFICATION.md](file:///c:/Users/ADMIN/School-OS/docs/10_Device_Certification/REAL_DEVICE_CERTIFICATION.md)
+* **Wave 11 — Chaos Certification:** Documented in [CHAOS_CERTIFICATION.md](file:///c:/Users/ADMIN/School-OS/docs/11_Chaos_Certification/CHAOS_CERTIFICATION.md)
+
 
 
 
