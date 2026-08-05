@@ -20,7 +20,7 @@ BEGIN
         target_con_name := r.conname;
     END LOOP;
 
-    -- 2. Identify unique indexes containing staff_id, day_of_week, and period (excluding PKs)
+    -- 2. Identify unique indexes containing staff_id, day_of_week, and period (excluding PKs and constraint-backing indexes)
     FOR r IN (
         SELECT c.relname as idxname
         FROM pg_index i
@@ -28,6 +28,12 @@ BEGIN
         WHERE i.indrelid = 'public.timetable'::regclass
           AND i.indisunique
           AND NOT i.indisprimary
+          AND i.indexrelid NOT IN (
+              SELECT conindid 
+              FROM pg_constraint 
+              WHERE contype = 'u' 
+                AND conindid IS NOT NULL
+          )
           AND pg_get_indexdef(i.indexrelid) LIKE '%staff_id%'
           AND pg_get_indexdef(i.indexrelid) LIKE '%day_of_week%'
           AND pg_get_indexdef(i.indexrelid) LIKE '%period%'
