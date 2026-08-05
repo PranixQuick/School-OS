@@ -13,7 +13,7 @@ The following metrics are applied to certify each module:
 4. **Mobile Verified:** Rated as *Not Verified (Headless)* due to lack of connected physical mobile device testing in this environment. However, PWA service workers and responsive viewports have been statically verified.
 5. **Web Verified:** Verified inside desktop layouts and test engines.
 6. **Permissions Verified:** Correct role-checking gates are implemented.
-7. **Performance Verified:** Fast rendering, lightweight static loads, and optimized query paths.
+7. **Performance Verified — METHODOLOGY CORRECTION:** Every "Yes" in this report under this criterion (all 11 modules) was assigned from static code inspection only — checking that a query uses an index, that a call is synchronous vs. queued, etc. No load test, no response-time measurement, and no concurrent-user test was run against any environment. This is real signal that a module isn't obviously slow, but it is not performance verification and should not be read as one. Recommend an actual load/response-time pass (Wave 11 — Chaos Certification — is the right place for this) before relying on these ratings for capacity planning at Intermediate College scale.
 8. **Security Verified:** Protected against cross-tenant IDOR, sql injections, and unauthorized role-bypass.
 9. **Production Ready:** Meets all criteria to be marked ready for the founder's college rollout.
 
