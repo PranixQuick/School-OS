@@ -17,22 +17,23 @@ STK-004 (Teacher) -> WF-031 (Attendance) -> API-022 (Submit Attendance)
 ```
 
 ### Real Traceability Chains
-* STK-001 (Owner)
-* STK-002 (Principal)
-* STK-003 (Admin Staff)
-* STK-004 (Teacher)
-* STK-005 (Head of Department)
-* STK-006 (Accountant)
-* STK-007 (Counsellor)
-* STK-008 (Student)
-* STK-009 (Parent)
-* STK-010 (Vendor)
-* STK-011 (Mandal Education Officer)
-* STK-012 (District Education Officer)
-* STK-013 (Registrar)
-* STK-014 (Librarian)
-* STK-015 (Hostel Admin)
-* STK-016 (Anganwadi Worker)
-* STK-017 (Super Admin)
-* STK-018 (Viewer)
+* STK-001 (Owner) -> Portal: /owner (app/owner/page.tsx)
+* STK-002 (Principal) -> Portal: /principal (app/principal/page.tsx)
+* STK-003 (Admin Staff) -> Portal: /dashboard (app/dashboard/page.tsx)
+* STK-004 (Teacher) -> Portal: /teacher (app/teacher/page.tsx)
+* STK-005 (Head of Department) -> Portal: /hod/dashboard (app/hod/dashboard/page.tsx)
+* STK-006 (Accountant) -> Portal: /accountant (app/accountant/page.tsx)
+* STK-007 (Counsellor) -> Portal: /counsellor (app/counsellor/page.tsx)
+* STK-008 (Student) -> Portal: /student (app/student/page.tsx)
+* STK-009 (Parent) -> Portal: /parent (app/parent/page.tsx)
+* STK-010 (Vendor) -> Portal: /vendor (app/vendor/page.tsx)
+* STK-011 (Mandal Education Officer) -> Portal: /meo/dashboard (app/meo/dashboard/page.tsx)
+* STK-012 (District Education Officer) -> Portal: /deo/dashboard (app/deo/dashboard/page.tsx)
+* STK-013 (Registrar) -> Portal: /registrar/dashboard (app/registrar/dashboard/page.tsx)
+* STK-014 (Librarian) -> Portal: /librarian (app/librarian/page.tsx) [Coming Soon Placeholder]
+* STK-015 (Hostel Admin) -> Portal: /hostel-admin (app/hostel-admin/page.tsx) [Broken: Gating Defect]
+* STK-016 (Anganwadi Worker) -> Portal: /anganwadi (app/anganwadi/page.tsx)
+* STK-017 (Super Admin) -> Portal: /super-admin (app/super-admin/page.tsx)
+* STK-018 (Viewer) -> Portal: /dashboard (app/dashboard/page.tsx) [Read-Only]
+
 
