@@ -29,6 +29,57 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   if (Object.keys(update).length === 0) return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
 
+  // Load existing row for tenant guard and conflict checks
+  const { data: existing, error: fetchErr } = await supabaseAdmin
+    .from('timetable')
+    .select('id, school_id, class_id, subject_id, staff_id, day_of_week, period, start_time, end_time')
+    .eq('id', id)
+    .maybeSingle();
+  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (!existing) return NextResponse.json({ error: 'Timetable entry not found' }, { status: 404 });
+  if (existing.school_id !== schoolId) return NextResponse.json({ error: 'Timetable entry does not belong to your school' }, { status: 403 });
+
+  const resolvedStaffId = (update.staff_id !== undefined ? update.staff_id : existing.staff_id) as string | null;
+  const resolvedDayOfWeek = (update.day_of_week !== undefined ? update.day_of_week : existing.day_of_week) as number;
+  const resolvedPeriod = (update.period !== undefined ? update.period : existing.period) as number;
+  const resolvedSubjectId = (update.subject_id !== undefined ? update.subject_id : existing.subject_id) as string;
+  const resolvedStartTime = (update.start_time !== undefined ? update.start_time : existing.start_time) as string;
+  const resolvedEndTime = (update.end_time !== undefined ? update.end_time : existing.end_time) as string;
+
+  let sharedPeriodNote: string | undefined;
+  if (resolvedStaffId != null && resolvedStaffId !== '') {
+    const { data: conflicts, error: conflictErr } = await supabaseAdmin
+      .from('timetable')
+      .select('id, class_id, subject_id, start_time, end_time, classes:class_id ( grade_level, section )')
+      .eq('school_id', schoolId)
+      .eq('staff_id', resolvedStaffId)
+      .eq('day_of_week', resolvedDayOfWeek)
+      .eq('period', resolvedPeriod);
+      
+    if (conflictErr) return NextResponse.json({ error: conflictErr.message }, { status: 500 });
+    
+    const otherConflicts = conflicts ? conflicts.filter(c => c.id !== id) : [];
+    if (otherConflicts && otherConflicts.length > 0) {
+      const isShared = otherConflicts.every(c =>
+        c.subject_id === resolvedSubjectId &&
+        c.start_time === resolvedStartTime &&
+        c.end_time === resolvedEndTime
+      );
+      
+      if (!isShared) {
+        return NextResponse.json({
+          error: 'This teacher is already assigned elsewhere at that day and period.'
+        }, { status: 409 });
+      }
+      
+      const otherClasses = otherConflicts.map((c: any) => {
+        const cls = Array.isArray(c.classes) ? c.classes[0] : c.classes;
+        return cls ? `${cls.grade_level}-${cls.section}` : 'Unknown Class';
+      });
+      sharedPeriodNote = `Sharing period with class ${otherClasses.join(', ')}`;
+    }
+  }
+
   const { data, error } = await supabaseAdmin.from('timetable').update(update)
     .eq('id', id).eq('school_id', schoolId)
     .select(`
@@ -39,7 +90,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     `).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Timetable entry not found' }, { status: 404 });
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, shared_period_note: sharedPeriodNote });
 }
 
 // ─── DELETE: remove timetable entry ──────────────────────────────────────────
