@@ -36,4 +36,13 @@ STK-004 (Teacher) -> WF-031 (Attendance) -> API-022 (Submit Attendance)
 * STK-017 (Super Admin) -> Portal: /super-admin (app/super-admin/page.tsx)
 * STK-018 (Viewer) -> Portal: /dashboard (app/dashboard/page.tsx) [Read-Only]
 
+### Wave Certifications
+* **Wave 0 — Project Discovery:** Documented in [docs/00_Project_Discovery/](file:///c:/Users/ADMIN/School-OS/docs/00_Project_Discovery/)
+* **Wave 1 — Stakeholder Discovery:** Documented in [STAKEHOLDER_CATALOGUE.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/STAKEHOLDER_CATALOGUE.md)
+* **Wave 2 — Onboarding Discovery:** Documented in [ONBOARDING_PATHS.md](file:///c:/Users/ADMIN/School-OS/docs/05_Onboarding/ONBOARDING_PATHS.md)
+* **Wave 3 — Owner Discovery:** Documented in [OWNER_DISCOVERY.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/OWNER_DISCOVERY.md)
+* **Wave 4 — Dashboard Discovery:** Documented in [DASHBOARD_MAP.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/DASHBOARD_MAP.md)
+* **Wave 5 — Permission Discovery:** Documented in [PERMISSION_MAP.md](file:///c:/Users/ADMIN/School-OS/docs/04_Stakeholders/PERMISSION_MAP.md)
+
+
 
