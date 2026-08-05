@@ -26,7 +26,7 @@ School-OS governs actions through two main layers:
 * **Core Authority Scope:** Institution-wide management.
 * **Interactive Actions & Buttons:**
   * **Switch School:** Switch between schools within the institution hierarchy.
-  * **Manage Billing:** View active subscription, invoice histories, and current plans.
+  * **Manage Billing — CORRECTED:** No such action actually exists for the owner today. [app/billing/page.tsx](file:///c:/Users/ADMIN/School-OS/app/billing/page.tsx) is a static "contact support" card with no subscription, invoice, or plan viewer, matching the Wave 3 OWNER_DISCOVERY.md finding ("Static Billing Page"). The `/api/billing/*` routes that do exist (`create-order`, `upgrade`, `webhook`) are Razorpay payment-flow endpoints only — there is no GET route to list invoices, subscriptions, or plans, and no owner-facing button triggers any of them today.
   * **Provision Delegates:** Add/remove staff delegates who inherit institution-wide read rights.
   * **Configure School Branding:** Customize colors, upload logos, and set transaction receipt prefixes.
 * **Enforcing Backend Code:**
