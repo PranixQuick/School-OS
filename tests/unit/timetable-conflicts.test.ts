@@ -35,6 +35,7 @@ vi.mock('@/lib/admin-auth', () => {
   };
 });
 
+const VALID_ID = '00000000-0000-0000-0000-000000000001';
 const VALID_CLASS_ID = '00000000-0000-0000-0000-000000000002';
 const VALID_SUBJECT_ID = '00000000-0000-0000-0000-000000000003';
 const OTHER_SUBJECT_ID = '00000000-0000-0000-0000-000000000004';
@@ -47,7 +48,6 @@ describe('Timetable Conflict Detection', () => {
 
   describe('POST /api/admin/timetable', () => {
     it('blocks genuine double-booking (different subject)', async () => {
-      // Mock the first query (conflicts check) to return conflicting list
       queryBuilder.then = vi.fn().mockImplementation((resolve) => {
         return resolve({
           data: [
@@ -96,9 +96,6 @@ describe('Timetable Conflict Detection', () => {
         end_time: '10:00',
       };
 
-      // Mock sequential queries:
-      // Call 1 (conflicts): returns matching list
-      // Call 2 (insert): returns mockInserted
       let callCount = 0;
       queryBuilder.then = vi.fn().mockImplementation((resolve) => {
         callCount++;
@@ -140,6 +137,249 @@ describe('Timetable Conflict Detection', () => {
 
       const res = await POST(req);
       expect(res.status).toBe(201);
+      const resData = await res.json();
+      expect(resData.shared_period_note).toBe('Sharing period with class 11-A');
+    });
+  });
+
+  describe('PATCH /api/admin/timetable', () => {
+    it('blocks genuine double-booking on update', async () => {
+      const mockExisting = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      let callCount = 0;
+      queryBuilder.then = vi.fn().mockImplementation((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          // fetchExisting query
+          return resolve({ data: mockExisting, error: null });
+        } else {
+          // conflicts query: returns list with different subject
+          return resolve({
+            data: [
+              {
+                id: 'slot-other',
+                class_id: VALID_CLASS_ID,
+                subject_id: OTHER_SUBJECT_ID,
+                start_time: '09:00',
+                end_time: '10:00',
+                classes: { grade_level: '11', section: 'A' },
+              },
+            ],
+            error: null,
+          });
+        }
+      });
+
+      const body = {
+        id: VALID_ID,
+        subject_id: VALID_SUBJECT_ID,
+      };
+
+      const req = new NextRequest('http://localhost/api/admin/timetable', {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+
+      const res = await PATCH(req);
+      expect(res.status).toBe(409);
+      const resData = await res.json();
+      expect(resData.error).toContain('already assigned elsewhere');
+    });
+
+    it('allows legitimate shared-period on update', async () => {
+      const mockExisting = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      const mockUpdated = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      let callCount = 0;
+      queryBuilder.then = vi.fn().mockImplementation((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          // fetchExisting query
+          return resolve({ data: mockExisting, error: null });
+        } else if (callCount === 2) {
+          // conflicts query: returns same subject/time
+          return resolve({
+            data: [
+              {
+                id: 'slot-other',
+                class_id: VALID_CLASS_ID,
+                subject_id: VALID_SUBJECT_ID,
+                start_time: '09:00',
+                end_time: '10:00',
+                classes: { grade_level: '11', section: 'A' },
+              },
+            ],
+            error: null,
+          });
+        } else {
+          // update query
+          return resolve({ data: mockUpdated, error: null });
+        }
+      });
+
+      const body = {
+        id: VALID_ID,
+        subject_id: VALID_SUBJECT_ID,
+      };
+
+      const req = new NextRequest('http://localhost/api/admin/timetable', {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+
+      const res = await PATCH(req);
+      expect(res.status).toBe(200);
+      const resData = await res.json();
+      expect(resData.shared_period_note).toBe('Sharing period with class 11-A');
+    });
+  });
+
+  describe('PUT /api/admin/timetable/[id]', () => {
+    it('blocks genuine double-booking on update', async () => {
+      const mockExisting = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        class_id: VALID_CLASS_ID,
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      let callCount = 0;
+      queryBuilder.then = vi.fn().mockImplementation((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          // fetchExisting query
+          return resolve({ data: mockExisting, error: null });
+        } else {
+          // conflicts query: returns list with different subject
+          return resolve({
+            data: [
+              {
+                id: 'slot-other',
+                class_id: VALID_CLASS_ID,
+                subject_id: OTHER_SUBJECT_ID,
+                start_time: '09:00',
+                end_time: '10:00',
+                classes: { grade_level: '11', section: 'A' },
+              },
+            ],
+            error: null,
+          });
+        }
+      });
+
+      const body = {
+        subject_id: VALID_SUBJECT_ID,
+      };
+
+      const req = new NextRequest(`http://localhost/api/admin/timetable/${VALID_ID}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+
+      const params = Promise.resolve({ id: VALID_ID });
+      const res = await PUT(req, { params });
+      expect(res.status).toBe(409);
+      const resData = await res.json();
+      expect(resData.error).toContain('already assigned elsewhere');
+    });
+
+    it('allows legitimate shared-period on update', async () => {
+      const mockExisting = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        class_id: VALID_CLASS_ID,
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      const mockUpdated = {
+        id: VALID_ID,
+        school_id: 'school-123',
+        class_id: VALID_CLASS_ID,
+        staff_id: VALID_STAFF_ID,
+        day_of_week: 1,
+        period: 1,
+        subject_id: VALID_SUBJECT_ID,
+        start_time: '09:00',
+        end_time: '10:00',
+      };
+
+      let callCount = 0;
+      queryBuilder.then = vi.fn().mockImplementation((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          // fetchExisting query
+          return resolve({ data: mockExisting, error: null });
+        } else if (callCount === 2) {
+          // conflicts query: returns same subject/time
+          return resolve({
+            data: [
+              {
+                id: 'slot-other',
+                class_id: VALID_CLASS_ID,
+                subject_id: VALID_SUBJECT_ID,
+                start_time: '09:00',
+                end_time: '10:00',
+                classes: { grade_level: '11', section: 'A' },
+              },
+            ],
+            error: null,
+          });
+        } else {
+          // update query
+          return resolve({ data: mockUpdated, error: null });
+        }
+      });
+
+      const body = {
+        subject_id: VALID_SUBJECT_ID,
+      };
+
+      const req = new NextRequest(`http://localhost/api/admin/timetable/${VALID_ID}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+
+      const params = Promise.resolve({ id: VALID_ID });
+      const res = await PUT(req, { params });
+      expect(res.status).toBe(200);
       const resData = await res.json();
       expect(resData.shared_period_note).toBe('Sharing period with class 11-A');
     });
