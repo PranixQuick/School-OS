@@ -99,6 +99,18 @@ export async function POST(req: NextRequest) {
       }).then(null, () => {}); // non-blocking
     }
 
+    // Workflow #12: a new admission enquiry — admin acts, principal + owner see the funnel.
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['admin', 'principal', 'owner'],
+      type: 'admission_enquiry',
+      module: 'admissions',
+      title: 'New admission enquiry',
+      message: `${parent_name} enquired for Class ${target_class} (${priority} priority).`,
+      referenceId: data.id,
+      href: '/admissions',
+    });
+
     return NextResponse.json({ success: true, id: data.id, score: data.score, priority: data.priority, ruleScore, aiNote: note });
   } catch (err) {
     console.error('Admissions create error:', err);
