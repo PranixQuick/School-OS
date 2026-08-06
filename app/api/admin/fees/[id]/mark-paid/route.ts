@@ -208,5 +208,19 @@ export async function PATCH(
     } catch (notifErr) { console.error('[mark-paid] notification hook failed (non-fatal):', notifErr); }
   }
 
+  // In-app alert to the oversight chain (principal + owner) that a fee was settled.
+  if (!isWaiver) {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['principal', 'owner'],
+      type: 'fee_payment',
+      module: 'fees',
+      title: 'Fee payment recorded',
+      message: `A ${body.method} fee payment was recorded${data.payment_reference ? ` (ref ${data.payment_reference})` : ''}.`,
+      referenceId: feeId,
+      href: '/admin/fees',
+    });
+  }
+
   return NextResponse.json({ fee: data });
 }
