@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { requireStudentSession } from '@/lib/student-auth';
 import { writeNotification } from '@/lib/notifications';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 // G2: Student homework submission endpoint
 export async function POST(req: NextRequest) {
