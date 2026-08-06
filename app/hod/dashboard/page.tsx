@@ -74,6 +74,21 @@ export default function HODDashboardPage() {
         </div>
       </div>
 
+      {/* Department screens */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginBottom: 14 }}>
+        {[
+          { label: 'Subjects & Faculty', icon: '📘', href: '/hod/subjects' },
+          { label: 'Class Roster', icon: '🗓', href: '/hod/roster' },
+          { label: 'Portion Covered', icon: '📖', href: '/hod/portion' },
+          { label: 'Tests & Results', icon: '📊', href: '/hod/results' },
+        ].map(q => (
+          <Link key={q.href} href={q.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{q.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{q.label}</span>
+          </Link>
+        ))}
+      </div>
+
       {/* Accreditation status */}
       {dept?.accreditation_body && (
         <div style={{ background: daysUntilExpiry !== null && daysUntilExpiry < 180 ? '#FFF7ED' : '#F0FDF4', border: `1px solid ${daysUntilExpiry !== null && daysUntilExpiry < 180 ? '#FED7AA' : '#BBF7D0'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
