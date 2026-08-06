@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -89,6 +90,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { data, error } = await supabaseAdmin
     .from('payroll_runs').update(patch).eq('id', id).eq('school_id', ctx.schoolId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the next role in the salary-run approval chain (workflow #8).
+  const period = `${data.pay_period_month}/${data.pay_period_year}`;
+  const alertMap: Record<string, { roles: string[]; title: string; message: string }> = {
+    submit_for_review: { roles: ['principal', 'admin'], title: 'Payroll needs review', message: `A salary run (${period}) was submitted for review.` },
+    review:            { roles: ['owner'],              title: 'Payroll needs approval', message: `A salary run (${period}) was reviewed and needs your approval.` },
+    approve:           { roles: ['accountant'],         title: 'Payroll approved', message: `The salary run (${period}) was approved — ready to submit to the bank.` },
+    submit_to_bank:    { roles: ['owner', 'principal'], title: 'Payroll submitted to bank', message: `The salary run (${period}) was submitted to the bank.` },
+  };
+  const chainAlert = action ? alertMap[action] : undefined;
+  if (chainAlert) {
+    await createStaffAlerts({
+      schoolId: ctx.schoolId,
+      targetRoles: chainAlert.roles,
+      type: 'payroll',
+      module: 'payroll',
+      title: chainAlert.title,
+      message: chainAlert.message,
+      referenceId: id,
+      href: '/admin/payroll',
+    });
+  }
 
   // Audit log
   void supabaseAdmin.from('payroll_audit_log').insert({
