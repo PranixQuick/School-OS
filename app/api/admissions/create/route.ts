@@ -4,6 +4,7 @@ import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #12: in-app staff alerts
 
 const HIGH_DEMAND_CLASSES = ['1', '2', '3', '6'];
 const IDEAL_AGE_MAP: Record<string, [number, number]> = {
