@@ -156,6 +156,20 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 });
   }
 
+  // Workflow #13: escalation gives the principal + owner visibility.
+  if (updates.status === 'escalated') {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['principal', 'owner'],
+      type: 'complaint',
+      module: 'complaints',
+      title: 'Complaint escalated',
+      message: `A complaint "${updated.subject ?? updated.complaint_type ?? 'issue'}" was escalated and needs attention.`,
+      referenceId: id,
+      href: '/admin/complaints',
+    });
+  }
+
   // Notify the parent in real time when the school acts on their complaint
   // (status resolved/closed, or a resolution was written). Best-effort — the
   // complaint update is already committed.
