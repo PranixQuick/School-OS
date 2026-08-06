@@ -111,7 +111,7 @@ export default function HODDashboardPage() {
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
         {[
-          { label: 'Internships', value: dept?.active_internships ?? 0, icon: '🏭', href: '/admin/internships', color: '#0284C7' },
+          { label: 'Internships', value: dept?.active_internships ?? 0, icon: '🏭', href: '/hod/results', color: '#0284C7' },
           { label: 'Placed', value: dept?.placed_this_year ?? 0, icon: '💼', href: '/admin/placement', color: '#15803D' },
           { label: 'Exam Due', value: dept?.exam_upcoming ?? 0, icon: '📝', href: '/admin/assessments', color: dept?.exam_upcoming ? '#D97706' : '#15803D' },
         ].map(k => (
