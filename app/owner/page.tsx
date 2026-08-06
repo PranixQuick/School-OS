@@ -79,8 +79,9 @@ export default function OwnerPage() {
         body: JSON.stringify({ schoolId }),
       });
       if (r.ok) {
-        const d = await r.json().catch(() => ({}));
-        window.location.href = (d as { redirectTo?: string }).redirectTo || '/dashboard';
+        // Redirect target is fixed and server-controlled (always the admin dashboard),
+        // not derived from the response body — avoids any open-redirect pattern.
+        window.location.href = '/dashboard';
       }
     } catch { /* ignore */ }
   };
