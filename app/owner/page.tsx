@@ -71,6 +71,20 @@ export default function OwnerPage() {
     return () => clearTimeout(t);
   }, []);
 
+  const manageSchool = async (schoolId: string) => {
+    try {
+      const r = await fetch('/api/auth/switch-school', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId }),
+      });
+      if (r.ok) {
+        const d = await r.json().catch(() => ({}));
+        window.location.href = (d as { redirectTo?: string }).redirectTo || '/dashboard';
+      }
+    } catch { /* ignore */ }
+  };
+
   const schools = data?.school_stats ?? [];
   const filtered = activeSchool === 'all' ? schools : schools.filter(s => s.school_id === activeSchool);
 
