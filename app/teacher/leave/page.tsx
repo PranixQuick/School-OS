@@ -13,8 +13,7 @@ function Layout({ title, subtitle, children }: { title?: string; subtitle?: stri
   return (
     <div style={{ padding: '12px 14px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <button onClick={() => window.history.back()} aria-label="Back" style={{ border: '1px solid #E5E7EB', background: '#fff', borderRadius: 8, width: 36, height: 36, minWidth: 36, minHeight: 36, cursor: 'pointer', fontSize: 16 }}>←</button>
-        <div>
+          <div>
           {title && <h1 style={{ fontSize: 17, fontWeight: 800, color: '#111827', margin: 0 }}>{title}</h1>}
           {subtitle && <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{subtitle}</p>}
         </div>
