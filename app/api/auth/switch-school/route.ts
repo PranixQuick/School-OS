@@ -55,9 +55,11 @@ export async function POST(req: NextRequest) {
     .eq('email', ctx.userEmail)
     .maybeSingle();
 
-  let activeUserId = existing?.id as string | undefined;
+  let activeUserId: string;
 
-  if (!activeUserId) {
+  if (existing?.id) {
+    activeUserId = existing.id as string;
+  } else {
     // Reuse the owner's existing auth identity so the new row is a real login.
     const { data: anyOwnerRow } = await supabaseAdmin
       .from('school_users')
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
     if (insErr || !created) {
       return NextResponse.json({ error: 'Could not grant access to that institution.' }, { status: 500 });
     }
-    activeUserId = created.id;
+    activeUserId = created.id as string;
   }
 
   const token = await issueSession({
