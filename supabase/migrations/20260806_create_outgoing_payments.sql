@@ -1,0 +1,4 @@
+-- SUPERSEDED — do not apply.
+-- An expenses feature already existed (app/api/admin/expenses/*) backed by the
+-- `other_payments` table, so a separate `outgoing_payments` table would be drift.
+-- See 20260806_create_other_payments.sql instead. This file is intentionally a no-op.

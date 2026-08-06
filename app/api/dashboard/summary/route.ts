@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // is for admin-class dashboards only. Without this, any authenticated user
     // (librarian, transport_staff, hostel_admin, placement_officer, teacher, ...)
     // could read the school's totals and fee position. Access-control fix.
-    const DASHBOARD_ROLES = new Set(['owner', 'principal', 'admin', 'admin_staff', 'viewer', 'counsellor']);
+    const DASHBOARD_ROLES = new Set(['owner', 'principal', 'admin', 'admin_staff', 'viewer', 'counsellor', 'accountant']);
     if (!DASHBOARD_ROLES.has(session.userRole)) {
       return NextResponse.json({ error: 'Not permitted for this role' }, { status: 403 });
     }

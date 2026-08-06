@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { writeNotification } from '@/lib/notifications';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #7: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
   // Trigger real-time system notification
   const title = initialStatus === 'approved' ? 'New Expense Approved' : 'New Expense Pending Approval';
   const message = `${category.toUpperCase()} payment of ₹${numericAmount} logged by ${userEmail}. Status: ${initialStatus}.`;
-  
+
   await writeNotification(supabaseAdmin, {
     school_id: schoolId,
     type: 'alert',
@@ -99,6 +100,21 @@ export async function POST(req: NextRequest) {
     module: 'expense_created',
     reference_id: data.id,
   });
+
+  // Workflow #7: when an accountant logs a payment that needs sign-off, alert the
+  // approval chain (principal + owner) in real time via the bell.
+  if (initialStatus === 'pending_approval') {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['principal', 'owner'],
+      type: 'outgoing_payment',
+      module: 'expenses',
+      title: 'Payment approval needed',
+      message: `A ${category} payment of ₹${Math.round(numericAmount)} needs approval.`,
+      referenceId: data.id,
+      href: '/admin/expenses',
+    });
+  }
 
   return NextResponse.json({ success: true, id: data.id, status: initialStatus });
 }

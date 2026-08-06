@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { writeNotification } from '@/lib/notifications';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #7: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -77,6 +78,20 @@ export async function PUT(
     module: 'expense_approved',
     reference_id: id,
   });
+
+  // Workflow #7: tell whoever logged the payment that it was decided.
+  if (txn.created_by) {
+    await createStaffAlerts({
+      schoolId,
+      targetUserId: txn.created_by,
+      type: 'outgoing_payment',
+      module: 'expenses',
+      title: `Payment ${status}`,
+      message: `Your ${data.category} payment of ₹${Math.round(Number(data.amount))} was ${status}.`,
+      referenceId: id,
+      href: '/admin/expenses',
+    });
+  }
 
   return NextResponse.json({ success: true, status });
 }

@@ -83,6 +83,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
     { groupKey: 'finance', items: [
       { key: 'fees',           href: '/admin/fees',            icon: '💰' },
       { key: 'fee_categories', href: '/admin/fees/categories', icon: '🏷️' },
+      { key: 'expenses',       href: '/admin/expenses',        icon: '🧾' },
     ]},
   ],
   admin: [
@@ -110,6 +111,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         // Anganwadi staff are typically paid through government channels, not
         // the platform.
         showFor: (ctx) => !ctx.isAnganwadi },
+      { key: 'expenses',      href: '/admin/expenses',               icon: '🧾' },
     ]},
     { groupKey: 'operations', items: [
       { key: 'leave',         href: '/principal/leave-approvals',    icon: '📅' },
