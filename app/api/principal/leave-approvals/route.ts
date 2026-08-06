@@ -17,6 +17,7 @@ import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-aut
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -155,6 +156,25 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // In-app alerts: tell the teacher the decision; give the owner visibility (workflow #5).
+  const decided = body.decision === 'approved' ? 'approved' : 'rejected';
+  const { data: teacherUser } = await supabaseAdmin
+    .from('school_users').select('id').eq('staff_id', existing.staff_id).eq('school_id', schoolId).maybeSingle();
+  if (teacherUser?.id) {
+    await createStaffAlerts({
+      schoolId, targetUserId: teacherUser.id, type: 'leave_decision', module: 'leave',
+      title: `Leave ${decided}`,
+      message: `Your leave (${existing.from_date} → ${existing.to_date}) was ${decided}.`,
+      referenceId: body.id, href: '/teacher/leave',
+    });
+  }
+  await createStaffAlerts({
+    schoolId, targetRoles: ['owner'], type: 'leave_decision', module: 'leave',
+    title: `Teacher leave ${decided}`,
+    message: `A teacher's leave (${existing.from_date} → ${existing.to_date}) was ${decided} by the principal.`,
+    referenceId: body.id, href: '/owner',
+  });
+
   // Item #14 PR #2: best-effort notification on leave approved/rejected
   try {
     // Quick staff name lookup for notification message
