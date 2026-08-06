@@ -17,6 +17,7 @@ import { requirePrincipalSession, PrincipalAuthError } from '@/lib/principal-aut
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 // TODO(item-15): migrate to supabaseForUser
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
