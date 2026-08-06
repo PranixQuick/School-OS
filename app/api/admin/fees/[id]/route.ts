@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -167,6 +168,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     oldData: fee, newData: updated,
     metadata: { reason, by_role: userRole, by_staff: staffId ?? null, fields: Object.keys(updates) },
     req,
+  });
+
+  // Workflow #3: a fee was changed — alert the finance chain (accountant + principal).
+  await createStaffAlerts({
+    schoolId,
+    targetRoles: ['accountant', 'principal'],
+    type: 'fee_change',
+    module: 'fees',
+    title: 'Fee updated',
+    message: `A fee was amended (now ₹${Math.round(Number(updated.amount))}). Reason: ${reason}.`,
+    referenceId: feeId,
+    href: '/admin/fees',
   });
 
   return NextResponse.json({ fee: updated, audited: true });

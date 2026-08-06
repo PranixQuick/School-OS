@@ -27,6 +27,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { isFeeModuleEnabled } from '@/lib/institution-flags';
 import { verifyParentCredentials } from '@/lib/parent-auth';
 import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -141,6 +142,18 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+  // In-app alert for the finance chain — accountant + principal + owner see it live.
+  await createStaffAlerts({
+    schoolId,
+    targetRoles: ['accountant', 'principal', 'owner'],
+    type: 'fee_payment',
+    module: 'fees',
+    title: 'Fee payment received',
+    message: `An online fee payment was received. Receipt ${data.fee_receipt_number}.`,
+    referenceId: body.fee_id,
+    href: '/admin/fees',
+  });
 
   // Notify admin/accountant that a payment was received (real-time reconciliation
   // signal). Best-effort — never blocks the already-confirmed payment.

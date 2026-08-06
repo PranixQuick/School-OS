@@ -6,6 +6,7 @@ import { T, LANG_LABELS, type Lang } from '@/lib/i18n';
 import { useLang } from '@/lib/useLang';
 import GlobalSearch from './GlobalSearch';
 import HelpPanel from './HelpPanel';
+import AlertBell from './AlertBell';
 
 // Roles permitted to use the admin global search (matches requireAdminSession's
 // allowed set, minus accountant whose access is restricted to fee routes).
@@ -571,6 +572,7 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             {title && <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
             {subtitle && <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>}
           </div>
+          <AlertBell />
           {SEARCH_ROLES.has(role) && <GlobalSearch />}
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
