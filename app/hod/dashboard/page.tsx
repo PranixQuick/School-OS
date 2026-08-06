@@ -113,7 +113,7 @@ export default function HODDashboardPage() {
         {[
           { label: 'Internships', value: dept?.active_internships ?? 0, icon: '🏭', href: '/hod/results', color: '#0284C7' },
           { label: 'Placed', value: dept?.placed_this_year ?? 0, icon: '💼', href: '/hod/results', color: '#15803D' },
-          { label: 'Exam Due', value: dept?.exam_upcoming ?? 0, icon: '📝', href: '/admin/assessments', color: dept?.exam_upcoming ? '#D97706' : '#15803D' },
+          { label: 'Exam Due', value: dept?.exam_upcoming ?? 0, icon: '📝', href: '/hod/results', color: dept?.exam_upcoming ? '#D97706' : '#15803D' },
         ].map(k => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 11, padding: '10px 8px', textAlign: 'center', display: 'block' }}>
             <div style={{ fontSize: 18, marginBottom: 2 }}>{k.icon}</div>
