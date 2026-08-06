@@ -50,3 +50,4 @@ alert to accountant + principal + owner ("Fee payment received").
 - [ ] HOD directive → Principal + Owner (workflow #9)
 - [ ] Exam results published → Student + Parent (workflow #10)
 - [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
+- [x] Student submits homework → assigning teacher alerted (workflow #6) ✅ done — student submits → that teacher's bell pings
