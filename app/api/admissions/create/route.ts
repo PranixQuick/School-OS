@@ -4,6 +4,7 @@ import { callClaude } from '@/lib/claudeClient';
 import { getSchoolId } from '@/lib/getSchoolId';
 import { getInstitutionForSchool } from '@/lib/tenant-lookup';
 import { sendWhatsApp, normalisePhone } from '@/lib/whatsapp';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #12: in-app staff alerts
 
 const HIGH_DEMAND_CLASSES = ['1', '2', '3', '6'];
 const IDEAL_AGE_MAP: Record<string, [number, number]> = {
@@ -97,6 +98,18 @@ export async function POST(req: NextRequest) {
         schoolName,
       }).then(null, () => {}); // non-blocking
     }
+
+    // Workflow #12: a new admission enquiry — admin acts, principal + owner see the funnel.
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['admin', 'principal', 'owner'],
+      type: 'admission_enquiry',
+      module: 'admissions',
+      title: 'New admission enquiry',
+      message: `${parent_name} enquired for Class ${target_class} (${priority} priority).`,
+      referenceId: data.id,
+      href: '/admissions',
+    });
 
     return NextResponse.json({ success: true, id: data.id, score: data.score, priority: data.priority, ruleScore, aiNote: note });
   } catch (err) {

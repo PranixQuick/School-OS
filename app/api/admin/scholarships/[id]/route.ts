@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #16: in-app staff alerts
 
 export const runtime = 'nodejs';
 
@@ -38,6 +39,20 @@ export async function PATCH(
     .eq('id', id).eq('school_id', schoolId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!updated) return NextResponse.json({ error: 'Scholarship not found' }, { status: 404 });
+
+  // Workflow #16: scholarship decision — the finance chain (accountant + principal) is informed.
+  if (status) {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['accountant', 'principal'],
+      type: 'scholarship',
+      module: 'scholarships',
+      title: `Scholarship ${status}`,
+      message: `A scholarship application was marked ${status}.`,
+      referenceId: id,
+      href: '/admin/scholarships',
+    });
+  }
 
   return NextResponse.json({ scholarship: updated });
 }

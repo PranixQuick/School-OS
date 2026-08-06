@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #13: in-app staff alerts
 
 // PR-2 Task A: Admin complaint PATCH.
 // Updates: status, assigned_to (staff_id), resolution
@@ -153,6 +154,20 @@ export async function PATCH(
   if (updateErr || !updated) {
     console.error('Complaint update error:', updateErr);
     return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 });
+  }
+
+  // Workflow #13: escalation gives the principal + owner visibility.
+  if (updates.status === 'escalated') {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['principal', 'owner'],
+      type: 'complaint',
+      module: 'complaints',
+      title: 'Complaint escalated',
+      message: `A complaint "${updated.subject ?? updated.complaint_type ?? 'issue'}" was escalated and needs attention.`,
+      referenceId: id,
+      href: '/admin/complaints',
+    });
   }
 
   // Notify the parent in real time when the school acts on their complaint
