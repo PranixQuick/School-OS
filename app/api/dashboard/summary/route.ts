@@ -13,6 +13,14 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession(req);
     if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    // Role gate: this school-wide KPI summary (students, staff, outstanding fees)
+    // is for admin-class dashboards only. Without this, any authenticated user
+    // (librarian, transport_staff, hostel_admin, placement_officer, teacher, ...)
+    // could read the school's totals and fee position. Access-control fix.
+    const DASHBOARD_ROLES = new Set(['owner', 'principal', 'admin', 'admin_staff', 'viewer', 'counsellor']);
+    if (!DASHBOARD_ROLES.has(session.userRole)) {
+      return NextResponse.json({ error: 'Not permitted for this role' }, { status: 403 });
+    }
     const schoolId = session.schoolId;
     const today = new Date().toISOString().split('T')[0];
 

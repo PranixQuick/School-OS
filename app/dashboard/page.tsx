@@ -78,6 +78,21 @@ export default function DashboardPage() {
   const [ctx, setCtx] = useState<InstitutionContext>(DEFAULT_CTX);
   const [role, setRole] = useState<string | null>(null);
 
+  // Operational roles must not land on the admin dashboard — send them to their
+  // own home. Admin-class roles (owner/principal/admin/...) stay here unchanged.
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      const home: Record<string, string> = {
+        librarian: '/librarian',
+        hostel_admin: '/hostel-admin',
+        placement_officer: '/admin/placement',
+        transport_staff: '/settings',
+      };
+      const dest = d?.role ? home[d.role] : undefined;
+      if (dest) window.location.href = dest;
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const timeout = setTimeout(() => { setLoading(false); if (!kpis) setKpis(EMPTY_KPIS); }, 8000);
     fetch('/api/dashboard/summary')
