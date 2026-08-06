@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #13: in-app staff alerts
 
 // PR-2 Task A: Admin complaint PATCH.
 // Updates: status, assigned_to (staff_id), resolution
