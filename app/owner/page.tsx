@@ -132,6 +132,19 @@ export default function OwnerPage() {
         </div>
       )}
 
+      {/* Owner actions: onboard a new institution + drill into the selected one */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        <Link href="/owner/onboard" style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#4F46E5', color: '#fff', textDecoration: 'none' }}>
+          + Onboard institution
+        </Link>
+        {activeSchool !== 'all' && (
+          <button onClick={() => manageSchool(activeSchool)}
+            style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#fff', color: '#4F46E5', border: '1px solid #4F46E5', cursor: 'pointer' }}>
+            Manage this institution →
+          </button>
+        )}
+      </div>
+
       {/* KPI cards */}
       <div className="kpi2" style={{ marginBottom: 20 }}>
         {[
