@@ -79,5 +79,19 @@ export async function PUT(
     reference_id: id,
   });
 
+  // Workflow #7: tell whoever logged the payment that it was decided.
+  if (txn.created_by) {
+    await createStaffAlerts({
+      schoolId,
+      targetUserId: txn.created_by,
+      type: 'outgoing_payment',
+      module: 'expenses',
+      title: `Payment ${status}`,
+      message: `Your ${data.category} payment of ₹${Math.round(Number(data.amount))} was ${status}.`,
+      referenceId: id,
+      href: '/admin/expenses',
+    });
+  }
+
   return NextResponse.json({ success: true, status });
 }
