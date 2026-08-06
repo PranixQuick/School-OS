@@ -62,5 +62,5 @@ alert to accountant + principal + owner ("Fee payment received").
 - [x] Substitute cover assigned → substitute teacher (workflow #15) ✅ done — principal assigns a substitute → that teacher's bell pings
 - [x] New admission enquiry → Admin + Principal + Owner (workflow #12) ✅ done — a new enquiry pings admin/principal/owner bells
 - [x] Scholarship decision → Accountant + Principal (workflow #16) ✅ done — a scholarship status change pings accountant + principal bells
-- [ ] Attendance shortage → HOD + Principal (workflow #11) — deferred: best done as a threshold job (alert when cumulative attendance drops below a set %), not on every attendance mark
+- [x] Attendance shortage → HOD + Principal (workflow #11) ✅ done — when a student's cumulative attendance crosses below 75% (min 5 days recorded), HOD + principal bells ping; de-duplicated so it fires once, not on every absence
 - [ ] Credential issuance → parent/student (workflow #14) — already outbound (PIN/enquiry flows send WhatsApp); no bell needed

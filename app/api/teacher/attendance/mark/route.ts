@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #11: attendance shortage alerts
 
 // Teacher marks attendance for a class.
 // Re-verifies phone + PIN, validates the teacher is assigned to the class via timetable,
@@ -100,6 +101,51 @@ export async function POST(req: NextRequest) {
     }
 
     await supabaseAdmin.rpc('update_staff_access', { p_staff_id: teacher.id });
+
+    // Workflow #11: attendance shortage. For students marked absent, if their
+    // cumulative attendance has fallen below the threshold, alert HOD + Principal.
+    // De-duplicated (skip if an unread shortage alert already exists for the
+    // student) so it fires on the crossing, not on every subsequent absence.
+    try {
+      const SHORTAGE_THRESHOLD = 75;
+      const MIN_DAYS = 5;
+      const absentIds = marks.filter(m => m.status === 'absent').map(m => m.student_id);
+      if (absentIds.length) {
+        const { data: att } = await supabaseAdmin
+          .from('attendance').select('student_id, status')
+          .eq('school_id', teacher.school_id).in('student_id', absentIds);
+        const agg: Record<string, { total: number; present: number }> = {};
+        for (const a of att ?? []) {
+          const s = (agg[a.student_id] ??= { total: 0, present: 0 });
+          s.total++;
+          if (a.status === 'present') s.present++;
+        }
+        for (const sid of absentIds) {
+          const s = agg[sid];
+          if (!s || s.total < MIN_DAYS) continue;
+          const pct = Math.round((s.present / s.total) * 100);
+          if (pct >= SHORTAGE_THRESHOLD) continue;
+          const { data: existing } = await supabaseAdmin
+            .from('staff_alerts').select('id')
+            .eq('school_id', teacher.school_id).eq('type', 'attendance_shortage')
+            .eq('reference_id', sid).eq('is_read', false).limit(1).maybeSingle();
+          if (existing) continue;
+          const { data: stu } = await supabaseAdmin
+            .from('students').select('name').eq('id', sid).eq('school_id', teacher.school_id).maybeSingle();
+          await createStaffAlerts({
+            schoolId: teacher.school_id,
+            targetRoles: ['hod', 'principal'],
+            type: 'attendance_shortage',
+            module: 'attendance',
+            title: 'Attendance shortage',
+            message: `${stu?.name ?? 'A student'} is at ${pct}% attendance (below ${SHORTAGE_THRESHOLD}%).`,
+            referenceId: sid,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[attendance] shortage alert failed (non-fatal):', e);
+    }
 
     return NextResponse.json({
       success: true,
