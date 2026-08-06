@@ -78,6 +78,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         .t-school-name { font-size: 15px; font-weight: 700; color: #111827; }
         .t-user-role { font-size: 11px; color: #6B7280; background: #EEF2FF; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
         .t-menu-btn { background: none; border: 1px solid #E5E7EB; border-radius: 8px; width: 36px; height: 36px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #374151; }
+        .t-back-btn { background: none; border: 1px solid #E5E7EB; border-radius: 8px; width: 36px; height: 36px; min-width: 36px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: #374151; padding: 0; }
         .t-content { flex: 1; padding: 0 0 80px 0; }
         .t-bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
@@ -128,6 +129,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <div className="t-shell">
         <header className="t-header">
           <div className="t-header-left">
+            {pathname !== '/teacher' && (
+              <button onClick={() => router.back()} aria-label="Back" className="t-back-btn">←</button>
+            )}
             {brandingLogo && (
               <img
                 src={brandingLogo}
