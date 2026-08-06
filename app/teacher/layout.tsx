@@ -129,6 +129,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <div className="t-shell">
         <header className="t-header">
           <div className="t-header-left">
+            {pathname !== '/teacher' && (
+              <button onClick={() => router.back()} aria-label="Back" className="t-back-btn">←</button>
+            )}
             {brandingLogo && (
               <img
                 src={brandingLogo}
