@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireAdminSession, AdminAuthError } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #16: in-app staff alerts
 
 export const runtime = 'nodejs';
 
