@@ -28,6 +28,14 @@ alert to accountant + principal + owner ("Fee payment received").
 3. Log in as **demo.accountant** or **demo.principal** → the 🔔 shows
    "Fee updated" with the new amount + reason. ✅
 
+## Workflow #5 — Teacher leave → Principal approves → Owner view
+1. Log in as a **teacher** (e.g. demo.teacher1@suchitra.edprosys.demo) → Menu →
+   Leave → submit a leave request.
+2. Log in as **demo.principal** → the 🔔 shows "New leave request"; open Leave
+   Approvals and approve/reject it.
+3. The **teacher's** bell shows "Leave approved/rejected"; the **owner's** bell
+   shows "Teacher leave approved/rejected". ✅
+
 ## Notes
 - Alerts are scoped to the **active institution**. When an owner switches
   institutions, the bell shows that institution's alerts.
