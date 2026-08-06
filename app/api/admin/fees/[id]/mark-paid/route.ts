@@ -28,6 +28,7 @@ import { isFeeModuleEnabled } from '@/lib/institution-flags';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { writeNotification } from '@/lib/notifications'; // Item #14 PR #2
 import { allocateReceiptNumber } from '@/lib/receipt'; // Fees: receipt numbering
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 export const runtime = 'nodejs';
 
