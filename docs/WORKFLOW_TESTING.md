@@ -1,0 +1,44 @@
+# Workflow Testing Checklist
+
+How to verify the cross-role workflows after each deploy. Demo school: **Suchitra**
+(E2E Test School). Demo logins use password `Kukatpally@2026` unless noted.
+
+## Staff alert bell — smoke test
+The 🔔 bell lives in the top bar of every staff (sidebar) role.
+
+1. Log in as **demo.principal@suchitra.edprosys.demo** (or owner/accountant).
+2. Confirm the 🔔 bell appears in the header, top-right, next to search.
+3. Click it — the dropdown opens ("No alerts yet." if none).
+4. After triggering a workflow below, a red unread badge appears; clicking an
+   alert marks it read and deep-links to the relevant screen.
+
+## Workflow #2 — Fee payment → Accountant / Principal / Owner alerted
+**Offline path (no Razorpay needed — use this to demo):**
+1. Log in as **demo.accountant@suchitra.edprosys.demo**.
+2. Go to Fees, pick any *pending* fee, and mark it paid (cash/cheque/UPI).
+3. Log in as **demo.principal** or **demo.owner** → the 🔔 shows
+   "Fee payment recorded". ✅
+
+**Online path (Razorpay):** a parent paying via the parent app fires the same
+alert to accountant + principal + owner ("Fee payment received").
+
+## Workflow #3 — Fee change → Accountant + Principal alerted
+1. Log in as **demo.owner** (or principal/admin).
+2. Go to Fees, amend a *pending* fee's amount (a reason is required).
+3. Log in as **demo.accountant** or **demo.principal** → the 🔔 shows
+   "Fee updated" with the new amount + reason. ✅
+
+## Notes
+- Alerts are scoped to the **active institution**. When an owner switches
+  institutions, the bell shows that institution's alerts.
+- The bell polls every 60s; reload to see a new alert immediately.
+- `staff_alerts` is the in-app feed; outbound WhatsApp/SMS still goes through the
+  separate `notifications` queue.
+
+## Pending wirings (same `createStaffAlerts(...)` pattern)
+- [ ] Teacher leave → Principal approves → Owner view (workflow #5)
+- [ ] Accountant outgoing payment → Principal + Owner approve (workflow #7)
+- [ ] Staff salary run approval chain (workflow #8)
+- [ ] HOD directive → Principal + Owner (workflow #9)
+- [ ] Exam results published → Student + Parent (workflow #10)
+- [ ] Homework assigned → Student + Parent + HOD + Principal (workflow #4)
