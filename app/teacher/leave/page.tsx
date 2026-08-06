@@ -5,7 +5,24 @@
 // Tailwind classes removed — they were causing unstyled rendering in production.
 
 import { useCallback, useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
+import type { ReactNode } from 'react';
+// Teacher pages already sit inside the mobile TeacherLayout shell (app/teacher/layout.tsx).
+// Wrapping them again in the full sidebar Layout double-rendered the chrome, so this page
+// uses a lightweight content wrapper (title + back button) instead.
+function Layout({ title, subtitle, children }: { title?: string; subtitle?: string; children?: ReactNode }) {
+  return (
+    <div style={{ padding: '12px 14px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <button onClick={() => window.history.back()} aria-label="Back" style={{ border: '1px solid #E5E7EB', background: '#fff', borderRadius: 8, width: 36, height: 36, minWidth: 36, minHeight: 36, cursor: 'pointer', fontSize: 16 }}>←</button>
+        <div>
+          {title && <h1 style={{ fontSize: 17, fontWeight: 800, color: '#111827', margin: 0 }}>{title}</h1>}
+          {subtitle && <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 interface LeaveRequest {
   id: string; leave_type: string; from_date: string;
