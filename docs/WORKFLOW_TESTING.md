@@ -46,7 +46,7 @@ alert to accountant + principal + owner ("Fee payment received").
 ## Pending wirings (same `createStaffAlerts(...)` pattern)
 - [x] Teacher leave → Principal approves → Owner view (workflow #5) ✅ done
 - [ ] Accountant outgoing payment → Principal + Owner approve (workflow #7)
-- [ ] Staff salary run approval chain (workflow #8)
+- [x] Staff salary run approval chain (workflow #8) ✅ done — each step (submit_for_review → review → approve → submit_to_bank) alerts the next role's bell
 - [ ] HOD directive → Principal + Owner (workflow #9)
 - [ ] Exam results published → Student + Parent (workflow #10)
 - [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
