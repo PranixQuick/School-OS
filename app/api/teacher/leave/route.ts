@@ -142,6 +142,17 @@ export async function POST(req: NextRequest) {
       reference_id: data.id,
     });
     if (!notifResult.ok) console.error('Leave notification failed (non-fatal):', notifResult.error);
+    // In-app alert so the request surfaces in the principal's bell (workflow #5).
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['principal'],
+      type: 'leave_request',
+      module: 'leave',
+      title: 'New leave request',
+      message: `${who} applied for ${body.leave_type} leave (${body.from_date} → ${body.to_date}).`,
+      referenceId: data.id,
+      href: '/principal/leave-approvals',
+    });
   } catch (notifErr) {
     console.error('Leave notification threw (non-fatal):', notifErr);
   }
