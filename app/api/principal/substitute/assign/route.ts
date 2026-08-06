@@ -185,6 +185,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create substitute assignment' }, { status: 500 });
     }
 
+    // Workflow #15: notify the substitute teacher they've been assigned to cover.
+    const { data: subUser } = await supabaseAdmin
+      .from('school_users').select('id').eq('staff_id', body.substitute_staff_id).eq('school_id', schoolId).maybeSingle();
+    if (subUser?.id) {
+      await createStaffAlerts({
+        schoolId,
+        targetUserId: subUser.id,
+        type: 'substitute_assigned',
+        module: 'substitute',
+        title: 'Substitute cover assigned',
+        message: `You've been assigned to cover a class. Reason: ${String(body.reason).slice(0, 100)}.`,
+        referenceId: assignment.id,
+        href: '/teacher',
+      });
+    }
+
     return NextResponse.json({
       success: true,
       assignment_id: assignment.id,
