@@ -40,5 +40,19 @@ export async function PATCH(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!updated) return NextResponse.json({ error: 'Scholarship not found' }, { status: 404 });
 
+  // Workflow #16: scholarship decision — the finance chain (accountant + principal) is informed.
+  if (status) {
+    await createStaffAlerts({
+      schoolId,
+      targetRoles: ['accountant', 'principal'],
+      type: 'scholarship',
+      module: 'scholarships',
+      title: `Scholarship ${status}`,
+      message: `A scholarship application was marked ${status}.`,
+      referenceId: id,
+      href: '/admin/scholarships',
+    });
+  }
+
   return NextResponse.json({ scholarship: updated });
 }
