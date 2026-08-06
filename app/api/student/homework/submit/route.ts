@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { requireStudentSession } from '@/lib/student-auth';
 import { writeNotification } from '@/lib/notifications';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 // G2: Student homework submission endpoint
 export async function POST(req: NextRequest) {
@@ -54,6 +55,19 @@ export async function POST(req: NextRequest) {
       reference_id: body.homework_id,
     });
     if (!notifResult.ok) console.error('Submission notification failed (non-fatal):', notifResult.error);
+    // In-app alert to the assigning teacher's bell (workflow #6).
+    if (hw?.assigned_by) {
+      const { data: teacherUser } = await supabaseAdmin
+        .from('school_users').select('id').eq('staff_id', hw.assigned_by).eq('school_id', schoolId).maybeSingle();
+      if (teacherUser?.id) {
+        await createStaffAlerts({
+          schoolId, targetUserId: teacherUser.id, type: 'homework_submission', module: 'homework',
+          title: 'Homework submission received',
+          message: `${studentName} submitted "${hwTitle}".`,
+          referenceId: body.homework_id, href: '/teacher/homework',
+        });
+      }
+    }
   } catch (notifErr) {
     console.error('Submission notification threw (non-fatal):', notifErr);
   }

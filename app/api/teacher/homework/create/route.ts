@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { writeNotification } from '@/lib/notifications';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow: in-app staff alerts
 
 // Teacher creates a homework assignment for a class.
 // Auth: phone+PIN per request.
@@ -217,6 +218,17 @@ export async function POST(req: NextRequest) {
     } catch (notifErr) {
       console.error('Notification write threw (non-fatal):', notifErr);
     }
+
+    // In-app alerts: HOD + Principal see new homework (workflow #4).
+    await createStaffAlerts({
+      schoolId: teacher.school_id,
+      targetRoles: ['hod', 'principal'],
+      type: 'homework_assigned',
+      module: 'homework',
+      title: 'New homework assigned',
+      message: `Homework for Class ${classRow.grade_level}${classRow.section ? '-' + classRow.section : ''}: ${body.title.trim()}.`,
+      referenceId: homework.id,
+    });
 
     return NextResponse.json({
       success: true,
