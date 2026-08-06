@@ -111,6 +111,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         // Anganwadi staff are typically paid through government channels, not
         // the platform.
         showFor: (ctx) => !ctx.isAnganwadi },
+      { key: 'expenses',      href: '/admin/expenses',               icon: '🧾' },
     ]},
     { groupKey: 'operations', items: [
       { key: 'leave',         href: '/principal/leave-approvals',    icon: '📅' },
