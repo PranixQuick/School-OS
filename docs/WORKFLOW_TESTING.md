@@ -54,6 +54,6 @@ alert to accountant + principal + owner ("Fee payment received").
 - [x] Accountant outgoing payment → Principal/Owner approve (workflow #7) ✅ done — accountant logs a payment (Expenses) → principal/owner bells ping → approve/reject → accountant's bell pings
 - [x] Staff salary run approval chain (workflow #8) ✅ done — each step (submit_for_review → review → approve → submit_to_bank) alerts the next role's bell
 - [x] HOD directive → staff + Principal + Owner (workflow #9) ✅ done — HOD sends a directive → teachers/principal/owner bells ping
-- [ ] Exam results published → Student + Parent (workflow #10)
+- [x] Exam results published → Student + Parent (workflow #10) ✅ done — principal/admin opens Results, taps Publish for a term → parents get an outbound "Results published" notification; teachers + owner get a bell alert. Non-breaking: nothing that was visible is hidden.
 - [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
 - [x] Student submits homework → assigning teacher alerted (workflow #6) ✅ done — student submits → that teacher's bell pings
