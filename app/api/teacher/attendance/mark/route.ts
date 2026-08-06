@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #11: attendance shortage alerts
 
 // Teacher marks attendance for a class.
 // Re-verifies phone + PIN, validates the teacher is assigned to the class via timetable,
