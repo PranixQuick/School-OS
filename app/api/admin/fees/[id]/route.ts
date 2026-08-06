@@ -170,6 +170,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     req,
   });
 
+  // Workflow #3: a fee was changed — alert the finance chain (accountant + principal).
+  await createStaffAlerts({
+    schoolId,
+    targetRoles: ['accountant', 'principal'],
+    type: 'fee_change',
+    module: 'fees',
+    title: 'Fee updated',
+    message: `A fee was amended (now ₹${Math.round(Number(updated.amount))}). Reason: ${reason}.`,
+    referenceId: feeId,
+    href: '/admin/fees',
+  });
+
   return NextResponse.json({ fee: updated, audited: true });
 }
 
