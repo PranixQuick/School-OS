@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     
     const { data, error } = await supabaseAdmin
       .from('departments')
-      .select('id, name, school_id, hod_id, updated_at')
+      .select('id, name, school_id, hod_staff_id')
       .or(orConditions);
       
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
