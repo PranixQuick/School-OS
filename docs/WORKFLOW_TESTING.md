@@ -36,6 +36,12 @@ alert to accountant + principal + owner ("Fee payment received").
 3. The **teacher's** bell shows "Leave approved/rejected"; the **owner's** bell
    shows "Teacher leave approved/rejected". ✅
 
+## Workflow #9 — HOD directive → staff + Principal + Owner
+1. Log in as **e2e.hod@suchitra.edprosys.demo** → Dashboard → Directives.
+2. Write a directive, choose "This institution" or "All branches", and send.
+3. Teachers of the target institution(s), the principal(s), and the owner get a
+   🔔 "HOD directive: …". ✅
+
 ## Notes
 - Alerts are scoped to the **active institution**. When an owner switches
   institutions, the bell shows that institution's alerts.
@@ -45,9 +51,9 @@ alert to accountant + principal + owner ("Fee payment received").
 
 ## Pending wirings (same `createStaffAlerts(...)` pattern)
 - [x] Teacher leave → Principal approves → Owner view (workflow #5) ✅ done
-- [ ] Accountant outgoing payment → Principal + Owner approve (workflow #7)
+- [x] Accountant outgoing payment → Principal/Owner approve (workflow #7) ✅ done — accountant logs a payment (Expenses) → principal/owner bells ping → approve/reject → accountant's bell pings
 - [x] Staff salary run approval chain (workflow #8) ✅ done — each step (submit_for_review → review → approve → submit_to_bank) alerts the next role's bell
-- [ ] HOD directive → Principal + Owner (workflow #9)
+- [x] HOD directive → staff + Principal + Owner (workflow #9) ✅ done — HOD sends a directive → teachers/principal/owner bells ping
 - [ ] Exam results published → Student + Parent (workflow #10)
 - [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
 - [x] Student submits homework → assigning teacher alerted (workflow #6) ✅ done — student submits → that teacher's bell pings
