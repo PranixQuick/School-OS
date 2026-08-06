@@ -143,6 +143,8 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         showFor: (ctx) => !ctx.isAnganwadi },
       { key: 'report_cards',  href: '/report-cards',                 icon: '📄',
         showFor: (ctx) => !ctx.isAnganwadi && !ctx.isCoaching },
+      { key: 'results',       href: '/admin/results',                icon: '🏆',
+        showFor: (ctx) => !ctx.isAnganwadi },
       { key: 'rte',           href: '/admin/rte',                    icon: '⚖️',
         // Right to Education applies to k12 only.
         showFor: (ctx) => !ctx.isHigherEducation && !ctx.isCoaching && !ctx.isAnganwadi },
