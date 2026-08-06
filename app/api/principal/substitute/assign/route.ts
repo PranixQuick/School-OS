@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getSession } from '@/lib/auth';
+import { createStaffAlerts } from '@/lib/alerts'; // Workflow #15: in-app staff alerts
 
 // Principal assigns a substitute teacher to cover a class.
 // Auth: session cookie via getSession from @/lib/auth.
