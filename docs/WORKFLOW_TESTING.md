@@ -49,4 +49,4 @@ alert to accountant + principal + owner ("Fee payment received").
 - [ ] Staff salary run approval chain (workflow #8)
 - [ ] HOD directive → Principal + Owner (workflow #9)
 - [ ] Exam results published → Student + Parent (workflow #10)
-- [ ] Homework assigned → Student + Parent + HOD + Principal (workflow #4)
+- [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
