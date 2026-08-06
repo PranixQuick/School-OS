@@ -57,3 +57,10 @@ alert to accountant + principal + owner ("Fee payment received").
 - [x] Exam results published → Student + Parent (workflow #10) ✅ done — principal/admin opens Results, taps Publish for a term → parents get an outbound "Results published" notification; teachers + owner get a bell alert. Non-breaking: nothing that was visible is hidden.
 - [x] Homework assigned → HOD + Principal alerted (workflow #4) ✅ done — teacher creates homework → HOD & principal bells ping (students/parents via outbound)
 - [x] Student submits homework → assigning teacher alerted (workflow #6) ✅ done — student submits → that teacher's bell pings
+- [x] Exam results published → Student + Parent (workflow #10) ✅ done — principal publishes a term → parents notified (outbound), teacher/owner bells ping
+- [x] Complaint escalated → Principal + Owner (workflow #13) ✅ done — a complaint set to "escalated" pings principal + owner bells
+- [x] Substitute cover assigned → substitute teacher (workflow #15) ✅ done — principal assigns a substitute → that teacher's bell pings
+- [x] New admission enquiry → Admin + Principal + Owner (workflow #12) ✅ done — a new enquiry pings admin/principal/owner bells
+- [x] Scholarship decision → Accountant + Principal (workflow #16) ✅ done — a scholarship status change pings accountant + principal bells
+- [ ] Attendance shortage → HOD + Principal (workflow #11) — deferred: best done as a threshold job (alert when cumulative attendance drops below a set %), not on every attendance mark
+- [ ] Credential issuance → parent/student (workflow #14) — already outbound (PIN/enquiry flows send WhatsApp); no bell needed
