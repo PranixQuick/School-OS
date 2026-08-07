@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   manifest: '/manifest.json',
   appleWebApp: { title: 'EdProSys', statusBarStyle: 'black-translucent', capable: true },
+  alternates: {
+    canonical: 'https://www.edprosys.com',
+  },
   openGraph: {
     title: 'EdProSys — Powering Institutions. Empowering Futures.',
     description: 'WhatsApp parent bot, AI report cards, teacher evaluation — all automated. Built for Indian K-12 schools.',
