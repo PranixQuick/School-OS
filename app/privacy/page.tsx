@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <Link href="/" style={{ color: '#4F46E5', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>← EdProSys</Link>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: '#111827', marginBottom: 8 }}>Privacy Policy</h1>
-      <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 32 }}>Last updated: May 2026 · Pranix AI Labs Pvt Ltd (DIPP241828)</p>
+      <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 32 }}>Last updated: August 2026 · Pranix AI Labs Pvt Ltd (DIPP241828)</p>
 
       {[
         { title: '1. Information We Collect', body: 'We collect information necessary to provide school management services. This includes: institutional data (school name, contact details, institution type); staff and administrator data (name, email, role); student data (name, class, section, attendance, marks, fee records) provided by the school institution; parent contact information (phone number, email) provided by the school; and usage data (login events, feature usage) for service improvement.' },
