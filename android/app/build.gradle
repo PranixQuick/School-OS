@@ -1,5 +1,22 @@
 apply plugin: 'com.android.application'
 
+// ── Signing config ──────────────────────────────────────────────────────────
+// Signing credentials are loaded from a gitignored file: android/keystore.properties
+// (see android/keystore.properties.example). Secrets must NEVER be committed.
+// Create android/keystore.properties locally with:
+//   storeFile=/absolute/path/to/edprosys-upload.jks
+//   storePassword=********
+//   keyAlias=upload
+//   keyPassword=********
+// If the file is absent (e.g. CI without secrets), the release build simply
+// produces an unsigned bundle instead of failing.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+def hasReleaseSigning = keystorePropsFile.exists()
+
 android {
     namespace "in.pranix.edprosys"
     compileSdk rootProject.ext.compileSdkVersion
@@ -18,15 +35,17 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("C:/Users/ADMIN/OneDrive/Desktop/Pranix-Release/EdProSys/keystore/edprosys-upload.jks")
-            storePassword "MKhbWlpCilkHQynHLKivKxMa"
-            keyAlias "upload"
-            keyPassword "MKhbWlpCilkHQynHLKivKxMa"
+            if (hasReleaseSigning) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
         }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig hasReleaseSigning ? signingConfigs.release : null
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
