@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         { title: '8. Your Rights', body: 'Individuals whose data is processed by EdProSys may request access, correction, or deletion of their data by contacting their school institution, which controls the data. Schools may also contact us directly at support@pranixailabs.com.' },
         { title: '9. Security', body: 'We implement industry-standard security measures including: TLS encryption for all data in transit; AES-256 encryption for data at rest; Row Level Security (RLS) for database access control; regular security monitoring; Aadhaar data masking (last 8 digits only stored). We hold DPIIT recognition and comply with applicable Indian data protection requirements.' },
         { title: '10. Voice Input', body: 'EdProSys includes an optional voice assistant (Aaria) that lets staff issue spoken commands. When you use voice input, the audio is processed in real time only to interpret and carry out your command. Voice audio is not recorded, stored, or retained on our servers, and is never sold or shared with third parties. You can use every feature of the app by typing instead.' },
-        { title: '10. Contact', body: 'For privacy questions, contact us at: privacy@pranixailabs.com · Pranix AI Labs Pvt Ltd · Hyderabad, Telangana, India · CIN: U62011TS2026PTC209631' },
+        { title: '11. Contact', body: 'For privacy questions, contact us at: privacy@pranixailabs.com · Pranix AI Labs Pvt Ltd · Hyderabad, Telangana, India · CIN: U62011TS2026PTC209631' },
       ].map(s => (
         <div key={s.title} style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{s.title}</h2>
