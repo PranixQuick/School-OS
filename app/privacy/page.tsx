@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <Link href="/" style={{ color: '#4F46E5', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>← EdProSys</Link>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: '#111827', marginBottom: 8 }}>Privacy Policy</h1>
-      <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 32 }}>Last updated: May 2026 · Pranix AI Labs Pvt Ltd (DIPP241828)</p>
+      <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 32 }}>Last updated: August 2026 · Pranix AI Labs Pvt Ltd (DIPP241828)</p>
 
       {[
         { title: '1. Information We Collect', body: 'We collect information necessary to provide school management services. This includes: institutional data (school name, contact details, institution type); staff and administrator data (name, email, role); student data (name, class, section, attendance, marks, fee records) provided by the school institution; parent contact information (phone number, email) provided by the school; and usage data (login events, feature usage) for service improvement.' },
@@ -25,7 +25,8 @@ export default function PrivacyPage() {
         { title: '7. Data Retention', body: 'We retain data as long as the school\'s account is active. Upon account termination, data is archived for 30 days and then permanently deleted. Schools can request data export at any time by contacting support@pranixailabs.com.' },
         { title: '8. Your Rights', body: 'Individuals whose data is processed by EdProSys may request access, correction, or deletion of their data by contacting their school institution, which controls the data. Schools may also contact us directly at support@pranixailabs.com.' },
         { title: '9. Security', body: 'We implement industry-standard security measures including: TLS encryption for all data in transit; AES-256 encryption for data at rest; Row Level Security (RLS) for database access control; regular security monitoring; Aadhaar data masking (last 8 digits only stored). We hold DPIIT recognition and comply with applicable Indian data protection requirements.' },
-        { title: '10. Contact', body: 'For privacy questions, contact us at: privacy@pranixailabs.com · Pranix AI Labs Pvt Ltd · Hyderabad, Telangana, India · CIN: U62011TS2026PTC209631' },
+        { title: '10. Voice Input', body: 'EdProSys includes an optional voice assistant (Aaria) that lets staff issue spoken commands. When you use voice input, the audio is processed in real time only to interpret and carry out your command. Voice audio is not recorded, stored, or retained on our servers, and is never sold or shared with third parties. You can use every feature of the app by typing instead.' },
+        { title: '11. Contact', body: 'For privacy questions, contact us at: privacy@pranixailabs.com · Pranix AI Labs Pvt Ltd · Hyderabad, Telangana, India · CIN: U62011TS2026PTC209631' },
       ].map(s => (
         <div key={s.title} style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{s.title}</h2>
