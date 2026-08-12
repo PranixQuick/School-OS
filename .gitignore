@@ -40,3 +40,9 @@ android/app/build/
 android/.gradle/
 android/local.properties
 .env*
+
+# Android signing — NEVER commit keystores or their passwords
+keystore.properties
+android/keystore.properties
+*.jks
+*.keystore
