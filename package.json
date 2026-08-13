@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "icons": "node scripts/generate-brand-icons.mjs",
+    "prebuild": "node scripts/generate-brand-icons.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
