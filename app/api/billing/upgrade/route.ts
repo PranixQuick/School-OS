@@ -4,7 +4,7 @@ import { getSchoolId } from '@/lib/getSchoolId';
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { requested_plan, message } = await req.json() as { requested_plan: string; message?: string };
 
     if (!requested_plan) {
