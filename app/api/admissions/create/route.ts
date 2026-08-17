@@ -64,7 +64,7 @@ async function enhanceWithClaude(input: InquiryInput, baseScore: number): Promis
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const schoolId = await getSchoolId(req);
   try {
     const body = await req.json() as InquiryInput;
     const { parent_name, child_age, target_class, source, phone } = body;
