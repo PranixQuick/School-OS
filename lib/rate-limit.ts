@@ -180,8 +180,62 @@ export async function enforceLoginRateLimit(params: {
  * Safe in production: bypass is a no-op unless E2E_BYPASS_SECRET is ≥16 chars
  * AND the request sends the exact matching value.
  */
+// SEC-CRITICAL-3 — 2026-08-17
+//
+// The doc comment above previously claimed this was "safe in production". It
+// was not. In app/api/auth/login/route.ts the bypass branch runs BEFORE
+// enforceLoginRateLimit() and issues a real, full-privilege session for ANY
+// active row in school_users — no password, no rate limit, no lockout, and no
+// expiry on the secret itself. Because .github/workflows/ci.yml ran the E2E
+// suite against https://www.edprosys.com with E2E_BYPASS_SECRET populated,
+// production necessarily had that value set. One static, never-rotated string
+// unlocked every account in every tenant.
+//
+// Fixed:
+//   1. HARD OFF on the production deployment. VERCEL_ENV === 'production'
+//      short-circuits before the secret is read, so the bypass cannot be used
+//      against production even if the variable is still configured there. It is
+//      checked first and cannot be overridden by any other variable.
+//   2. Constant-time comparison, so the secret is not discoverable by timing.
+//   3. Attempts against production are logged loudly.
+//
+// NOT gated on NODE_ENV: `next start` sets NODE_ENV=production, and CI runs the
+// PR E2E suite against a locally started production build on localhost. Gating
+// on NODE_ENV would disable the bypass in CI, which is where it is legitimate.
+// VERCEL_ENV is 'production' only on the real production deployment.
+//
+// The permanent fix is to delete this mechanism and have E2E authenticate with
+// seeded test accounts. Tracked separately; this removes the production
+// exposure now without breaking the PR gate.
+
+/** True only on the real production Vercel deployment. */
+function isProductionDeployment(): boolean {
+  return process.env.VERCEL_ENV === 'production';
+}
+
+/** Length-safe constant-time string comparison. */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const len = Math.max(a.length, b.length);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
 export function isE2EBypass(headerValue: string | null): boolean {
+  if (isProductionDeployment()) {
+    if (headerValue) {
+      console.error(
+        '[SECURITY] E2E login bypass attempted against production and refused. ' +
+          'If this came from CI, that job must be pointed at a preview deployment.'
+      );
+    }
+    return false;
+  }
+
   const secret = process.env.E2E_BYPASS_SECRET;
   if (!secret || secret.length < 16) return false;
-  return headerValue === secret;
+  if (!headerValue) return false;
+  return timingSafeStringEqual(headerValue, secret);
 }
