@@ -73,12 +73,20 @@ jobs:
           TWILIO_AUTH_TOKEN: placeholder_twilio_auth_token
           TWILIO_WHATSAPP_FROM: whatsapp:+1234567890
 
-      - name: Run E2E tests against local build (PR validation only)
-        if: github.event_name == 'pull_request' && secrets.NEXT_PUBLIC_SUPABASE_URL != ''
+      # Blocking gate. Path-filtered on purpose: e2e/ is the established suite,
+      # and tests/smoke.spec.ts is a spec recovered in Phase 0.1 that needs no
+      # credentials. The other recovered orphans run non-blocking below until
+      # they have been triaged.
+      #
+      # E2E_BYPASS_SECRET is legitimate here because this targets localhost.
+      # lib/rate-limit.isE2EBypass() hard-refuses the bypass whenever
+      # VERCEL_ENV === 'production', which is never true in CI.
+      - name: Run E2E tests against local build (PR gate)
+        if: github.event_name == 'pull_request' && env.HAS_SUPABASE_SECRETS == 'true'
         run: |
           npm run start &
           npx wait-on http://localhost:3000 --timeout 60000
-          npm run test:e2e
+          npx playwright test e2e tests/smoke.spec.ts
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
