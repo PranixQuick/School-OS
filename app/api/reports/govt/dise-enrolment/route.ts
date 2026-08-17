@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const format   = req.nextUrl.searchParams.get('format') ?? 'json';
 
     // Fetch all active students with socioeconomic_category and gender
