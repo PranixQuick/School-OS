@@ -26,7 +26,7 @@ function detectIntent(text: string): Intent {
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { phone, message } = await req.json() as { phone: string; message: string };
 
     if (!phone || !message) {
