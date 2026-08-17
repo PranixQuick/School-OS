@@ -416,9 +416,13 @@ export async function POST(req: NextRequest) {
         ownership_type: ownType,
       },
       login: {
-        email: admin_email,
+        email: ownerEmail,
+        // Returned exactly once, over TLS, to the party who just registered.
+        // High-entropy and single-use by convention — the owner should change
+        // it after first sign-in.
         password: initialPassword,
         active: !!ownerAuthId,
+        must_change_password: true,
       },
       next_step: '/onboarding',
       message: ownerAuthId
