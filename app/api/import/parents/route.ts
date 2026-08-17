@@ -77,7 +77,7 @@ function validateRow(raw: RawRow, index: number): { ok: true; value: ValidRow } 
 }
 
 export async function POST(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {
