@@ -103,9 +103,18 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           TEST_BASE_URL: http://localhost:3000
 
-      - name: Run E2E tests against production (Post-deploy smoke gate)
+      # SEC-CRITICAL-3. This step used to run the FULL E2E suite against
+      # production with E2E_BYPASS_SECRET in its environment. That is what
+      # forced the login bypass to be configured on the production deployment:
+      # one static, never-rotated string that minted a full-privilege session
+      # for any account in any tenant, ahead of rate limiting.
+      #
+      # It now runs only tests/smoke.spec.ts, which authenticates as nobody.
+      # No credential is sent to production. Anything requiring a login belongs
+      # on the PR gate above, against a local build.
+      - name: Post-deploy smoke against production (unauthenticated only)
         if: github.event_name == 'push'
-        run: npm run test:e2e
+        run: npx playwright test tests/smoke.spec.ts
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
