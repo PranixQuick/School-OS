@@ -48,10 +48,10 @@ async function readRows(req: NextRequest): Promise<{ rows: RawRow[]; mode: 'skip
   return { rows, mode: body?.mode === 'error' ? 'error' : 'skip' };
 }
 
-function requireRole(req: NextRequest): { schoolId: string } | { error: string; status: number } {
+async function requireRole(req: NextRequest): Promise<{ schoolId: string } | { error: string; status: number }> {
   let schoolId: string;
-  try { schoolId = getSchoolId(req); } catch (e) { if (e instanceof MissingSchoolIdError) return { error: 'Not authenticated', status: 401 }; throw e; }
-  const role = getUserRole(req);
+  try { schoolId = await getSchoolId(req); } catch (e) { if (e instanceof MissingSchoolIdError) return { error: 'Not authenticated', status: 401 }; throw e; }
+  const role = await getUserRole(req);
   if (!ALLOWED_ROLES.includes(role)) return { error: `Role '${role || 'unknown'}' is not permitted to import staff`, status: 403 };
   return { schoolId };
 }
