@@ -7,7 +7,7 @@ import { getSchoolId } from '@/lib/getSchoolId';
 // GET — fetch all knowledge chunks for this school
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
 
     const { data, error } = await supabaseAdmin
       .from('knowledge_chunks')
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 // POST — add a new knowledge chunk
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const body = await req.json() as {
       title: string;
       category: string;
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 // PATCH — toggle is_active or update content
 export async function PATCH(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const body = await req.json() as {
       id: string;
       is_active?: boolean;
@@ -90,7 +90,7 @@ export async function PATCH(req: NextRequest) {
 // DELETE — remove a knowledge chunk
 export async function DELETE(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
