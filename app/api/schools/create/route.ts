@@ -330,18 +330,29 @@ export async function POST(req: NextRequest) {
       user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
     });
     if (ownerAuthErr) {
-      // Recover if an auth user already exists for this email (re-registration / leftover).
-      try {
-        for (let page = 1; page <= 10 && !ownerAuthId; page++) {
-          const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-          const hit = list?.users.find(u => (u.email ?? '').toLowerCase() === ownerEmail);
-          if (hit) {
-            await supabaseAdmin.auth.admin.updateUserById(hit.id, { password: initialPassword, email_confirm: true });
-            ownerAuthId = hit.id;
-          }
-          if (!list || list.users.length < 200) break;
-        }
-      } catch { /* fall through; handled below */ }
+      // SEC-CRITICAL-1(b): DO NOT "recover" by overwriting an existing auth
+      // user's password. The previous implementation did exactly that, which
+      // let an unauthenticated caller reset any known user's password simply by
+      // registering a school in their name. There is no safe automatic recovery
+      // here — an auth user already existing for this address means either the
+      // account is real (they should sign in) or it is orphaned (an operator
+      // must clean it up). Roll back and refuse.
+      console.warn(
+        `[schools/create] auth user already exists or could not be created for ` +
+        `a new registration; rolling back. reason=${ownerAuthErr.message}`
+      );
+      await supabaseAdmin.from('schools').delete().eq('id', school.id);
+      if (institutionId) await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
+      if (organisationId) await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
+      schoolId = null; institutionId = null; organisationId = null;
+      return NextResponse.json(
+        {
+          error:
+            'An account already exists for this email address. Sign in instead, ' +
+            'or contact support if you believe this is an error.',
+        },
+        { status: 409 }
+      );
     } else {
       ownerAuthId = ownerAuth.user?.id ?? null;
     }
