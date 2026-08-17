@@ -103,6 +103,30 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           TEST_BASE_URL: http://localhost:3000
 
+      # Phase 0.1 — specs recovered from tests/ that no runner had ever
+      # collected, so their pass/fail state is genuinely unknown. Non-blocking
+      # first, so real results surface without turning main red on day one.
+      # Once triaged, fold them into the gate above and delete this step.
+      - name: E2E - recovered orphan specs (non-blocking, informational)
+        if: github.event_name == 'pull_request' && env.HAS_SUPABASE_SECRETS == 'true'
+        continue-on-error: true
+        run: npx playwright test tests/auth.spec.ts tests/hod
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          TEST_TEACHER_EMAIL: ${{ secrets.TEST_TEACHER_EMAIL }}
+          TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
+          TEST_PARENT_PHONE: '9515479595'
+          TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
+          E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          TEST_BASE_URL: http://localhost:3000
+
       # SEC-CRITICAL-3. This step used to run the FULL E2E suite against
       # production with E2E_BYPASS_SECRET in its environment. That is what
       # forced the login bypass to be configured on the production deployment:
