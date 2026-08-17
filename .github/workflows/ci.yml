@@ -116,20 +116,13 @@ jobs:
         if: github.event_name == 'push'
         run: npx playwright test tests/smoke.spec.ts
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
-          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
-          TEST_TEACHER_EMAIL: ${{ secrets.TEST_TEACHER_EMAIL }}
-          TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
-          TEST_PARENT_PHONE: '9515479595'
-          TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
-          E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
           TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          # Deliberately absent: E2E_BYPASS_SECRET, TEST_ADMIN_PASSWORD,
+          # TEST_TEACHER_PASSWORD, TEST_PARENT_PIN, SUPABASE_SERVICE_ROLE_KEY,
+          # SESSION_SECRET. This job sends no credential of any kind to
+          # production, so there is nothing here for a compromised runner to
+          # take.
 
       - name: Upload Playwright report and trace/video artifacts
         uses: actions/upload-artifact@v4
