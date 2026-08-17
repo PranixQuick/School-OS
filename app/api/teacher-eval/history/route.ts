@@ -6,7 +6,7 @@ import { getSchoolId } from '@/lib/getSchoolId';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
 
     const { data, error } = await supabaseAdmin
       .from('recordings')
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
@@ -44,7 +44,7 @@ export async function DELETE(req: NextRequest) {
 // PATCH: re-run AI evaluation on an existing recording
 export async function PATCH(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
