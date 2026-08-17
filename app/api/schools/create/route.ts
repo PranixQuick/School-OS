@@ -319,8 +319,8 @@ export async function POST(req: NextRequest) {
     // API (programmes, academic-years) resolve the institution from the
     // school_users row. Leaving them null broke college academic setup with
     // "Cannot resolve institution".
-    const ownerEmail = admin_email.toLowerCase().trim();
-    const initialPassword = `edprosys${school.id.slice(0, 4)}`;
+    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID.
+    const initialPassword = generateInitialPassword();
 
     let ownerAuthId: string | null = null;
     const { data: ownerAuth, error: ownerAuthErr } = await supabaseAdmin.auth.admin.createUser({
