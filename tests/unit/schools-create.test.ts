@@ -50,6 +50,12 @@ describe('POST /api/schools/create', () => {
       const q: any = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
+        // SEC-CRITICAL-1(b): the route now runs a pre-flight duplicate-account
+        // lookup — .from('school_users').select('id').ilike(...).limit(1)
+        // .maybeSingle() — before it writes anything. The mock must model these
+        // two extra builder methods or the route throws.
+        ilike: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
         insert: insertSpy,
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         single: vi.fn(),
