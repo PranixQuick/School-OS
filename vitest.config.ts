@@ -21,12 +21,29 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.ts'],
     environment: 'node',
     globals: false,
-    reporters: ['default'],
+    reporters: ['default', 'junit'],
     outputFile: {
       json: 'test-results/unit-results.json',
+      junit: 'test-results/unit-junit.xml',
     },
+    // Phase 0.4 — you cannot manage what you cannot measure. Coverage was off,
+    // so "76 test files" was the only number anyone could quote, and it says
+    // nothing about what is actually exercised.
+    //
+    // Reporting is on; thresholds are deliberately NOT enforced yet. The first
+    // job is to establish the real baseline. Once a few runs agree on a number,
+    // set `thresholds` just under it and ratchet upward — turning thresholds on
+    // before the baseline is known just produces a red build nobody trusts.
     coverage: {
-      enabled: false, // coverage adds cost — enable explicitly when needed
+      enabled: true,
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary', 'html', 'lcov'],
+      reportsDirectory: 'coverage',
+      include: ['lib/**/*.ts', 'app/api/**/*.ts'],
+      exclude: ['**/*.d.ts', '**/node_modules/**'],
+      // Never fail the build on coverage while the baseline is being
+      // established. Flip this to true together with `thresholds`.
+      thresholdAutoUpdate: false,
     },
     testTimeout: 30000,
   },
