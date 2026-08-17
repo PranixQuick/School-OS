@@ -12,12 +12,75 @@
 // prior stale comment in this file which described a 4-value role set
 // (owner|admin|teacher|viewer) that no longer matches the database.
 //
-// super_admin is also a DB role value (enum entry), but the runtime gate is
-// still email-suffix-based for now. A proper org_memberships table is planned
-// for a later phase.
+// ── SUPER ADMIN GATE ───────────────────────────────────────────────────────
+// SEC-CRITICAL-1(a) — 2026-08-17.
+//
+// PREVIOUS BEHAVIOUR (vulnerable):
+//     return email.endsWith('@pranixailabs.com');
+//
+// Platform-wide super-admin was granted to anyone whose email ended in the
+// operator domain. Combined with the public POST /api/schools/create — which
+// took admin_email straight from the request body and provisioned that user
+// with email_confirm: true — this made super-admin *self-service*:
+//
+//   1. POST /api/schools/create { admin_email: "x@pranixailabs.com", ... }
+//   2. read the password out of the JSON response
+//   3. POST /api/auth/login
+//   -> full cross-tenant super-admin over every school on the platform,
+//      from three unauthenticated HTTP calls, with no DB access required.
+//
+// CURRENT BEHAVIOUR (fixed):
+// Super-admin is an explicit, operator-controlled allowlist supplied through
+// the environment. It cannot be granted by anything a request can influence.
+// The registration endpoint additionally refuses reserved operator domains, so
+// the escalation chain is broken in two independent places.
+//
+// FAIL-CLOSED BY DESIGN: with no allowlist configured, isSuperAdmin() is false
+// for everybody. That is intentional. It is also not a regression — at the time
+// of this change `select count(*) from school_users where email ilike
+// '%@pranixailabs.com'` returned 0, so no account was relying on the old gate.
+//
+// CONFIGURATION: set SUPER_ADMIN_EMAILS to a comma-separated list of exact
+// addresses. The pre-existing singular SUPER_ADMIN_EMAIL is still honoured.
+// Values are compared case-insensitively after trimming; matching is exact —
+// no suffix, prefix or wildcard matching is supported, deliberately.
+//
+// FOLLOW-UP (tracked, not in this PR): move the allowlist into a DB-backed
+// `platform_operators` table with per-operator audit and revocation, so adding
+// or removing an operator is not a redeploy.
+
+let superAdminAllowlistCache: Set<string> | null = null;
+
+function superAdminAllowlist(): Set<string> {
+  if (superAdminAllowlistCache) return superAdminAllowlistCache;
+
+  // Read process.env directly rather than through lib/env.ts: this module is
+  // reachable from contexts where the server-only env schema is not loaded, and
+  // an undefined value there must degrade to "nobody is a super admin" rather
+  // than throw.
+  const raw = [
+    process.env.SUPER_ADMIN_EMAILS ?? '',
+    process.env.SUPER_ADMIN_EMAIL ?? '',
+  ].join(',');
+
+  superAdminAllowlistCache = new Set(
+    raw
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0 && e.includes('@'))
+  );
+
+  return superAdminAllowlistCache;
+}
+
+/** Test-only: clears the memoised allowlist so env changes take effect. */
+export function __resetSuperAdminAllowlistForTests(): void {
+  superAdminAllowlistCache = null;
+}
 
 export function isSuperAdmin(email: string): boolean {
-  return email.endsWith('@pranixailabs.com');
+  if (!email) return false;
+  return superAdminAllowlist().has(email.trim().toLowerCase());
 }
 
 // Can create / manage institutions (governance action)
