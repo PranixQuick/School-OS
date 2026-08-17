@@ -124,6 +124,31 @@ jobs:
           # production, so there is nothing here for a compromised runner to
           # take.
 
+      # Phase 0.5 — leave provable evidence behind. Before this, nothing in the
+      # repo proved any test had ever run on any date: test-results/.last-run.json
+      # held 45 bytes with no date and no test list, and the evidence ledger was
+      # an empty template.
+      - name: Generate evidence record
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p test-results
+          {
+            echo "# Test evidence - run ${{ github.run_id }}"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Date (UTC) | $(date -u '+%Y-%m-%d %H:%M:%S') |"
+            echo "| Event | ${{ github.event_name }} |"
+            echo "| Ref | ${{ github.ref }} |"
+            echo "| Commit | ${{ github.sha }} |"
+            echo "| Run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+            echo "| Job status | ${{ job.status }} |"
+            echo
+            echo "Artifacts: playwright-report/, test-results/e2e-junit.xml,"
+            echo "test-results/unit-junit.xml, coverage/"
+          } > test-results/EVIDENCE_RUN.md
+          cat test-results/EVIDENCE_RUN.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
