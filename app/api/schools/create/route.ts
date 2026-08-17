@@ -435,6 +435,11 @@ export async function POST(req: NextRequest) {
     if (schoolId) { try { await supabaseAdmin.from('schools').delete().eq('id', schoolId); } catch { /* ignore */ } }
     if (institutionId) { try { await supabaseAdmin.from('institutions').delete().eq('id', institutionId); } catch { /* ignore */ } }
     if (organisationId) { try { await supabaseAdmin.from('organisations').delete().eq('id', organisationId); } catch { /* ignore */ } }
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    // Do not echo internal error text to an anonymous caller — it leaks table
+    // names, constraint names and provider messages.
+    return NextResponse.json(
+      { error: 'Registration failed. Please try again or contact support.' },
+      { status: 500 }
+    );
   }
 }
