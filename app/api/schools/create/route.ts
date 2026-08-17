@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
       .insert({
         name: school_name,
         slug: orgSlug,
-        owner_email: admin_email.toLowerCase().trim(),
+        owner_email: ownerEmail,
       })
       .select('id')
       .single();
@@ -378,7 +378,7 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('owner_profiles').insert({
           institution_id: institutionId,
           owner_name: admin_name,
-          owner_email: admin_email.toLowerCase().trim(),
+          owner_email: ownerEmail,
           subscription_plan: 'basic',
           max_schools: 1,
         });
