@@ -36,6 +36,17 @@ export default defineConfig({
   // are *.spec.ts.
   testDir: '.',
   testMatch: ['e2e/**/*.spec.ts', 'tests/**/*.spec.ts'],
+  // Widening testDir to the repo root means Playwright walks the whole tree to
+  // find matches. Without these, it descends into node_modules (slow, and a
+  // dependency shipping its own *.spec.ts would be collected as our test) and
+  // into .next build output.
+  testIgnore: [
+    '**/node_modules/**',
+    '**/.next/**',
+    '**/android/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
+  ],
   timeout: 30_000,
   retries: 1,
   // Phase 0.5 — evidence. Without these, a CI run leaves nothing behind that
