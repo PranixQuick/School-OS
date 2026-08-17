@@ -14,6 +14,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      # Phase 0.2 — the E2E step below was gated with
+      #   if: github.event_name == 'pull_request' && secrets.NEXT_... != ''
+      # The `secrets` context is NOT available in a step-level `if:`. It IS
+      # available in job-level `env:`. Hoisting it here makes the gate actually
+      # evaluate, and makes the decision visible in the run log rather than
+      # silently deciding whether the suite runs at all.
+      HAS_SUPABASE_SECRETS: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
