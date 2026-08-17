@@ -133,7 +133,9 @@ export async function POST(req: NextRequest) {
       rows: dataRows as Record<string, unknown>[],
       sheet_url,
       dry_run,
-      triggered_by: req.headers.get('x-user-email') ?? 'sheets-connector',
+      // SEC-CRITICAL-2: audit label comes from the verified session, not a
+      // client-supplied x-user-email header (which middleware now strips).
+      triggered_by: session.userEmail || 'sheets-connector',
     });
 
     return NextResponse.json({
