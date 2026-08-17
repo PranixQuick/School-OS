@@ -161,6 +161,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // SEC-CRITICAL-1(d): best-effort abuse control on a fully public endpoint.
+    const ip = clientIpFromRequest(req);
+    if (!registrationAllowed(ip)) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '3600' } }
+      );
+    }
+
+    const ownerEmail = admin_email.toLowerCase().trim();
+
+    if (!EMAIL_RE.test(ownerEmail)) {
+      return NextResponse.json({ error: 'admin_email is not a valid address' }, { status: 400 });
+    }
+
+    // SEC-CRITICAL-1(a): reserved operator domains may never be self-registered.
+    const emailDomain = ownerEmail.split('@')[1] ?? '';
+    if (RESERVED_ADMIN_DOMAINS.includes(emailDomain)) {
+      console.warn(
+        `[schools/create] BLOCKED self-registration on reserved domain ` +
+        `"${emailDomain}" from ip=${ip ?? 'unknown'}`
+      );
+      return NextResponse.json(
+        { error: 'This email domain cannot be used for self-registration. Contact support.' },
+        { status: 403 }
+      );
+    }
+
+    // SEC-CRITICAL-1(b): if this email already has an account anywhere on the
+    // platform, stop. Under the previous code the "recovery" path reset that
+    // account's password to a value the caller knew — an unauthenticated
+    // account-takeover primitive against any known email address.
+    const { data: existingMembership } = await supabaseAdmin
+      .from('school_users')
+      .select('id')
+      .ilike('email', ownerEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingMembership) {
+      return NextResponse.json(
+        {
+          error:
+            'An account already exists for this email address. Sign in instead, ' +
+            'or use a different email to register a new institution.',
+        },
+        { status: 409 }
+      );
+    }
+
     const baseSlug = makeSlug(school_name);
 
     // Check slug uniqueness across both schools and institutions
