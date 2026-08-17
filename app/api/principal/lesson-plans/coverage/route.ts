@@ -37,7 +37,7 @@ const DATE_RX = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { searchParams } = new URL(req.url);
     const dateOverride = searchParams.get('date');
 
