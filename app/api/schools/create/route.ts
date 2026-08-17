@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
         slug: baseSlug,
         plan: 'free',
         board: boardInfo.board,
-        contact_email: admin_email,
+        contact_email: ownerEmail,
         contact_phone: body.contact_phone ?? null,
         institution_id: institutionId,
         is_active: true,
