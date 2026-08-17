@@ -6,7 +6,7 @@ import { getSchoolId } from '@/lib/getSchoolId';
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '50');
 
     const { data, error } = await supabaseAdmin
