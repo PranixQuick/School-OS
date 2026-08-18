@@ -1,5 +1,9 @@
 name: CI
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -10,14 +14,43 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      # Phase 0.2 — the E2E step below was gated with
+      #   if: github.event_name == 'pull_request' && secrets.NEXT_... != ''
+      # The `secrets` context is NOT available in a step-level `if:`. It IS
+      # available in job-level `env:`. Hoisting it here makes the gate actually
+      # evaluate, and makes the decision visible in the run log rather than
+      # silently deciding whether the suite runs at all.
+      HAS_SUPABASE_SECRETS: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Node 22, not 20.
+      #
+      # @supabase/supabase-js is pinned as ^2.45.4, so npm resolves the newest
+      # 2.x at install time. Recent 2.x builds construct a RealtimeClient inside
+      # createClient(), and that requires a native global WebSocket — which Node
+      # 20 does not have. The failure is:
+      #
+      #   Error: Node.js detected but native WebSocket not found.
+      #     at Function.getWebSocketConstructor (@supabase/realtime-js)
+      #     at lib/supabaseClient.ts:4:30
+      #
+      # It fires at MODULE LOAD, so any test file that imports lib/supabaseClient
+      # without mocking it dies during collection: the suite reports "N test
+      # files failed" with zero failed assertions, which reads like a broken
+      # test but is really a broken runtime.
+      #
+      # This is also why it appeared without anyone changing that code — a new
+      # supabase-js 2.x release simply landed. Node 22 is what supabase-js now
+      # targets (it prints a deprecation warning for 20 and below) and matches
+      # the Node version Vercel builds with, so CI and production stop drifting.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
@@ -60,12 +93,20 @@ jobs:
           TWILIO_AUTH_TOKEN: placeholder_twilio_auth_token
           TWILIO_WHATSAPP_FROM: whatsapp:+1234567890
 
-      - name: Run E2E tests against local build (PR validation only)
-        if: github.event_name == 'pull_request' && secrets.NEXT_PUBLIC_SUPABASE_URL != ''
+      # Blocking gate. Path-filtered on purpose: e2e/ is the established suite,
+      # and tests/smoke.spec.ts is a spec recovered in Phase 0.1 that needs no
+      # credentials. The other recovered orphans run non-blocking below until
+      # they have been triaged.
+      #
+      # E2E_BYPASS_SECRET is legitimate here because this targets localhost.
+      # lib/rate-limit.isE2EBypass() hard-refuses the bypass whenever
+      # VERCEL_ENV === 'production', which is never true in CI.
+      - name: Run E2E tests against local build (PR gate)
+        if: github.event_name == 'pull_request' && env.HAS_SUPABASE_SECRETS == 'true'
         run: |
           npm run start &
           npx wait-on http://localhost:3000 --timeout 60000
-          npm run test:e2e
+          npx playwright test e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -82,9 +123,14 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           TEST_BASE_URL: http://localhost:3000
 
-      - name: Run E2E tests against production (Post-deploy smoke gate)
-        if: github.event_name == 'push'
-        run: npm run test:e2e
+      # Phase 0.1 — specs recovered from tests/ that no runner had ever
+      # collected, so their pass/fail state is genuinely unknown. Non-blocking
+      # first, so real results surface without turning main red on day one.
+      # Once triaged, fold them into the gate above and delete this step.
+      - name: E2E - recovered orphan specs (non-blocking, informational)
+        if: github.event_name == 'pull_request' && env.HAS_SUPABASE_SECRETS == 'true'
+        continue-on-error: true
+        run: npx playwright test tests/smoke.spec.ts tests/auth.spec.ts tests/hod
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -98,8 +144,62 @@ jobs:
           TEST_PARENT_PHONE: '9515479595'
           TEST_PARENT_PIN: ${{ secrets.TEST_PARENT_PIN }}
           E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          TEST_BASE_URL: http://localhost:3000
+
+      # SEC-CRITICAL-3. This step used to run the FULL E2E suite against
+      # production with E2E_BYPASS_SECRET in its environment. That is what
+      # forced the login bypass to be configured on the production deployment:
+      # one static, never-rotated string that minted a full-privilege session
+      # for any account in any tenant, ahead of rate limiting.
+      #
+      # It now runs only tests/smoke.spec.ts, which authenticates as nobody.
+      # No credential is sent to production. Anything requiring a login belongs
+      # on the PR gate above, against a local build.
+      - name: Post-deploy smoke against production (unauthenticated only)
+        if: github.event_name == 'push'
+        run: npx playwright test tests/smoke.spec.ts
+        env:
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
           TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          # Deliberately absent: E2E_BYPASS_SECRET, TEST_ADMIN_PASSWORD,
+          # TEST_TEACHER_PASSWORD, TEST_PARENT_PIN, SUPABASE_SERVICE_ROLE_KEY,
+          # SESSION_SECRET. This job sends no credential of any kind to
+          # production, so there is nothing here for a compromised runner to
+          # take.
+
+      # Phase 0.5 — leave provable evidence behind. Before this, nothing in the
+      # repo proved any test had ever run on any date: test-results/.last-run.json
+      # held 45 bytes with no date and no test list, and the evidence ledger was
+      # an empty template.
+      - name: Generate evidence record
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p test-results
+          {
+            echo "# Test evidence - run ${{ github.run_id }}"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Date (UTC) | $(date -u '+%Y-%m-%d %H:%M:%S') |"
+            echo "| Event | ${{ github.event_name }} |"
+            echo "| Ref | ${{ github.ref }} |"
+            echo "| Commit | ${{ github.sha }} |"
+            echo "| Run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+            echo "| Job status | ${{ job.status }} |"
+            echo
+            echo "Artifacts: playwright-report/, test-results/e2e-junit.xml,"
+            echo "test-results/unit-junit.xml, coverage/"
+          } > test-results/EVIDENCE_RUN.md
+          cat test-results/EVIDENCE_RUN.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage/
+          retention-days: 30
 
       - name: Upload Playwright report and trace/video artifacts
         uses: actions/upload-artifact@v4

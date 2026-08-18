@@ -20,10 +20,46 @@ try {
 }
 
 export default defineConfig({
-  testDir: './e2e',
-  testMatch: '**/*.spec.ts',
+  // Phase 0.1 — recover the orphaned specs.
+  //
+  // testDir was './e2e', and vitest.config.ts includes only 'tests/unit/**'.
+  // Six Playwright specs therefore belonged to no runner and had never
+  // executed: tests/auth.spec.ts, tests/smoke.spec.ts and tests/hod/*.spec.ts
+  // (x4) — roughly 15 KB of real assertions. tests/smoke.spec.ts in particular
+  // (public routes, auth-guard redirects, the unauthenticated API 401/403
+  // matrix, /api/health, the PWA manifest) is stronger than most specs that do
+  // run, and it needs no credentials, which makes it the correct post-deploy
+  // production gate.
+  //
+  // Widening testDir to the repo root and matching both trees collects them.
+  // There is no clash with vitest: unit tests are *.test.ts, Playwright specs
+  // are *.spec.ts.
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'tests/**/*.spec.ts'],
+  // Widening testDir to the repo root means Playwright walks the whole tree to
+  // find matches. Without these, it descends into node_modules (slow, and a
+  // dependency shipping its own *.spec.ts would be collected as our test) and
+  // into .next build output.
+  testIgnore: [
+    '**/node_modules/**',
+    '**/.next/**',
+    '**/android/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
+  ],
   timeout: 30_000,
   retries: 1,
+  // Phase 0.5 — evidence. Without these, a CI run leaves nothing behind that
+  // proves what passed, and the evidence ledger stays an empty template.
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+    ['junit', { outputFile: 'test-results/e2e-junit.xml' }],
+    ['json', { outputFile: 'test-results/e2e-results.json' }],
+  ],
+  // A stray .only would silently narrow the suite to one test and still report
+  // green. Fail the run instead.
+  forbidOnly: !!process.env.CI,
   use: {
     baseURL: process.env.TEST_BASE_URL || 'https://www.edprosys.com',
     trace: 'on',
