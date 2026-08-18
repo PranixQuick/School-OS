@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { clientIpFromRequest } from '@/lib/auth';
+import { sendEmail, buildEmailHtml } from '@/lib/email';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,6 +59,61 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 18 bytes -> 24 base64url chars. Unambiguous alphabet, no padding.
 function generateInitialPassword(): string {
   return randomBytes(18).toString('base64url');
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION — founder decision, 18 Aug 2026 ("Option B")
+//
+// SEC-CRITICAL-1 closed the escalation paths on this endpoint but left one gap
+// open, deliberately, because closing it changes the signup flow: the endpoint
+// did not check that the registrant actually CONTROLS admin_email. Anyone could
+// register an institution naming an address they do not own and be handed
+// working credentials for it in the HTTP response.
+//
+// Now, when a real email provider is configured, registration never returns a
+// password. Instead it provisions the owner through Supabase's invite flow and
+// emails a one-time activation link. Possession of the inbox becomes a
+// requirement, which is the actual property "verified email" is supposed to
+// mean. The link lands on /api/auth/callback, which already verifies the token,
+// links auth_user_id, syncs app_metadata and mints the session — so this reuses
+// the audited path rather than inventing a second one.
+//
+// DELIBERATE FALLBACK: if EMAIL_PROVIDER is unset or 'stub', lib/email.ts only
+// logs to the console — it does not deliver. Enforcing verification in that
+// state would silently prevent every new school from registering. So when no
+// provider is configured the endpoint keeps the previous behaviour (returns the
+// generated password) and logs a loud warning. Verification switches itself on
+// the moment RESEND_API_KEY and EMAIL_PROVIDER=resend are set in Vercel; no
+// code change and no redeploy of this file is needed.
+// ───────────────────────────────────────────────────────────────────────────
+
+function emailVerificationEnabled(): boolean {
+  return (process.env.EMAIL_PROVIDER ?? 'stub') !== 'stub';
+}
+
+function activationEmail(params: {
+  schoolName: string;
+  adminName: string;
+  link: string;
+}): { subject: string; body: string; htmlBody: string } {
+  const body =
+    `Hello ${params.adminName},\n\n` +
+    `${params.schoolName} has been created on EdProSys.\n\n` +
+    `To activate your account and set your password, open this link:\n\n` +
+    `${params.link}\n\n` +
+    `The link works once and expires shortly. If you did not request this, ` +
+    `you can ignore this email — the account cannot be used until the link is opened.`;
+
+  return {
+    subject: `Activate your EdProSys account for ${params.schoolName}`,
+    body,
+    htmlBody: buildEmailHtml({
+      schoolName: params.schoolName,
+      title: 'Activate your account',
+      body,
+      footer: 'If you did not create this account, no action is needed.',
+    }),
+  };
 }
 
 // Best-effort per-instance registration throttle. Serverless instances do not
@@ -319,16 +375,34 @@ export async function POST(req: NextRequest) {
     // API (programmes, academic-years) resolve the institution from the
     // school_users row. Leaving them null broke college academic setup with
     // "Cannot resolve institution".
-    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID.
+    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID. Only ever
+    // used on the no-email-provider fallback path.
     const initialPassword = generateInitialPassword();
+    const verifyByEmail = emailVerificationEnabled();
+    const appOrigin = (process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).replace(/\/$/, '');
 
     let ownerAuthId: string | null = null;
-    const { data: ownerAuth, error: ownerAuthErr } = await supabaseAdmin.auth.admin.createUser({
-      email: ownerEmail,
-      password: initialPassword,
-      email_confirm: true,
-      user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
-    });
+    let activationEmailSent = false;
+
+    // Verified path: provision through Supabase's invite flow. The auth user is
+    // created UNCONFIRMED, with no password that anyone — including this server
+    // — retains. The emailed link is the only way in, which is precisely what
+    // makes this a verification of the address rather than a claim about it.
+    //
+    // Fallback path: no email provider configured, so keep the previous
+    // behaviour rather than block every new registration.
+    const { data: ownerAuth, error: ownerAuthErr } = verifyByEmail
+      ? await supabaseAdmin.auth.admin.generateLink({
+          type: 'invite',
+          email: ownerEmail,
+          options: { redirectTo: `${appOrigin}/api/auth/callback` },
+        })
+      : await supabaseAdmin.auth.admin.createUser({
+          email: ownerEmail,
+          password: initialPassword,
+          email_confirm: true,
+          user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
+        });
     if (ownerAuthErr) {
       // SEC-CRITICAL-1(b): DO NOT "recover" by overwriting an existing auth
       // user's password. The previous implementation did exactly that, which
@@ -357,6 +431,52 @@ export async function POST(req: NextRequest) {
       ownerAuthId = ownerAuth.user?.id ?? null;
     }
 
+    // Deliver the activation link. If this fails the whole registration must
+    // fail: an account nobody can reach is worse than no account, and quietly
+    // succeeding would leave an orphaned school and an unreachable owner.
+    if (verifyByEmail) {
+      const link =
+        (ownerAuth as { properties?: { action_link?: string } }).properties?.action_link ?? '';
+      const mail = activationEmail({
+        schoolName: school_name,
+        adminName: admin_name,
+        link,
+      });
+      const sent = link
+        ? await sendEmail({
+            to: ownerEmail,
+            subject: mail.subject,
+            body: mail.body,
+            htmlBody: mail.htmlBody,
+          })
+        : { success: false, provider: 'none', error: 'Supabase returned no action_link' };
+
+      activationEmailSent = sent.success;
+
+      if (!sent.success) {
+        console.error(
+          `[schools/create] activation email failed: ${sent.error ?? 'unknown'}`
+        );
+        if (ownerAuthId) {
+          try { await supabaseAdmin.auth.admin.deleteUser(ownerAuthId); } catch { /* ignore */ }
+        }
+        await supabaseAdmin.from('schools').delete().eq('id', school.id);
+        if (institutionId) await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
+        if (organisationId) await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
+        schoolId = null; institutionId = null; organisationId = null;
+        return NextResponse.json(
+          { error: 'We could not send the activation email. Please try again, or contact support.' },
+          { status: 502 }
+        );
+      }
+    } else {
+      console.warn(
+        '[schools/create] EMAIL_PROVIDER is not configured, so this registration ' +
+        'returned a password instead of verifying the address. Set RESEND_API_KEY ' +
+        'and EMAIL_PROVIDER=resend to switch verification on.'
+      );
+    }
+
     const { error: userErr } = await supabaseAdmin
       .from('school_users')
       .insert({
@@ -368,8 +488,12 @@ export async function POST(req: NextRequest) {
         role_v2: 'owner',
         auth_user_id: ownerAuthId,
         is_active: true,
-        invite_status: ownerAuthId ? 'verified' : 'pending',
-        auth_verified: !!ownerAuthId,
+        // On the verified path the address is NOT yet proven — the owner has
+        // been sent a link but has not opened it. /api/auth/callback flips
+        // these when the link is used. Marking them verified here would make
+        // the flag mean "we emailed them", which is the opposite of the point.
+        invite_status: verifyByEmail ? 'pending' : ownerAuthId ? 'verified' : 'pending',
+        auth_verified: verifyByEmail ? false : !!ownerAuthId,
       });
 
     if (userErr) {
@@ -415,17 +539,30 @@ export async function POST(req: NextRequest) {
         institution_type: instType,
         ownership_type: ownType,
       },
-      login: {
-        email: ownerEmail,
-        // Returned exactly once, over TLS, to the party who just registered.
-        // High-entropy and single-use by convention — the owner should change
-        // it after first sign-in.
-        password: initialPassword,
-        active: !!ownerAuthId,
-        must_change_password: true,
-      },
-      next_step: '/onboarding',
-      message: ownerAuthId
+      verification: verifyByEmail
+        ? { required: true, email_sent: activationEmailSent, sent_to: ownerEmail }
+        : { required: false, email_sent: false },
+      login: verifyByEmail
+        ? {
+            // No password is issued on this path. The activation link is the
+            // only route in, so there is nothing here to intercept, log, screen
+            // -shot or replay.
+            email: ownerEmail,
+            active: false,
+            awaiting_email_verification: true,
+          }
+        : {
+            email: ownerEmail,
+            // Fallback path only. Returned once, over TLS, to the party who
+            // just registered. High-entropy; change it after first sign-in.
+            password: initialPassword,
+            active: !!ownerAuthId,
+            must_change_password: true,
+          },
+      next_step: verifyByEmail ? '/login' : '/onboarding',
+      message: verifyByEmail
+        ? `We have sent an activation link to ${ownerEmail}. Open it to set your password and finish setting up your institution. The link expires shortly.`
+        : ownerAuthId
         ? 'Account created. Save your password below and sign in to complete the setup wizard.'
         : 'Account created, but login activation is pending. Contact support to activate your login.',
     });
