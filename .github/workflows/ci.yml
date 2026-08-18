@@ -27,10 +27,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Node 22, not 20.
+      #
+      # @supabase/supabase-js is pinned as ^2.45.4, so npm resolves the newest
+      # 2.x at install time. Recent 2.x builds construct a RealtimeClient inside
+      # createClient(), and that requires a native global WebSocket — which Node
+      # 20 does not have. The failure is:
+      #
+      #   Error: Node.js detected but native WebSocket not found.
+      #     at Function.getWebSocketConstructor (@supabase/realtime-js)
+      #     at lib/supabaseClient.ts:4:30
+      #
+      # It fires at MODULE LOAD, so any test file that imports lib/supabaseClient
+      # without mocking it dies during collection: the suite reports "N test
+      # files failed" with zero failed assertions, which reads like a broken
+      # test but is really a broken runtime.
+      #
+      # This is also why it appeared without anyone changing that code — a new
+      # supabase-js 2.x release simply landed. Node 22 is what supabase-js now
+      # targets (it prints a deprecation warning for 20 and below) and matches
+      # the Node version Vercel builds with, so CI and production stop drifting.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
