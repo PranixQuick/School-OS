@@ -1,5 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { clientIpFromRequest } from '@/lib/auth';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// ───────────────────────────────────────────────────────────────────────────
+// SEC-CRITICAL-1 — 2026-08-17
+//
+// This route is intentionally public: it is the self-service institution
+// registration endpoint. Four defects made that public surface exploitable.
+//
+//  (a) SUPER-ADMIN MANUFACTURE. lib/authz.isSuperAdmin() granted platform-wide
+//      super-admin to any email ending '@pranixailabs.com'. This route accepted
+//      admin_email straight from the request body and provisioned that user with
+//      email_confirm: true. Registering a school with
+//      admin_email = "anything@pranixailabs.com" therefore minted a working
+//      cross-tenant super-admin, unauthenticated, in one HTTP call.
+//      Fixed here by refusing reserved domains, and structurally in lib/authz.ts
+//      by replacing the suffix check with an explicit operator allowlist.
+//
+//  (b) ACCOUNT TAKEOVER. When createUser() failed because the email already had
+//      a Supabase auth user, the recovery path called updateUserById() with
+//      { password: initialPassword, email_confirm: true } — i.e. an
+//      unauthenticated caller could OVERWRITE ANY EXISTING USER'S PASSWORD to a
+//      value of their choosing simply by "registering a school" with that
+//      person's email address. That path is removed entirely. A pre-existing
+//      account is now a 409, and nothing is created or modified.
+//
+//  (c) GUESSABLE PASSWORD. The initial password was `edprosys` + the first four
+//      characters of the school UUID. School UUIDs are not secret — they appear
+//      in URLs, exports and API responses. Now 18 bytes of CSPRNG entropy.
+//
+//  (d) NO ABUSE CONTROL. No rate limiting of any kind. A best-effort per-IP
+//      limiter is applied below; it is per-instance, so it is a speed bump for
+//      casual abuse rather than a guarantee.
+//
+// STILL OPEN, needs a product decision (see the security brief): this endpoint
+// does not verify that the registrant controls admin_email. Until it does,
+// somebody can register an institution naming an address they do not own and
+// receive working credentials for it. Closing that requires an email
+// verification step before the account is activated.
+// ───────────────────────────────────────────────────────────────────────────
+
+// Domains that may never be self-registered. pranixailabs.com is the operator
+// domain: historically it conferred super-admin. Even after lib/authz.ts stops
+// trusting the suffix, allowing outsiders to mint addresses on the operator
+// domain is a phishing and social-engineering primitive.
+const RESERVED_ADMIN_DOMAINS = [
+  'pranixailabs.com',
+  'edprosys.com',
+];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// 18 bytes -> 24 base64url chars. Unambiguous alphabet, no padding.
+function generateInitialPassword(): string {
+  return randomBytes(18).toString('base64url');
+}
+
+// Best-effort per-instance registration throttle. Serverless instances do not
+// share this map, so it bounds a single attacker on a single warm instance
+// rather than a distributed one. It is deliberately cheap: the authoritative
+// controls are (a) reserved domains and (b) the pre-existing-account 409.
+const REGISTRATION_LIMIT = 5;
+const REGISTRATION_WINDOW_MS = 60 * 60 * 1000;
+const registrationHits = new Map<string, { count: number; firstAt: number }>();
+
+function registrationAllowed(ip: string | null): boolean {
+  if (!ip) return true;
+  const now = Date.now();
+  const w = registrationHits.get(ip);
+  if (!w || now - w.firstAt >= REGISTRATION_WINDOW_MS) {
+    registrationHits.set(ip, { count: 1, firstAt: now });
+    return true;
+  }
+  w.count += 1;
+  return w.count <= REGISTRATION_LIMIT;
+}
 
 function makeSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -82,6 +161,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // SEC-CRITICAL-1(d): best-effort abuse control on a fully public endpoint.
+    const ip = clientIpFromRequest(req);
+    if (!registrationAllowed(ip)) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '3600' } }
+      );
+    }
+
+    const ownerEmail = admin_email.toLowerCase().trim();
+
+    if (!EMAIL_RE.test(ownerEmail)) {
+      return NextResponse.json({ error: 'admin_email is not a valid address' }, { status: 400 });
+    }
+
+    // SEC-CRITICAL-1(a): reserved operator domains may never be self-registered.
+    const emailDomain = ownerEmail.split('@')[1] ?? '';
+    if (RESERVED_ADMIN_DOMAINS.includes(emailDomain)) {
+      console.warn(
+        `[schools/create] BLOCKED self-registration on reserved domain ` +
+        `"${emailDomain}" from ip=${ip ?? 'unknown'}`
+      );
+      return NextResponse.json(
+        { error: 'This email domain cannot be used for self-registration. Contact support.' },
+        { status: 403 }
+      );
+    }
+
+    // SEC-CRITICAL-1(b): if this email already has an account anywhere on the
+    // platform, stop. Under the previous code the "recovery" path reset that
+    // account's password to a value the caller knew — an unauthenticated
+    // account-takeover primitive against any known email address.
+    const { data: existingMembership } = await supabaseAdmin
+      .from('school_users')
+      .select('id')
+      .ilike('email', ownerEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingMembership) {
+      return NextResponse.json(
+        {
+          error:
+            'An account already exists for this email address. Sign in instead, ' +
+            'or use a different email to register a new institution.',
+        },
+        { status: 409 }
+      );
+    }
+
     const baseSlug = makeSlug(school_name);
 
     // Check slug uniqueness across both schools and institutions
@@ -125,7 +254,7 @@ export async function POST(req: NextRequest) {
       .insert({
         name: school_name,
         slug: orgSlug,
-        owner_email: admin_email.toLowerCase().trim(),
+        owner_email: ownerEmail,
       })
       .select('id')
       .single();
@@ -167,7 +296,7 @@ export async function POST(req: NextRequest) {
         slug: baseSlug,
         plan: 'free',
         board: boardInfo.board,
-        contact_email: admin_email,
+        contact_email: ownerEmail,
         contact_phone: body.contact_phone ?? null,
         institution_id: institutionId,
         is_active: true,
@@ -190,8 +319,8 @@ export async function POST(req: NextRequest) {
     // API (programmes, academic-years) resolve the institution from the
     // school_users row. Leaving them null broke college academic setup with
     // "Cannot resolve institution".
-    const ownerEmail = admin_email.toLowerCase().trim();
-    const initialPassword = `edprosys${school.id.slice(0, 4)}`;
+    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID.
+    const initialPassword = generateInitialPassword();
 
     let ownerAuthId: string | null = null;
     const { data: ownerAuth, error: ownerAuthErr } = await supabaseAdmin.auth.admin.createUser({
@@ -201,18 +330,29 @@ export async function POST(req: NextRequest) {
       user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
     });
     if (ownerAuthErr) {
-      // Recover if an auth user already exists for this email (re-registration / leftover).
-      try {
-        for (let page = 1; page <= 10 && !ownerAuthId; page++) {
-          const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-          const hit = list?.users.find(u => (u.email ?? '').toLowerCase() === ownerEmail);
-          if (hit) {
-            await supabaseAdmin.auth.admin.updateUserById(hit.id, { password: initialPassword, email_confirm: true });
-            ownerAuthId = hit.id;
-          }
-          if (!list || list.users.length < 200) break;
-        }
-      } catch { /* fall through; handled below */ }
+      // SEC-CRITICAL-1(b): DO NOT "recover" by overwriting an existing auth
+      // user's password. The previous implementation did exactly that, which
+      // let an unauthenticated caller reset any known user's password simply by
+      // registering a school in their name. There is no safe automatic recovery
+      // here — an auth user already existing for this address means either the
+      // account is real (they should sign in) or it is orphaned (an operator
+      // must clean it up). Roll back and refuse.
+      console.warn(
+        `[schools/create] auth user already exists or could not be created for ` +
+        `a new registration; rolling back. reason=${ownerAuthErr.message}`
+      );
+      await supabaseAdmin.from('schools').delete().eq('id', school.id);
+      if (institutionId) await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
+      if (organisationId) await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
+      schoolId = null; institutionId = null; organisationId = null;
+      return NextResponse.json(
+        {
+          error:
+            'An account already exists for this email address. Sign in instead, ' +
+            'or contact support if you believe this is an error.',
+        },
+        { status: 409 }
+      );
     } else {
       ownerAuthId = ownerAuth.user?.id ?? null;
     }
@@ -249,7 +389,7 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('owner_profiles').insert({
           institution_id: institutionId,
           owner_name: admin_name,
-          owner_email: admin_email.toLowerCase().trim(),
+          owner_email: ownerEmail,
           subscription_plan: 'basic',
           max_schools: 1,
         });
@@ -276,9 +416,13 @@ export async function POST(req: NextRequest) {
         ownership_type: ownType,
       },
       login: {
-        email: admin_email,
+        email: ownerEmail,
+        // Returned exactly once, over TLS, to the party who just registered.
+        // High-entropy and single-use by convention — the owner should change
+        // it after first sign-in.
         password: initialPassword,
         active: !!ownerAuthId,
+        must_change_password: true,
       },
       next_step: '/onboarding',
       message: ownerAuthId
@@ -291,6 +435,11 @@ export async function POST(req: NextRequest) {
     if (schoolId) { try { await supabaseAdmin.from('schools').delete().eq('id', schoolId); } catch { /* ignore */ } }
     if (institutionId) { try { await supabaseAdmin.from('institutions').delete().eq('id', institutionId); } catch { /* ignore */ } }
     if (organisationId) { try { await supabaseAdmin.from('organisations').delete().eq('id', organisationId); } catch { /* ignore */ } }
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    // Do not echo internal error text to an anonymous caller — it leaks table
+    // names, constraint names and provider messages.
+    return NextResponse.json(
+      { error: 'Registration failed. Please try again or contact support.' },
+      { status: 500 }
+    );
   }
 }

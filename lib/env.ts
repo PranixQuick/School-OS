@@ -21,7 +21,14 @@ const EnvSchema = z
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 chars'),
 
     // ── Super admin ─────────────────────────────────────────────────────────
+    // SEC-CRITICAL-1(a): super-admin is an explicit operator allowlist, not an
+    // email-domain suffix. SUPER_ADMIN_EMAILS is a comma-separated list of
+    // exact addresses; SUPER_ADMIN_EMAIL is the legacy single-value form and is
+    // still honoured. Unset in both = nobody is a super admin (fail-closed).
+    // Consumed by lib/authz.ts, which reads process.env directly so that it
+    // degrades safely in contexts where this schema is not loaded.
     SUPER_ADMIN_EMAIL: z.string().email().optional(),
+    SUPER_ADMIN_EMAILS: z.string().optional(),
 
     // ── Public app origin (magic-link redirectTo, outbound links) ─────────
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
