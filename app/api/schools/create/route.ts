@@ -431,6 +431,52 @@ export async function POST(req: NextRequest) {
       ownerAuthId = ownerAuth.user?.id ?? null;
     }
 
+    // Deliver the activation link. If this fails the whole registration must
+    // fail: an account nobody can reach is worse than no account, and quietly
+    // succeeding would leave an orphaned school and an unreachable owner.
+    if (verifyByEmail) {
+      const link =
+        (ownerAuth as { properties?: { action_link?: string } }).properties?.action_link ?? '';
+      const mail = activationEmail({
+        schoolName: school_name,
+        adminName: admin_name,
+        link,
+      });
+      const sent = link
+        ? await sendEmail({
+            to: ownerEmail,
+            subject: mail.subject,
+            body: mail.body,
+            htmlBody: mail.htmlBody,
+          })
+        : { success: false, provider: 'none', error: 'Supabase returned no action_link' };
+
+      activationEmailSent = sent.success;
+
+      if (!sent.success) {
+        console.error(
+          `[schools/create] activation email failed: ${sent.error ?? 'unknown'}`
+        );
+        if (ownerAuthId) {
+          try { await supabaseAdmin.auth.admin.deleteUser(ownerAuthId); } catch { /* ignore */ }
+        }
+        await supabaseAdmin.from('schools').delete().eq('id', school.id);
+        if (institutionId) await supabaseAdmin.from('institutions').delete().eq('id', institutionId);
+        if (organisationId) await supabaseAdmin.from('organisations').delete().eq('id', organisationId);
+        schoolId = null; institutionId = null; organisationId = null;
+        return NextResponse.json(
+          { error: 'We could not send the activation email. Please try again, or contact support.' },
+          { status: 502 }
+        );
+      }
+    } else {
+      console.warn(
+        '[schools/create] EMAIL_PROVIDER is not configured, so this registration ' +
+        'returned a password instead of verifying the address. Set RESEND_API_KEY ' +
+        'and EMAIL_PROVIDER=resend to switch verification on.'
+      );
+    }
+
     const { error: userErr } = await supabaseAdmin
       .from('school_users')
       .insert({
