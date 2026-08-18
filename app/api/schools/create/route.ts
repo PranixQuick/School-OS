@@ -539,17 +539,30 @@ export async function POST(req: NextRequest) {
         institution_type: instType,
         ownership_type: ownType,
       },
-      login: {
-        email: ownerEmail,
-        // Returned exactly once, over TLS, to the party who just registered.
-        // High-entropy and single-use by convention — the owner should change
-        // it after first sign-in.
-        password: initialPassword,
-        active: !!ownerAuthId,
-        must_change_password: true,
-      },
-      next_step: '/onboarding',
-      message: ownerAuthId
+      verification: verifyByEmail
+        ? { required: true, email_sent: activationEmailSent, sent_to: ownerEmail }
+        : { required: false, email_sent: false },
+      login: verifyByEmail
+        ? {
+            // No password is issued on this path. The activation link is the
+            // only route in, so there is nothing here to intercept, log, screen
+            // -shot or replay.
+            email: ownerEmail,
+            active: false,
+            awaiting_email_verification: true,
+          }
+        : {
+            email: ownerEmail,
+            // Fallback path only. Returned once, over TLS, to the party who
+            // just registered. High-entropy; change it after first sign-in.
+            password: initialPassword,
+            active: !!ownerAuthId,
+            must_change_password: true,
+          },
+      next_step: verifyByEmail ? '/login' : '/onboarding',
+      message: verifyByEmail
+        ? `We have sent an activation link to ${ownerEmail}. Open it to set your password and finish setting up your institution. The link expires shortly.`
+        : ownerAuthId
         ? 'Account created. Save your password below and sign in to complete the setup wizard.'
         : 'Account created, but login activation is pending. Contact support to activate your login.',
     });
