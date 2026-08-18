@@ -488,8 +488,12 @@ export async function POST(req: NextRequest) {
         role_v2: 'owner',
         auth_user_id: ownerAuthId,
         is_active: true,
-        invite_status: ownerAuthId ? 'verified' : 'pending',
-        auth_verified: !!ownerAuthId,
+        // On the verified path the address is NOT yet proven — the owner has
+        // been sent a link but has not opened it. /api/auth/callback flips
+        // these when the link is used. Marking them verified here would make
+        // the flag mean "we emailed them", which is the opposite of the point.
+        invite_status: verifyByEmail ? 'pending' : ownerAuthId ? 'verified' : 'pending',
+        auth_verified: verifyByEmail ? false : !!ownerAuthId,
       });
 
     if (userErr) {
