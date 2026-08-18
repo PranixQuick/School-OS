@@ -110,7 +110,7 @@ jobs:
       - name: E2E - recovered orphan specs (non-blocking, informational)
         if: github.event_name == 'pull_request' && env.HAS_SUPABASE_SECRETS == 'true'
         continue-on-error: true
-        run: npx playwright test tests/auth.spec.ts tests/hod
+        run: npx playwright test tests/smoke.spec.ts tests/auth.spec.ts tests/hod
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
