@@ -34,7 +34,7 @@ function todayInIST(): { dayStart: string; dayEnd: string } {
 
 export async function GET(req: NextRequest) {
   try {
-    const schoolId = getSchoolId(req);
+    const schoolId = await getSchoolId(req);
     const { dayStart, dayEnd } = todayInIST();
 
     // Step 1: open late events for this school today.

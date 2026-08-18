@@ -63,7 +63,7 @@ async function generateTTSAudio(text: string): Promise<ArrayBuffer> {
 }
 
 export async function POST(req: NextRequest) {
-  const schoolId = getSchoolId(req);
+  const schoolId = await getSchoolId(req);
   try {
     const body = await req.json() as { staffId?: string; scriptIndex?: number };
     const { staffId, scriptIndex = 0 } = body;

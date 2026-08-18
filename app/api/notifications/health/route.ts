@@ -20,7 +20,7 @@ interface HealthSummary {
 export async function GET(req: NextRequest) {
   let schoolId: string;
   try {
-    schoolId = getSchoolId(req);
+    schoolId = await getSchoolId(req);
   } catch {
     // MissingSchoolIdError — unauthenticated request.
     // Layout.tsx calls this for the WhatsApp health badge — graceful 401.

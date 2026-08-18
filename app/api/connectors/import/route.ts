@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
       filename: body.filename,
       sheet_url: body.sheet_url,
       dry_run: body.dry_run ?? false,
-      triggered_by: req.headers.get('x-user-email') ?? 'api',
+      // SEC-CRITICAL-2: audit label comes from the verified session, not a
+      // client-supplied x-user-email header (which middleware now strips).
+      triggered_by: session.userEmail || 'api',
     });
 
     return NextResponse.json(result);

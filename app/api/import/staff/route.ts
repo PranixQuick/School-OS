@@ -48,10 +48,10 @@ async function readRows(req: NextRequest): Promise<{ rows: RawRow[]; mode: 'skip
   return { rows, mode: body?.mode === 'error' ? 'error' : 'skip' };
 }
 
-function requireRole(req: NextRequest): { schoolId: string } | { error: string; status: number } {
+async function requireRole(req: NextRequest): Promise<{ schoolId: string } | { error: string; status: number }> {
   let schoolId: string;
-  try { schoolId = getSchoolId(req); } catch (e) { if (e instanceof MissingSchoolIdError) return { error: 'Not authenticated', status: 401 }; throw e; }
-  const role = getUserRole(req);
+  try { schoolId = await getSchoolId(req); } catch (e) { if (e instanceof MissingSchoolIdError) return { error: 'Not authenticated', status: 401 }; throw e; }
+  const role = await getUserRole(req);
   if (!ALLOWED_ROLES.includes(role)) return { error: `Role '${role || 'unknown'}' is not permitted to import staff`, status: 403 };
   return { schoolId };
 }
@@ -79,7 +79,7 @@ function validateRow(raw: RawRow, index: number): { ok: true; value: ValidRow } 
 }
 
 export async function POST(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const gate = requireRole(req);
+  const gate = await requireRole(req);
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const { schoolId } = gate;
   try {
