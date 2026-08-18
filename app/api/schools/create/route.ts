@@ -375,16 +375,34 @@ export async function POST(req: NextRequest) {
     // API (programmes, academic-years) resolve the institution from the
     // school_users row. Leaving them null broke college academic setup with
     // "Cannot resolve institution".
-    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID.
+    // SEC-CRITICAL-1(c): CSPRNG, not a function of the school UUID. Only ever
+    // used on the no-email-provider fallback path.
     const initialPassword = generateInitialPassword();
+    const verifyByEmail = emailVerificationEnabled();
+    const appOrigin = (process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).replace(/\/$/, '');
 
     let ownerAuthId: string | null = null;
-    const { data: ownerAuth, error: ownerAuthErr } = await supabaseAdmin.auth.admin.createUser({
-      email: ownerEmail,
-      password: initialPassword,
-      email_confirm: true,
-      user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
-    });
+    let activationEmailSent = false;
+
+    // Verified path: provision through Supabase's invite flow. The auth user is
+    // created UNCONFIRMED, with no password that anyone — including this server
+    // — retains. The emailed link is the only way in, which is precisely what
+    // makes this a verification of the address rather than a claim about it.
+    //
+    // Fallback path: no email provider configured, so keep the previous
+    // behaviour rather than block every new registration.
+    const { data: ownerAuth, error: ownerAuthErr } = verifyByEmail
+      ? await supabaseAdmin.auth.admin.generateLink({
+          type: 'invite',
+          email: ownerEmail,
+          options: { redirectTo: `${appOrigin}/api/auth/callback` },
+        })
+      : await supabaseAdmin.auth.admin.createUser({
+          email: ownerEmail,
+          password: initialPassword,
+          email_confirm: true,
+          user_metadata: { school_id: school.id, name: admin_name, role: 'owner' },
+        });
     if (ownerAuthErr) {
       // SEC-CRITICAL-1(b): DO NOT "recover" by overwriting an existing auth
       // user's password. The previous implementation did exactly that, which
