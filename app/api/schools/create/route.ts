@@ -61,6 +61,61 @@ function generateInitialPassword(): string {
   return randomBytes(18).toString('base64url');
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION — founder decision, 18 Aug 2026 ("Option B")
+//
+// SEC-CRITICAL-1 closed the escalation paths on this endpoint but left one gap
+// open, deliberately, because closing it changes the signup flow: the endpoint
+// did not check that the registrant actually CONTROLS admin_email. Anyone could
+// register an institution naming an address they do not own and be handed
+// working credentials for it in the HTTP response.
+//
+// Now, when a real email provider is configured, registration never returns a
+// password. Instead it provisions the owner through Supabase's invite flow and
+// emails a one-time activation link. Possession of the inbox becomes a
+// requirement, which is the actual property "verified email" is supposed to
+// mean. The link lands on /api/auth/callback, which already verifies the token,
+// links auth_user_id, syncs app_metadata and mints the session — so this reuses
+// the audited path rather than inventing a second one.
+//
+// DELIBERATE FALLBACK: if EMAIL_PROVIDER is unset or 'stub', lib/email.ts only
+// logs to the console — it does not deliver. Enforcing verification in that
+// state would silently prevent every new school from registering. So when no
+// provider is configured the endpoint keeps the previous behaviour (returns the
+// generated password) and logs a loud warning. Verification switches itself on
+// the moment RESEND_API_KEY and EMAIL_PROVIDER=resend are set in Vercel; no
+// code change and no redeploy of this file is needed.
+// ───────────────────────────────────────────────────────────────────────────
+
+function emailVerificationEnabled(): boolean {
+  return (process.env.EMAIL_PROVIDER ?? 'stub') !== 'stub';
+}
+
+function activationEmail(params: {
+  schoolName: string;
+  adminName: string;
+  link: string;
+}): { subject: string; body: string; htmlBody: string } {
+  const body =
+    `Hello ${params.adminName},\n\n` +
+    `${params.schoolName} has been created on EdProSys.\n\n` +
+    `To activate your account and set your password, open this link:\n\n` +
+    `${params.link}\n\n` +
+    `The link works once and expires shortly. If you did not request this, ` +
+    `you can ignore this email — the account cannot be used until the link is opened.`;
+
+  return {
+    subject: `Activate your EdProSys account for ${params.schoolName}`,
+    body,
+    htmlBody: buildEmailHtml({
+      schoolName: params.schoolName,
+      title: 'Activate your account',
+      body,
+      footer: 'If you did not create this account, no action is needed.',
+    }),
+  };
+}
+
 // Best-effort per-instance registration throttle. Serverless instances do not
 // share this map, so it bounds a single attacker on a single warm instance
 // rather than a distributed one. It is deliberately cheap: the authoritative
