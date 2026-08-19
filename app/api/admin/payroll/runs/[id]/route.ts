@@ -68,8 +68,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // Verify run belongs to school and get current status
   const { data: run } = await supabaseAdmin
-    .from('payroll_runs').select('id, status').eq('id', id).eq('school_id', ctx.schoolId).single();
+    .from('payroll_runs').select('id, status, created_by').eq('id', id).eq('school_id', ctx.schoolId).single();
   if (!run) return NextResponse.json({ error: 'Run not found' }, { status: 404 });
+
+  // Segregation of duties: Creator cannot approve their own payroll run
+  if (action === 'approve' && run.created_by === ctx.userId) {
+    return NextResponse.json({ error: 'Segregation of duties: Creator cannot approve their own payroll run' }, { status: 403 });
+  }
 
   if (!rule.from.includes(run.status)) {
     return NextResponse.json({ error: `Cannot ${action} a run in ${run.status} state` }, { status: 409 });
