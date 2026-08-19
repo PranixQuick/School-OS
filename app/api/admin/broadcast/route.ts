@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     type: 'broadcast',
     title: body.subject.trim(),
     message: body.message.trim(),
-    module: 'announcement',
+    module: 'broadcast',
   });
 
   if (!result.ok) {
