@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aariaSpeak, AariaClientError } from "@/lib/aaria-client";
+import { getSession } from "@/lib/auth";
 
 // ── Aaria visual-companion slice (additive) ──────────────────────────────────
 // Standalone TTS + visual-companion endpoint. Takes a short confirmation
