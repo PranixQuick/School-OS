@@ -22,6 +22,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!['owner', 'admin', 'principal', 'admin_staff', 'hostel_admin'].includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   let body: { records?: { student_id: string; present: boolean; check_type: string; date: string }[] } | null = null;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   if (!body?.records?.length) return NextResponse.json({ error: 'records required' }, { status: 400 });
