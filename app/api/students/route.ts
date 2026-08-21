@@ -50,6 +50,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return noSession();
+  if (!['owner', 'admin', 'principal', 'admin_staff'].includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   const schoolId = session.schoolId;
 
   const body = await req.json().catch(() => null) as {
@@ -123,6 +126,9 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return noSession();
+  if (!['owner', 'admin', 'principal', 'admin_staff'].includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   const schoolId = session.schoolId;
 
   const body = await req.json().catch(() => null) as {
@@ -171,6 +177,9 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return noSession();
+  if (!['owner', 'admin', 'principal', 'admin_staff'].includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   const schoolId = session.schoolId;
 
   const body = await req.json().catch(() => null) as { id: string } | null;

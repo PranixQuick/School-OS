@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { getSchoolId } from '@/lib/getSchoolId';
+import { getSession } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const schoolId = await getSchoolId(req);
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+    if (!['owner', 'admin'].includes(session.userRole)) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+    }
+    const schoolId = session.schoolId;
     const { requested_plan, message } = await req.json() as { requested_plan: string; message?: string };
 
     if (!requested_plan) {

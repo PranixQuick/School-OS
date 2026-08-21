@@ -59,7 +59,7 @@ function createMockFormData(filename: string, content: string, size?: number) {
 describe('Student CSV Import Chaos Certification Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetSession.mockResolvedValue({ schoolId: 'school-123' });
+    mockGetSession.mockResolvedValue({ schoolId: 'school-123', userRole: 'admin' });
     mockGetInstitutionForSchool.mockResolvedValue({
       institution_id: 'inst-123',
       academic_year_id: 'year-2026',
@@ -74,6 +74,13 @@ describe('Student CSV Import Chaos Certification Tests', () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('No session');
+  });
+
+  it('rejects when role lacks import permission (D-11)', async () => {
+    mockGetSession.mockResolvedValue({ schoolId: 'school-123', userRole: 'teacher' });
+    const req = new NextRequest('http://localhost/api/import/students', { method: 'POST' });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
   });
 
   it('rejects when CSV file is missing', async () => {
