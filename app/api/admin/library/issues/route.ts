@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!['owner', 'admin', 'principal', 'admin_staff', 'librarian'].includes(session.userRole)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   let body: { id?: string } | null = null;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   if (!body?.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
