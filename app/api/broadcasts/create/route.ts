@@ -53,7 +53,7 @@ interface FeeRow {
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
-  if (!['owner', 'admin', 'principal', 'teacher'].includes(session.role)) {
+  if (!['owner', 'admin', 'principal', 'teacher'].includes(session.userRole)) {
     return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
   }
   const schoolId = session.schoolId;
