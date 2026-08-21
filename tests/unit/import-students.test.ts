@@ -59,7 +59,7 @@ function createMockFormData(filename: string, content: string, size?: number) {
 describe('Student CSV Import Chaos Certification Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetSession.mockResolvedValue({ schoolId: 'school-123' });
+    mockGetSession.mockResolvedValue({ schoolId: 'school-123', userRole: 'admin' });
     mockGetInstitutionForSchool.mockResolvedValue({
       institution_id: 'inst-123',
       academic_year_id: 'year-2026',
