@@ -29,6 +29,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
+  if (!['owner', 'admin', 'principal', 'teacher', 'admin_staff'].includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+  }
   const schoolId = session.schoolId;
   try {
     const body = await req.json() as { staff_id: string; date: string; status: string; check_in_time?: string; notes?: string; marked_via?: string; };
