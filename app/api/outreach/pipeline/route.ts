@@ -68,6 +68,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json()
     const { schoolId, sendReal } = body
