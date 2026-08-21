@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { targetSchools } from '@/lib/outreach/schools'
 import { outreachTemplates } from '@/lib/outreach/templates'
+import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
