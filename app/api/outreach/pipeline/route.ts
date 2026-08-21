@@ -4,6 +4,11 @@ import { outreachTemplates } from '@/lib/outreach/templates'
 import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const dryRun = searchParams.get('dryRun') !== 'false'
