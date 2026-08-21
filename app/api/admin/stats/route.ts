@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   // could forge `x-user-email: <super admin>` and read cross-school stats.
   // Authorize from the verified session instead (getTenantContext -> getSession).
   const ctx = await getTenantContext(req);
-  if (!ctx || (!isSuperAdmin(ctx.email) && ctx.email !== SUPER_ADMIN_EMAIL)) {
+  if (!ctx || !isSuperAdmin(ctx.email)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
