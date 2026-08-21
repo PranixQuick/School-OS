@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
-  if (!['owner', 'admin', 'principal', 'teacher', 'admin_staff'].includes(session.role)) {
+  if (!['owner', 'admin', 'principal', 'teacher', 'admin_staff'].includes(session.userRole)) {
     return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
   }
   const schoolId = session.schoolId;
