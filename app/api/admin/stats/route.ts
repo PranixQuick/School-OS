@@ -3,10 +3,6 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getTenantContext } from '@/lib/tenancy';
 import { isSuperAdmin } from '@/lib/authz';
 
-// Legacy allow-listed super-admin address (kept so the existing super-admin
-// account is not locked out alongside the canonical @pranixailabs.com domain).
-const SUPER_ADMIN_EMAIL = 'pranixailabs@gmail.com';
-
 export async function GET(req: NextRequest) {
   // SEC-W0-14: previously this authorized on the `x-user-email` request header,
   // which the middleware neither sets nor strips — i.e. an unauthenticated caller
