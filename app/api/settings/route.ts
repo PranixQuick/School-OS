@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getSession(req);
     if (!session) return NextResponse.json({ error: 'No session' }, { status: 401 });
-    if (!['owner', 'admin'].includes(session.role)) {
+    if (!['owner', 'admin'].includes(session.userRole)) {
       return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
     }
     const schoolId = session.schoolId;
