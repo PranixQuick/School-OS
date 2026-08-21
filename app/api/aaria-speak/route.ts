@@ -24,6 +24,11 @@ export const dynamic = "force-dynamic";
 const MAX_TEXT_LENGTH = 500;
 
 export async function POST(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json().catch(() => null);
     const text = typeof body?.text === "string" ? body.text.trim() : "";
