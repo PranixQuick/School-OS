@@ -76,6 +76,13 @@ describe('Student CSV Import Chaos Certification Tests', () => {
     expect(body.error).toBe('No session');
   });
 
+  it('rejects when role lacks import permission (D-11)', async () => {
+    mockGetSession.mockResolvedValue({ schoolId: 'school-123', userRole: 'teacher' });
+    const req = new NextRequest('http://localhost/api/import/students', { method: 'POST' });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+  });
+
   it('rejects when CSV file is missing', async () => {
     const req = new NextRequest('http://localhost/api/import/students', {
       method: 'POST',
