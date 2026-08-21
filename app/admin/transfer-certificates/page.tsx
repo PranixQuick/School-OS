@@ -59,7 +59,7 @@ export default function TransferCertificatesPage() {
         : `/api/admin/transfer-certificates?status=${statusFilter}`;
       const res = await fetch(url);
       if (res.ok) { const d = await res.json(); setTcs(d.transfer_certificates ?? []); }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to load TCs:', e); }
     setLoading(false);
   }, [statusFilter]);
 
@@ -68,12 +68,30 @@ export default function TransferCertificatesPage() {
   async function updateStatus(id: string, status: string) {
     setActionId(id);
     try {
-      await fetch('/api/admin/transfer-certificates', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
-      });
+      let res: Response;
+      if (status === 'issued') {
+        res = await fetch(`/api/admin/transfer-certificates/${id}/issue`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        res = await fetch(`/api/admin/transfer-certificates/${id}/review`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: status === 'approved' ? 'approve' : 'reject',
+            ...(status === 'rejected' ? { rejection_reason: 'Administrative rejection' } : {}),
+          }),
+        });
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Action failed' }));
+        console.error('TC status update failed:', errData);
+      }
       await loadTcs();
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error('TC status update network error:', e);
+    }
     setActionId(null);
   }
 
