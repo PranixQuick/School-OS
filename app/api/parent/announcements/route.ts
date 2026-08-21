@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       .from('announcements')
       .select('id, title, message, target_classes, target_audience, scheduled_at, sent_at, created_at')
       .eq('school_id', schoolId)
-      .contains('target_audience', ['parent'])
+      .or('target_audience.cs.{parent},target_audience.cs.{parents}')
       .order('scheduled_at', { ascending: false })
       .limit(limit);
 

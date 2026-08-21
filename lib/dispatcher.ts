@@ -70,8 +70,8 @@ async function getRecipients(notification: NotificationRow): Promise<{
     return { phones, emails };
   }
 
-  // For risk/alert/system — target school admin users (email only)
-  if (notification.type === 'risk' || notification.type === 'alert' || notification.type === 'system') {
+  // For risk/alert/system/leave_status — target school admin/principal users (email only, not parents)
+  if (notification.type === 'risk' || notification.type === 'alert' || notification.type === 'system' || notification.type === 'leave_status') {
     const { data } = await supabaseAdmin
       .from('school_users')
       .select('email')
@@ -83,6 +83,25 @@ async function getRecipients(notification: NotificationRow): Promise<{
       if (user.email) emails.push(user.email);
     }
     return { phones: [], emails };
+  }
+
+  // For homework_assigned — target parents for the specific student/class or all parents
+  if (notification.type === 'homework_assigned') {
+    const { data } = await supabaseAdmin
+      .from('parents')
+      .select('phone, email, language_pref')
+      .eq('school_id', notification.school_id)
+      .limit(200);
+
+    for (const parent of data ?? []) {
+      const phone = normalisePhone(parent.phone);
+      if (phone) {
+        const lp = isLang(parent.language_pref) ? parent.language_pref : 'en';
+        phones.push({ phone, language_pref: lp });
+      }
+      if (parent.email) emails.push(parent.email);
+    }
+    return { phones, emails };
   }
 
   // For broadcast / homework_due / attendance_alert etc — target all parents
